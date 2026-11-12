@@ -12,7 +12,7 @@ import {
   DashboardRecentActivityItem,
   getDashboardDateRange,
 } from "./dashboard.schema";
-import { getInventoryStockLevels, getInventoryValuationSummary } from "@/modules/inventory/inventory.service";
+import { getInventoryStockLevels } from "@/modules/inventory/inventory.service";
 
 /**
  * Enterprise Live Dashboard & Business Overview Service
