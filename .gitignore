@@ -1,0 +1,64 @@
+# AquaTrack ERP - .gitignore
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/cache
+
+# Environment variables & secrets (CRITICAL: Never commit secrets)
+.env
+.env*.local
+.env.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Next.js build output
+/.next/
+/out/
+
+# Production build artifacts
+/build
+/dist
+
+# Supabase local config & secrets
+/.supabase/local-env
+/supabase/.temp
+
+# Testing & Coverage
+/coverage/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary, scratch & archives
+*.zip
+*.tsbuildinfo
+scratch/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
