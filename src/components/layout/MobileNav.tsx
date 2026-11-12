@@ -23,9 +23,14 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const [userName, setUserName] = React.useState<string>("Staff User");
   const [userRole, setUserRole] = React.useState<string>("staff");
 
-  // Close when pathname changes
+  const prevPathnameRef = React.useRef(pathname);
+
+  // Close only when navigation actually changes
   React.useEffect(() => {
-    onClose();
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname;
+      onClose();
+    }
   }, [pathname, onClose]);
 
   // Load business logo & user info
@@ -112,7 +117,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex md:hidden">
+    <div className="fixed inset-0 z-50 flex md:hidden" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-background/80 backdrop-blur-xs transition-opacity animate-in fade-in"
@@ -121,7 +126,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
       />
 
       {/* Drawer */}
-      <div className="relative flex w-full max-w-xs flex-1 flex-col bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200 safe-area-bottom">
+      <div className="relative z-10 flex w-full max-w-xs flex-1 flex-col bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200 safe-area-bottom">
         {/* Header with Branding */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-border">
           <Link href="/dashboard" onClick={onClose} className="flex items-center gap-2.5 min-w-0">

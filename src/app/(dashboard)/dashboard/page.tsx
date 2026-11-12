@@ -19,13 +19,13 @@ import {
   TrendingUp,
   CheckCircle2,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { DataTable } from "@/components/ui/DataTable";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { RevenueChart } from "@/components/charts/RevenueChart";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { getDashboardSummary } from "@/modules/dashboard/dashboard.service";
@@ -34,6 +34,18 @@ import {
   DashboardRecentActivityItem,
   DashboardSummaryData,
 } from "@/modules/dashboard/dashboard.schema";
+
+const RevenueChart = dynamic(
+  () => import("@/components/charts/RevenueChart").then((m) => m.RevenueChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[280px] w-full flex items-center justify-center bg-muted/20 rounded-lg animate-pulse text-xs text-muted-foreground">
+        Loading chart visualization...
+      </div>
+    ),
+  }
+);
 
 export default function DashboardPage() {
   const [dateRange, setDateRange] = React.useState<DashboardDateRangeType>("today");

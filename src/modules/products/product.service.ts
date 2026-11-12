@@ -90,7 +90,27 @@ export async function getPublicProductCatalog(params?: {
     const { data, error } = await query.order("name", { ascending: true });
 
     if (error) {
-      return { success: false, error: error.message };
+      // Graceful fallback to products table if customer_product_catalog view is missing
+      let fallbackQuery = supabase
+        .from("products")
+        .select("id, sku, name, category, unit_of_measure, default_sale_price, deposit_amount, hsn_code, gst_rate, cgst_rate, sgst_rate, igst_rate, cess_rate, is_reusable_jar, is_active, created_at, updated_at")
+        .eq("is_active", true);
+
+      if (params?.category) {
+        fallbackQuery = fallbackQuery.eq("category", params.category);
+      }
+      if (params?.isReusableJar !== undefined) {
+        fallbackQuery = fallbackQuery.eq("is_reusable_jar", params.isReusableJar);
+      }
+      if (params?.search) {
+        fallbackQuery = fallbackQuery.or(`name.ilike.%${params.search}%,sku.ilike.%${params.search}%`);
+      }
+
+      const fallbackRes = await fallbackQuery.order("name", { ascending: true });
+      if (fallbackRes.error) {
+        return { success: false, error: fallbackRes.error.message };
+      }
+      return { success: true, data: (fallbackRes.data || []) as PublicProductRecord[] };
     }
 
     return { success: true, data: (data || []) as PublicProductRecord[] };

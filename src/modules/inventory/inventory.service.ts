@@ -42,7 +42,7 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
     // 2. Fetch products list
     const { data: products, error: prodError } = await supabase
       .from("products")
-      .select("id, sku, name, category, unit_of_measure, cost_price, is_reusable_jar, is_active")
+      .select("id, sku, name, category, unit_of_measure, cost_price, is_reusable_jar, is_active, reorder_level")
       .eq("is_active", true)
       .order("name", { ascending: true });
 

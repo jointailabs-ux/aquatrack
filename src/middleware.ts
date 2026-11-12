@@ -107,14 +107,30 @@ export async function middleware(request: NextRequest) {
     );
 
     if (isOwnerRoute) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (profile?.role !== "owner") {
+      // Check user metadata first to avoid redundant database calls
+      const metaRole = (user.user_metadata?.role || user.app_metadata?.role) as string | undefined;
+      if (metaRole === "owner") {
+        return response;
+      }
+      if (metaRole && metaRole !== "owner") {
         return NextResponse.redirect(new URL("/forbidden", request.url));
+      }
+
+      // Bypass extra database roundtrip on prefetch requests to keep page transitions fast
+      const isPrefetch =
+        request.headers.get("x-middleware-prefetch") === "1" ||
+        request.headers.get("purpose") === "prefetch";
+
+      if (!isPrefetch) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profile?.role !== "owner") {
+          return NextResponse.redirect(new URL("/forbidden", request.url));
+        }
       }
     }
   }

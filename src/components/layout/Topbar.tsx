@@ -33,11 +33,12 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
       {/* Left: Mobile trigger & Breadcrumbs / Active Title */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
+          type="button"
           onClick={onOpenMobileNav}
-          className="flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground md:hidden transition-colors touch-manipulation"
+          className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground active:scale-95 md:hidden transition-all touch-manipulation cursor-pointer"
           aria-label="Open navigation menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </button>
 
         {/* Desktop Breadcrumbs */}

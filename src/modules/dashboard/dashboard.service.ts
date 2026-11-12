@@ -37,11 +37,81 @@ export async function getDashboardSummary(
     const startIso = `${startDate}T00:00:00.000Z`;
     const endIso = `${endDate}T23:59:59.999Z`;
 
-    // 1. Balance Sheet: Customers (Active count, Cumulative Receivables, Overdue list)
-    const { data: customers } = await supabase
-      .from("customers")
-      .select("id, name, phone, current_balance, is_active")
-      .order("current_balance", { ascending: false });
+    // Parallel execution of all independent balance-sheet and period queries
+    const [
+      customersResult,
+      suppliersResult,
+      stockLevelsRes,
+      allActiveOrdersResult,
+      periodOrdersResult,
+      periodStopsResult,
+      posSalesResult,
+      customerPaymentsResult,
+      expensesResult,
+    ] = await Promise.all([
+      // 1. Balance Sheet: Customers (Active count, Cumulative Receivables, Overdue list)
+      supabase
+        .from("customers")
+        .select("id, contact_name, business_name, phone, current_balance, is_active")
+        .order("current_balance", { ascending: false }),
+
+      // 2. Balance Sheet: Suppliers (Cumulative Accounts Payable)
+      supabase
+        .from("suppliers")
+        .select("id, name, current_payable"),
+
+      // 3. Inventory Stock Summary & Levels (single pass)
+      getInventoryStockLevels(),
+
+      // 4A. All Active / Pending Orders for operational alerts & dispatch metrics
+      supabase
+        .from("orders")
+        .select("id, order_number, status, total_amount, delivery_date")
+        .in("status", ["PENDING", "CONFIRMED", "ASSIGNED", "OUT_FOR_DELIVERY"]),
+
+      // 4B. Orders within the selected period (by delivery_date or created_at)
+      supabase
+        .from("orders")
+        .select("id, order_number, customer_id, customer:customers(contact_name, business_name), subtotal, tax_total, total_amount, status, delivery_date, created_at")
+        .or(`and(delivery_date.gte.${startDate},delivery_date.lte.${endDate}),and(created_at.gte.${startIso},created_at.lte.${endIso})`),
+
+      // 5. Delivery Stops in selected period
+      supabase
+        .from("delivery_stops")
+        .select("id, order_id, order:orders(order_number, customer:customers(contact_name, business_name)), status, actual_delivered_quantity, payment_collected, payment_method, executed_at, created_at")
+        .gte("created_at", startIso)
+        .lte("created_at", endIso),
+
+      // 6. POS Sales in selected period
+      supabase
+        .from("pos_sales")
+        .select("id, receipt_number, subtotal, tax_total, total_amount, payment_method, created_at")
+        .gte("created_at", startIso)
+        .lte("created_at", endIso),
+
+      // 7. Customer Payments in selected period
+      supabase
+        .from("customer_payments")
+        .select("id, payment_number, customer_id, customer:customers(contact_name, business_name), amount, payment_method, payment_date, created_at")
+        .gte("payment_date", startDate)
+        .lte("payment_date", endDate),
+
+      // 8. Operating Expenses in selected period
+      supabase
+        .from("expenses")
+        .select("id, voucher_number, category, amount, payment_method, expense_date, description, created_at")
+        .gte("expense_date", startDate)
+        .lte("expense_date", endDate),
+    ]);
+
+    const customers = customersResult.data;
+    const suppliers = suppliersResult.data;
+    const allActiveOrders = allActiveOrdersResult.data;
+    const periodOrders = periodOrdersResult.data;
+    const periodStops = periodStopsResult.data;
+    const posSales = posSalesResult.data;
+    const customerPayments = customerPaymentsResult.data;
+    const expenses = expensesResult.data;
 
     let activeCustomersCount = 0;
     let totalReceivables = 0;
@@ -52,14 +122,10 @@ export async function getDashboardSummary(
       const bal = Number(c.current_balance || 0);
       if (bal > 0) {
         totalReceivables += bal;
-        overdueCustomers.push({ id: c.id, name: c.name, balance: bal });
+        const displayName = c.business_name ? `${c.business_name} (${c.contact_name})` : c.contact_name;
+        overdueCustomers.push({ id: c.id, name: displayName, balance: bal });
       }
     });
-
-    // 2. Balance Sheet: Suppliers (Cumulative Accounts Payable)
-    const { data: suppliers } = await supabase
-      .from("suppliers")
-      .select("id, name, current_payable");
 
     let accountsPayable = 0;
     (suppliers || []).forEach((s) => {
@@ -76,34 +142,26 @@ export async function getDashboardSummary(
     };
     let lowStockProducts: { id: string; name: string; available: number; reorder: number }[] = [];
 
-    const valuationRes = await getInventoryValuationSummary();
-    if (valuationRes.success && valuationRes.data) {
-      inventorySummary = {
-        totalProducts: valuationRes.data.total_distinct_products,
-        totalUnits: valuationRes.data.total_units_in_warehouse,
-        totalValuation: valuationRes.data.total_inventory_valuation,
-        lowStockCount: valuationRes.data.low_stock_items_count,
-      };
-    }
-
-    const stockLevelsRes = await getInventoryStockLevels();
     if (stockLevelsRes.success && stockLevelsRes.data) {
-      lowStockProducts = stockLevelsRes.data
-        .filter((item) => item.available_stock <= item.reorder_level)
-        .map((i) => ({
-          id: i.product_id,
-          name: i.name,
-          available: i.available_stock,
-          reorder: i.reorder_level,
-        }));
-    }
+      const items = stockLevelsRes.data;
+      const totalUnits = items.reduce((sum, item) => sum + item.current_stock, 0);
+      const totalValuation = items.reduce((sum, item) => sum + item.valuation, 0);
+      const lowStockItems = items.filter((item) => item.available_stock <= item.reorder_level);
 
-    // 4. Orders Query
-    // A) All Active / Pending Orders for operational alerts & dispatch metrics
-    const { data: allActiveOrders } = await supabase
-      .from("orders")
-      .select("id, order_number, status, total_amount, delivery_date")
-      .in("status", ["PENDING", "CONFIRMED", "ASSIGNED", "OUT_FOR_DELIVERY"]);
+      inventorySummary = {
+        totalProducts: items.length,
+        totalUnits,
+        totalValuation,
+        lowStockCount: lowStockItems.length,
+      };
+
+      lowStockProducts = lowStockItems.map((i) => ({
+        id: i.product_id,
+        name: i.name,
+        available: i.available_stock,
+        reorder: i.reorder_level,
+      }));
+    }
 
     const pendingOrdersCount = (allActiveOrders || []).filter(
       (o) => o.status === "PENDING" || o.status === "CONFIRMED"
@@ -112,12 +170,6 @@ export async function getDashboardSummary(
     const awaitingDeliveryCount = (allActiveOrders || []).filter(
       (o) => o.status === "ASSIGNED" || o.status === "OUT_FOR_DELIVERY"
     ).length;
-
-    // B) Orders within the selected period (by delivery_date or created_at)
-    const { data: periodOrders } = await supabase
-      .from("orders")
-      .select("id, order_number, customer_id, customer:customers(name), subtotal, tax_total, total_amount, status, delivery_date, created_at")
-      .or(`and(delivery_date.gte.${startDate},delivery_date.lte.${endDate}),and(created_at.gte.${startIso},created_at.lte.${endIso})`);
 
     let orderCount = 0;
     let orderRevenue = 0;
@@ -133,13 +185,6 @@ export async function getDashboardSummary(
       }
     });
 
-    // 5. Delivery Stops in selected period
-    const { data: periodStops } = await supabase
-      .from("delivery_stops")
-      .select("id, order_id, order:orders(order_number, customer:customers(name)), status, actual_delivered_quantity, payment_collected, payment_method, executed_at, created_at")
-      .gte("created_at", startIso)
-      .lte("created_at", endIso);
-
     let completedDeliveries = 0;
     let deliveryStopCash = 0;
     let deliveryStopUpi = 0;
@@ -152,13 +197,6 @@ export async function getDashboardSummary(
         else if (stop.payment_method === "UPI") deliveryStopUpi += pmt;
       }
     });
-
-    // 6. POS Sales in selected period
-    const { data: posSales } = await supabase
-      .from("pos_sales")
-      .select("id, sale_number, subtotal, tax_total, total_amount, payment_method, created_at")
-      .gte("created_at", startIso)
-      .lte("created_at", endIso);
 
     let posSalesCount = 0;
     let posSalesTotal = 0;
@@ -178,13 +216,6 @@ export async function getDashboardSummary(
       else if (pos.payment_method === "UPI") posUpi += tot;
     });
 
-    // 7. Customer Payments in selected period
-    const { data: customerPayments } = await supabase
-      .from("customer_payments")
-      .select("id, payment_number, customer_id, customer:customers(name), amount, payment_method, payment_date, created_at")
-      .gte("payment_date", startDate)
-      .lte("payment_date", endDate);
-
     let customerPayCash = 0;
     let customerPayUpi = 0;
 
@@ -199,13 +230,6 @@ export async function getDashboardSummary(
     const upiBankCollections = customerPayUpi + posUpi + deliveryStopUpi;
     const totalCollections = cashCollections + upiBankCollections;
 
-    // 8. Operating Expenses in selected period
-    const { data: expenses } = await supabase
-      .from("expenses")
-      .select("id, voucher_number, category, amount, payment_method, expense_date, description, created_at")
-      .gte("expense_date", startDate)
-      .lte("expense_date", endDate);
-
     let expensesTotal = 0;
     (expenses || []).forEach((e) => {
       expensesTotal += Number(e.amount || 0);
@@ -214,41 +238,38 @@ export async function getDashboardSummary(
     // 9. Cost of Goods Sold (COGS) Calculation for true dual-entry Gross & Net Profit
     let costOfGoodsSold = 0;
 
-    if (periodOrderIds.length > 0) {
-      const { data: orderItems } = await supabase
-        .from("order_items")
-        .select("quantity, product:products(cost_price)")
-        .in("order_id", periodOrderIds);
+    // Fetch items for COGS in parallel
+    const [orderItemsRes, posItemsRes] = await Promise.all([
+      periodOrderIds.length > 0
+        ? supabase
+            .from("order_items")
+            .select("quantity, product:products(cost_price)")
+            .in("order_id", periodOrderIds)
+        : Promise.resolve({ data: [] }),
+      posSaleIds.length > 0
+        ? supabase
+            .from("pos_sale_items")
+            .select("quantity, product:products(cost_price)")
+            .in("sale_id", posSaleIds)
+        : Promise.resolve({ data: [] }),
+    ]);
 
-      interface ItemCost {
-        quantity: number | string;
-        product?: { cost_price: number | string } | null;
-      }
-
-      ((orderItems || []) as unknown as ItemCost[]).forEach((it) => {
-        const qty = Number(it.quantity || 0);
-        const cost = Number(it.product?.cost_price || 0);
-        costOfGoodsSold += qty * cost;
-      });
+    interface ItemCost {
+      quantity: number | string;
+      product?: { cost_price: number | string } | null;
     }
 
-    if (posSaleIds.length > 0) {
-      const { data: posItems } = await supabase
-        .from("pos_sale_items")
-        .select("quantity, product:products(cost_price)")
-        .in("sale_id", posSaleIds);
+    ((orderItemsRes.data || []) as unknown as ItemCost[]).forEach((it) => {
+      const qty = Number(it.quantity || 0);
+      const cost = Number(it.product?.cost_price || 0);
+      costOfGoodsSold += qty * cost;
+    });
 
-      interface ItemCost {
-        quantity: number | string;
-        product?: { cost_price: number | string } | null;
-      }
-
-      ((posItems || []) as unknown as ItemCost[]).forEach((it) => {
-        const qty = Number(it.quantity || 0);
-        const cost = Number(it.product?.cost_price || 0);
-        costOfGoodsSold += qty * cost;
-      });
-    }
+    ((posItemsRes.data || []) as unknown as ItemCost[]).forEach((it) => {
+      const qty = Number(it.quantity || 0);
+      const cost = Number(it.product?.cost_price || 0);
+      costOfGoodsSold += qty * cost;
+    });
 
     const salesRevenue = orderSubtotalNet + posSubtotalNet;
     const grossProfit = salesRevenue - costOfGoodsSold;
@@ -355,9 +376,11 @@ export async function getDashboardSummary(
       .slice(0, 5)
       .forEach((ord) => {
         interface CustomerJoin {
-          name?: string;
+          contact_name?: string;
+          business_name?: string;
         }
-        const custName = (ord.customer as unknown as CustomerJoin)?.name || "Customer";
+        const cust = ord.customer as unknown as CustomerJoin;
+        const custName = cust?.business_name || cust?.contact_name || "Customer";
         recentActivity.push({
           id: `ord-${ord.id}`,
           reference: ord.order_number,
@@ -379,13 +402,14 @@ export async function getDashboardSummary(
       .forEach((stop) => {
         interface StopOrderJoin {
           order_number?: string;
-          customer?: { name?: string };
+          customer?: { contact_name?: string; business_name?: string };
         }
         const stopOrder = stop.order as unknown as StopOrderJoin;
+        const partyName = stopOrder?.customer?.business_name || stopOrder?.customer?.contact_name || "Delivery Customer";
         recentActivity.push({
           id: `stop-${stop.id}`,
           reference: stopOrder?.order_number || "STOP",
-          party: stopOrder?.customer?.name || "Delivery Customer",
+          party: partyName,
           type: "DELIVERY",
           typeLabel: "Delivery Completed",
           amount: Number(stop.payment_collected || 0),
@@ -401,12 +425,15 @@ export async function getDashboardSummary(
       .slice(0, 5)
       .forEach((cp) => {
         interface CustJoin {
-          name?: string;
+          contact_name?: string;
+          business_name?: string;
         }
+        const cust = cp.customer as unknown as CustJoin;
+        const partyName = cust?.business_name || cust?.contact_name || "Customer";
         recentActivity.push({
           id: `cp-${cp.id}`,
           reference: cp.payment_number,
-          party: (cp.customer as unknown as CustJoin)?.name || "Customer",
+          party: partyName,
           type: "CUSTOMER_PAYMENT",
           typeLabel: `Collection (${cp.payment_method})`,
           amount: Number(cp.amount || 0),
@@ -423,7 +450,7 @@ export async function getDashboardSummary(
       .forEach((pos) => {
         recentActivity.push({
           id: `pos-${pos.id}`,
-          reference: pos.sale_number,
+          reference: pos.receipt_number || "POS",
           party: "Counter Walk-in Sale",
           type: "POS_SALE",
           typeLabel: `POS Sale (${pos.payment_method})`,
