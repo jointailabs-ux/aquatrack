@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Plus,
   Search,
@@ -552,186 +553,315 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Orders List Table */}
-      <Card className="border-border shadow-xs">
-        <CardContent className="p-0">
-          {isLoading ? (
-            <LoadingState message="Loading live orders and route dispatch status..." />
-          ) : loadError ? (
-            <ErrorState message={loadError} onRetry={loadData} />
-          ) : filteredOrders.length === 0 ? (
-            <EmptyState
-              icon={ShoppingCart}
-              title="No orders found"
-              description={
-                searchQuery || statusFilter !== "ALL"
-                  ? "No customer orders matched your search or status filter."
-                  : "No orders have been dispatched yet. Click 'Create Order' to start delivering."
-              }
-              actionLabel={searchQuery || statusFilter !== "ALL" ? "Clear Filters" : "Create Order"}
-              onAction={() => {
-                if (searchQuery || statusFilter !== "ALL") {
-                  setSearchQuery("");
-                  setStatusFilter("ALL");
-                } else {
-                  openCreateModal();
-                }
-              }}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/40 text-muted-foreground border-b border-border">
-                  <tr>
-                    <th className="py-3 px-4 font-semibold">Order #</th>
-                    <th className="py-3 px-4 font-semibold">Customer</th>
-                    <th className="py-3 px-4 font-semibold">Delivery Date & Route</th>
-                    <th className="py-3 px-4 font-semibold">Assigned Staff</th>
-                    <th className="py-3 px-4 font-semibold">Products Ordered</th>
-                    <th className="py-3 px-4 font-semibold text-right">Invoiced Total</th>
-                    <th className="py-3 px-4 font-semibold text-center">Delivery Status</th>
-                    <th className="py-3 px-4 font-semibold text-center">Payment</th>
-                    <th className="py-3 px-4 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {filteredOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-muted/20 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-foreground whitespace-nowrap">
+      {/* Orders List Content: Mobile Cards + Desktop Table */}
+      {isLoading ? (
+        <LoadingState message="Loading live orders and route dispatch status..." />
+      ) : loadError ? (
+        <ErrorState message={loadError} onRetry={loadData} />
+      ) : filteredOrders.length === 0 ? (
+        <EmptyState
+          icon={ShoppingCart}
+          title="No orders found"
+          description={
+            searchQuery || statusFilter !== "ALL"
+              ? "No customer orders matched your search or status filter."
+              : "No orders have been dispatched yet. Click 'Create Order' to start delivering."
+          }
+          actionLabel={searchQuery || statusFilter !== "ALL" ? "Clear Filters" : "Create Order"}
+          onAction={() => {
+            if (searchQuery || statusFilter !== "ALL") {
+              setSearchQuery("");
+              setStatusFilter("ALL");
+            } else {
+              openCreateModal();
+            }
+          }}
+        />
+      ) : (
+        <>
+          {/* Mobile Card View (md:hidden) */}
+          <div className="space-y-3 md:hidden">
+            {filteredOrders.map((o) => {
+              const totalItems = o.items ? o.items.reduce((sum, it) => sum + it.quantity, 0) : 0;
+              const isDelivered = o.status === "DELIVERED";
+              const isCancelled = o.status === "CANCELLED";
+
+              return (
+                <div
+                  key={o.id}
+                  className="rounded-2xl border border-border/80 bg-card p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-3 touch-manipulation"
+                >
+                  {/* Top Bar: Identifier + Status Badges + Price */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono font-bold text-xs text-foreground">
                         {o.order_number}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-foreground block">
-                          {o.customer_name || "Customer"}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">{o.customer_phone}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-semibold text-foreground block">{o.delivery_date}</span>
-                        <span
-                          className="text-[11px] text-muted-foreground truncate block max-w-xs"
-                          title={o.delivery_address}
-                        >
-                          {o.delivery_address}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      </span>
+                      <Badge
+                        variant={
+                          isDelivered
+                            ? "success"
+                            : isCancelled
+                            ? "destructive"
+                            : o.status === "PENDING"
+                            ? "warning"
+                            : "secondary"
+                        }
+                        className="text-[9px] py-0 px-1.5"
+                      >
+                        {o.status.replace(/_/g, " ")}
+                      </Badge>
+                      <Badge
+                        variant={o.payment_status === "PAID" ? "success" : "outline"}
+                        className="text-[9px] py-0 px-1.5"
+                      >
+                        {o.payment_status}
+                      </Badge>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="font-black text-sm text-primary block">
+                        {formatCurrency(o.total_amount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Customer & Route */}
+                  <div>
+                    <h4 className="font-bold text-sm text-foreground leading-snug">
+                      {o.customer_name || "Customer"}
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                      {o.delivery_date} • {o.delivery_address}
+                    </p>
+                  </div>
+
+                  {/* Operational Summary Grid */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-medium block">
+                        Assigned Driver
+                      </span>
+                      <span className="font-semibold text-foreground truncate block">
                         {o.assigned_staff_name ? (
-                          <span className="font-medium text-foreground flex items-center gap-1.5">
-                            <Truck className="h-3.5 w-3.5 text-primary" />
+                          <span className="inline-flex items-center gap-1">
+                            <Truck className="h-3 w-3 text-primary shrink-0" />
                             {o.assigned_staff_name}
                           </span>
                         ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 text-amber-500 border-amber-500/30"
-                          >
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
                             Unassigned
-                          </Badge>
+                          </span>
                         )}
-                      </td>
-                      <td className="py-3 px-4 max-w-xs">
-                        <div className="space-y-0.5">
-                          {o.items && o.items.length > 0 ? (
-                            o.items.map((i, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-1.5 text-[11px] text-foreground font-medium"
-                              >
-                                <span className="inline-block w-6 text-right font-bold text-primary">
-                                  {i.quantity}×
-                                </span>
-                                <span className="truncate">{i.product_name}</span>
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground italic">No item details</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right font-extrabold text-foreground whitespace-nowrap">
-                        {formatCurrency(o.total_amount)}
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        {o.status === "DELIVERED" ? (
-                          <Badge variant="success" className="text-[10px] py-0">
-                            Delivered
-                          </Badge>
-                        ) : o.status === "PARTIALLY_DELIVERED" ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 text-amber-500 border-amber-500/30"
-                          >
-                            Partially Delivered
-                          </Badge>
-                        ) : o.status === "OUT_FOR_DELIVERY" ? (
-                          <Badge variant="primary" className="text-[10px] py-0">
-                            Out on Route
-                          </Badge>
-                        ) : o.status === "ASSIGNED" ? (
-                          <Badge variant="secondary" className="text-[10px] py-0">
-                            Assigned
-                          </Badge>
-                        ) : o.status === "CANCELLED" ? (
-                          <Badge variant="destructive" className="text-[10px] py-0">
-                            Cancelled
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] py-0">
-                            Pending
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        {o.payment_status === "PAID" ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 text-emerald-500 border-emerald-500/30 font-semibold"
-                          >
-                            Paid
-                          </Badge>
-                        ) : o.payment_status === "PARTIALLY_PAID" ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 text-amber-500 border-amber-500/30 font-semibold"
-                          >
-                            Partially Paid
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 text-rose-500 border-rose-500/30 font-semibold"
-                          >
-                            Unpaid
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        {canCancelOrder(o.status) ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setOrderToCancel(o);
-                              setCancelReason("");
-                            }}
-                            className="h-7 px-2 text-[11px] gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/40"
-                          >
-                            <Ban className="h-3 w-3" />
-                            Cancel
-                          </Button>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">—</span>
-                        )}
-                      </td>
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-muted-foreground font-medium block">
+                        Products ({totalItems} units)
+                      </span>
+                      <span className="font-semibold text-foreground truncate block">
+                        {o.items && o.items.length > 0
+                          ? o.items.map((i) => `${i.quantity}× ${i.product_name}`).join(", ")
+                          : "No items"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">
+                      Tel: {o.customer_phone || "N/A"}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      {canCancelOrder(o.status) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setOrderToCancel(o);
+                            setCancelReason("");
+                          }}
+                          className="h-7 text-[11px] px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                        >
+                          <Ban className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                      )}
+                      <Link href="/deliveries">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="h-7 text-[11px] px-2.5 font-semibold"
+                        >
+                          Route Stop
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <Card className="border-border shadow-xs hidden md:block">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-muted/40 text-muted-foreground border-b border-border">
+                    <tr>
+                      <th className="py-3 px-4 font-semibold">Order #</th>
+                      <th className="py-3 px-4 font-semibold">Customer</th>
+                      <th className="py-3 px-4 font-semibold">Delivery Date & Route</th>
+                      <th className="py-3 px-4 font-semibold">Assigned Staff</th>
+                      <th className="py-3 px-4 font-semibold">Products Ordered</th>
+                      <th className="py-3 px-4 font-semibold text-right">Invoiced Total</th>
+                      <th className="py-3 px-4 font-semibold text-center">Delivery Status</th>
+                      <th className="py-3 px-4 font-semibold text-center">Payment</th>
+                      <th className="py-3 px-4 font-semibold text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {filteredOrders.map((o) => (
+                      <tr key={o.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-foreground whitespace-nowrap">
+                          {o.order_number}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-bold text-foreground block">
+                            {o.customer_name || "Customer"}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">{o.customer_phone}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-semibold text-foreground block">{o.delivery_date}</span>
+                          <span
+                            className="text-[11px] text-muted-foreground truncate block max-w-xs"
+                            title={o.delivery_address}
+                          >
+                            {o.delivery_address}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {o.assigned_staff_name ? (
+                            <span className="font-medium text-foreground flex items-center gap-1.5">
+                              <Truck className="h-3.5 w-3.5 text-primary" />
+                              {o.assigned_staff_name}
+                            </span>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] py-0 text-amber-500 border-amber-500/30"
+                            >
+                              Unassigned
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 max-w-xs">
+                          <div className="space-y-0.5">
+                            {o.items && o.items.length > 0 ? (
+                              o.items.map((i, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-1.5 text-[11px] text-foreground font-medium"
+                                >
+                                  <span className="inline-block w-6 text-right font-bold text-primary">
+                                    {i.quantity}×
+                                  </span>
+                                  <span className="truncate">{i.product_name}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground italic">No item details</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-right font-extrabold text-foreground whitespace-nowrap">
+                          {formatCurrency(o.total_amount)}
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          {o.status === "DELIVERED" ? (
+                            <Badge variant="success" className="text-[10px] py-0">
+                              Delivered
+                            </Badge>
+                          ) : o.status === "PARTIALLY_DELIVERED" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] py-0 text-amber-500 border-amber-500/30"
+                            >
+                              Partially Delivered
+                            </Badge>
+                          ) : o.status === "OUT_FOR_DELIVERY" ? (
+                            <Badge variant="primary" className="text-[10px] py-0">
+                              Out on Route
+                            </Badge>
+                          ) : o.status === "ASSIGNED" ? (
+                            <Badge variant="secondary" className="text-[10px] py-0">
+                              Assigned
+                            </Badge>
+                          ) : o.status === "CANCELLED" ? (
+                            <Badge variant="destructive" className="text-[10px] py-0">
+                              Cancelled
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] py-0">
+                              Pending
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          {o.payment_status === "PAID" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] py-0 text-emerald-500 border-emerald-500/30 font-semibold"
+                            >
+                              Paid
+                            </Badge>
+                          ) : o.payment_status === "PARTIALLY_PAID" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] py-0 text-amber-500 border-amber-500/30 font-semibold"
+                            >
+                              Partially Paid
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] py-0 text-rose-500 border-rose-500/30 font-semibold"
+                            >
+                              Unpaid
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          {canCancelOrder(o.status) ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setOrderToCancel(o);
+                                setCancelReason("");
+                              }}
+                              className="h-7 px-2 text-[11px] gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/40"
+                            >
+                              <Ban className="h-3 w-3" />
+                              Cancel
+                            </Button>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* Multi-Product Create Order Dialog */}
       <Dialog

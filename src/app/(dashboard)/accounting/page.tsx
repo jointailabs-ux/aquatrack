@@ -445,11 +445,72 @@ export default function AccountingPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view chart of accounts</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Account Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {accounts.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    No chart of accounts records found.
+                  </div>
+                ) : (
+                  accounts.map((acc) => (
+                    <div key={acc.account_code} className="p-3.5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono text-xs font-bold text-foreground">
+                              {acc.account_code}
+                            </span>
+                            <Badge
+                              variant={
+                                acc.type === "ASSET"
+                                  ? "primary"
+                                  : acc.type === "LIABILITY"
+                                  ? "warning"
+                                  : acc.type === "REVENUE"
+                                  ? "success"
+                                  : acc.type === "DIRECT_COST"
+                                  ? "info"
+                                  : "secondary"
+                              }
+                              className="text-[9px] py-0"
+                            >
+                              {acc.type}
+                            </Badge>
+                          </div>
+                          <h4 className="text-xs font-semibold text-foreground mt-0.5">
+                            {acc.account_name}
+                          </h4>
+                          {acc.description && (
+                            <p className="text-[10px] text-muted-foreground line-clamp-1">
+                              {acc.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-black font-mono text-foreground block">
+                            {formatCurrency(acc.current_balance)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            Normal: {acc.normal_balance}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] bg-muted/20 p-2 rounded-lg font-mono">
+                        <span className="text-muted-foreground">
+                          Dr: <strong className="text-foreground">{formatCurrency(acc.total_debit)}</strong>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Cr: <strong className="text-foreground">{formatCurrency(acc.total_credit)}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[750px]">
                   <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                     <tr>
@@ -630,11 +691,65 @@ export default function AccountingPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view chart of accounts</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Journal Entry Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {transactions.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    No posted ledger transactions found.
+                  </div>
+                ) : (
+                  transactions.map((tx) => (
+                    <div key={tx.id} className="p-3.5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono text-xs font-bold text-foreground">
+                              {tx.entry_number}
+                            </span>
+                            {tx.is_reversal && (
+                              <Badge variant="destructive" className="text-[9px] py-0 px-1">
+                                REV
+                              </Badge>
+                            )}
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDate(tx.entry_date)}
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold text-foreground mt-0.5">
+                            <span className="font-mono text-primary font-bold mr-1">{tx.account_code}</span>
+                            {tx.account_name}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {Number(tx.debit) > 0 ? (
+                            <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400 block">
+                              Dr: {formatCurrency(tx.debit)}
+                            </span>
+                          ) : (
+                            <span className="text-xs font-black font-mono text-blue-600 dark:text-blue-400 block">
+                              Cr: {formatCurrency(tx.credit)}
+                            </span>
+                          )}
+                          {tx.reference_type && (
+                            <Badge variant="outline" className="text-[9px] py-0 font-mono">
+                              {tx.reference_type}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {tx.description && (
+                        <p className="text-[11px] text-muted-foreground bg-muted/20 p-1.5 rounded-md">
+                          {tx.description}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[750px]">
                   <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                     <tr>

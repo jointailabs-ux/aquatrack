@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
-import { MobileNav } from "@/components/layout/MobileNav";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { MoreSheet } from "@/components/layout/MoreSheet";
 
 export default function DashboardLayout({
   children,
@@ -11,18 +12,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
-  const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
+  const [isMoreSheetOpen, setIsMoreSheetOpen] = React.useState(false);
 
   const handleToggleSidebar = React.useCallback(() => {
     setIsSidebarCollapsed((prev) => !prev);
   }, []);
 
-  const handleOpenMobileNav = React.useCallback(() => {
-    setIsMobileNavOpen(true);
+  const handleOpenMore = React.useCallback(() => {
+    setIsMoreSheetOpen(true);
   }, []);
 
-  const handleCloseMobileNav = React.useCallback(() => {
-    setIsMobileNavOpen(false);
+  const handleCloseMore = React.useCallback(() => {
+    setIsMoreSheetOpen(false);
   }, []);
 
   return (
@@ -35,22 +36,28 @@ export default function DashboardLayout({
         />
       </div>
 
-      {/* Mobile Drawer */}
-      <MobileNav
-        isOpen={isMobileNavOpen}
-        onClose={handleCloseMobileNav}
+      {/* Mobile More Sheet / Drawer */}
+      <MoreSheet
+        isOpen={isMoreSheetOpen}
+        onClose={handleCloseMore}
       />
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <Topbar onOpenMobileNav={handleOpenMobileNav} />
+        <Topbar onOpenMobileNav={handleOpenMore} />
 
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 bg-muted/10 safe-area-bottom">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 bg-muted/10 pb-20 md:pb-8 safe-area-bottom">
           <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Fixed Mobile Bottom Navigation */}
+      <BottomNav
+        onOpenMore={handleOpenMore}
+        isMoreOpen={isMoreSheetOpen}
+      />
     </div>
   );
 }

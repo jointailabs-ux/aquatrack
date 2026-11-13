@@ -520,14 +520,87 @@ export default function SingleWarehouseInventoryPage() {
             </div>
           )}
 
-          {/* Products Stock Table */}
+          {/* Products Stock Cards (Mobile) & Table (Desktop) */}
           <Card className="border-border shadow-xs">
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view full stock data</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Product Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {filteredItems.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    {isLoading ? "Loading inventory stock balances..." : "No products matching current filters."}
+                  </div>
+                ) : (
+                  filteredItems.map((item) => {
+                    const isLowStock = item.available_stock <= item.reorder_level;
+                    return (
+                      <div key={item.product_id} className="p-3.5 space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="text-xs font-bold text-foreground">{item.name}</h3>
+                              <Badge variant="outline" className="text-[9px] font-mono py-0">{item.sku}</Badge>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">{item.category.replace(/_/g, " ")}</span>
+                          </div>
+                          {isLowStock ? (
+                            <Badge variant="warning" className="text-[9px] py-0 font-bold shrink-0">Low Stock</Badge>
+                          ) : (
+                            <Badge variant="success" className="text-[9px] py-0 shrink-0">In Stock</Badge>
+                          )}
+                        </div>
+
+                        {/* Metric Grid */}
+                        <div className="grid grid-cols-3 gap-2 bg-muted/30 p-2 rounded-lg border border-border/40 text-center">
+                          <div>
+                            <span className="text-[9px] text-muted-foreground block">Physical</span>
+                            <span className="text-xs font-bold text-foreground">{item.current_stock}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-muted-foreground block">Reserved</span>
+                            <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{item.reserved_stock}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-muted-foreground block">Available</span>
+                            <span className={`text-xs font-extrabold ${isLowStock ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                              {item.available_stock}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] pt-1">
+                          <span className="text-muted-foreground text-[10px]">
+                            Val: <strong className="text-foreground">{formatCurrency(item.valuation)}</strong>
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openProductHistory(item)}
+                              className="h-7 px-2 text-[11px] text-muted-foreground"
+                            >
+                              <History className="h-3 w-3 mr-1" /> History
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedProduct(item);
+                                setIsAdjustModalOpen(true);
+                              }}
+                              className="h-7 px-2 text-[11px] text-primary border-primary/30"
+                            >
+                              <ArrowUpDown className="h-3 w-3 mr-1" /> Adjust
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[850px]">
                   <thead className="bg-muted/40 text-muted-foreground border-b border-border">
                     <tr>
@@ -695,11 +768,63 @@ export default function SingleWarehouseInventoryPage() {
 
           <Card className="border-border shadow-xs">
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view audit trail details</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Audit Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {filteredAllMovements.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    {isMovementsLoading ? "Loading stock movement audit records..." : "No stock movement records found."}
+                  </div>
+                ) : (
+                  filteredAllMovements.map((m) => (
+                    <div key={m.id} className="p-3.5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs font-bold text-foreground">{m.product_name}</h4>
+                            <Badge variant="outline" className="text-[9px] font-mono py-0">{m.product_sku}</Badge>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {new Date(m.created_at).toLocaleString("en-IN", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <span className={`text-xs font-black font-mono shrink-0 ${
+                          m.quantity > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                        }`}>
+                          {m.quantity > 0 ? `+${m.quantity}` : m.quantity} {m.unit_of_measure}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {renderMovementBadge(m.movement_type)}
+                          {m.reference_type && (
+                            <Badge variant="outline" className="text-[9px] py-0 font-mono">
+                              {m.reference_type}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          {m.creator_name || "System"}
+                        </span>
+                      </div>
+
+                      {m.notes && (
+                        <p className="text-[11px] text-muted-foreground italic bg-muted/20 p-1.5 rounded-md">
+                          {m.notes}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-muted/40 text-muted-foreground border-b border-border">
                     <tr>

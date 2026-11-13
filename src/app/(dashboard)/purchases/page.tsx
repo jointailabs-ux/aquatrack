@@ -769,12 +769,105 @@ export default function PurchasesPage() {
               }}
             />
           ) : (
-            <div className="overflow-x-auto relative">
-              <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                <span>Swipe horizontally to view purchase records</span>
-                <span>&rarr;</span>
+            <>
+              {/* Mobile View: High-density Purchase Order Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {filteredPurchases.map((p) => (
+                  <div key={p.id} className="p-3.5 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-foreground">{p.po_number}</span>
+                          {p.invoice_number && (
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              ({p.invoice_number})
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xs font-semibold text-foreground mt-0.5">{p.supplier_name || "Supplier"}</h4>
+                        <span className="text-[10px] text-muted-foreground">{p.purchase_date}</span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-extrabold text-foreground block">
+                          {formatCurrency(p.total_amount)}
+                        </span>
+                        {p.balance_due > 0 ? (
+                          <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 block">
+                            Due: {formatCurrency(p.balance_due)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block">
+                            Paid in Full
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Badges */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {p.status === "RECEIVED" ? (
+                        <Badge variant="success" className="text-[9px] py-0">Stock Added</Badge>
+                      ) : p.status === "PARTIALLY_RECEIVED" ? (
+                        <Badge variant="primary" className="text-[9px] py-0">Partial Receipt</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] py-0 text-amber-500 border-amber-500/30">Pending Receipt</Badge>
+                      )}
+                      {p.balance_due <= 0 ? (
+                        <Badge variant="outline" className="text-[9px] py-0 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">Settled</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] py-0 text-rose-500 border-rose-500/30">Unpaid</Badge>
+                      )}
+                    </div>
+
+                    {/* Items Summary */}
+                    <div className="bg-muted/30 p-2 rounded-lg text-[11px] space-y-0.5">
+                      {p.items.map((i, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className="text-foreground">{i.product_name || "Product"}</span>
+                          <span className="font-mono text-muted-foreground">
+                            <strong className="text-primary">{i.quantity_received || 0}</strong>/{i.quantity_ordered}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-border/40">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenDetailsModal(p)}
+                        className="h-7 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <Eye className="h-3 w-3" /> Details
+                      </Button>
+                      {(p.status === "ORDERED" || p.status === "PARTIALLY_RECEIVED") && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenReceiveModal(p)}
+                          className="h-7 px-2.5 text-[11px] gap-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+                        >
+                          <Boxes className="h-3 w-3" /> Receive
+                        </Button>
+                      )}
+                      {p.balance_due > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenPaymentModal(p)}
+                          className="h-7 px-2.5 text-[11px] gap-1 text-primary border-primary/30"
+                        >
+                          <CreditCard className="h-3 w-3" /> Pay
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <table className="w-full text-left text-xs min-w-[850px]">
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
+                <table className="w-full text-left text-xs min-w-[850px]">
                 <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                   <tr>
                     <th className="py-3 px-4 font-semibold">PO / Invoice #</th>
@@ -917,6 +1010,7 @@ export default function PurchasesPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>

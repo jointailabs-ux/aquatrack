@@ -447,11 +447,64 @@ export default function StaffSalaryPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view staff compensation</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Staff Profile Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {summaries.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    No staff members found.
+                  </div>
+                ) : (
+                  summaries.map((s) => (
+                    <div key={s.staff_id} className="p-3.5 space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs font-bold text-foreground">{s.staff_name}</h4>
+                            <Badge variant="outline" className="text-[9px] py-0">{s.role}</Badge>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {s.salary_type} • Last Paid: {s.last_payment_date ? formatDate(s.last_payment_date) : "Never"}
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-extrabold text-foreground block">
+                            {formatCurrency(s.base_salary)}
+                          </span>
+                          {s.total_advances_outstanding > 0 ? (
+                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 block">
+                              Adv: {formatCurrency(s.total_advances_outstanding)}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground block">No Adv</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-border/40">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openGiveAdvanceModal(s.staff_id)}
+                          className="h-7 px-2 text-[11px] border-amber-500/40 text-amber-600 hover:bg-amber-500/10"
+                        >
+                          + Advance
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => openDisburseModal(s)}
+                          className="h-7 px-2.5 text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                        >
+                          Disburse Salary
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                     <tr>
@@ -536,11 +589,50 @@ export default function StaffSalaryPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view staff compensation</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Salary Payment History Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {history.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    No salary payment records found.
+                  </div>
+                ) : (
+                  history.map((h) => (
+                    <div key={h.id} className="p-3.5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs font-bold text-foreground">{h.staff_name}</h4>
+                            <span className="text-[10px] text-muted-foreground font-mono">({h.period_month})</span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {formatDate(h.payment_date)} • #{h.voucher_number}
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block">
+                            {formatCurrency(h.amount_paid)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            Base: {formatCurrency(h.base_salary)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] pt-0.5">
+                        <span className="text-muted-foreground">
+                          {h.advance_deducted > 0 ? `Adv Deducted: -${formatCurrency(h.advance_deducted)}` : "No Advance Deduction"}
+                        </span>
+                        <Badge variant="outline" className="text-[9px] py-0">
+                          {h.payment_method.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                     <tr>
@@ -717,11 +809,55 @@ export default function StaffSalaryPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view staff compensation</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Advance Ledger Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {advances.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    No advance records found.
+                  </div>
+                ) : (
+                  advances.map((adv) => (
+                    <div key={adv.id} className="p-3.5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs font-bold text-foreground">{adv.staff_name}</h4>
+                            <Badge variant={adv.is_settled ? "success" : "warning"} className="text-[9px] py-0">
+                              {adv.is_settled ? "SETTLED" : "OUTSTANDING"}
+                            </Badge>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {formatDate(adv.advance_date)} • {adv.payment_method}
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-xs font-black text-foreground block">
+                            {formatCurrency(adv.amount)}
+                          </span>
+                          {adv.remaining_balance > 0 ? (
+                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 block">
+                              Bal: {formatCurrency(adv.remaining_balance)}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block font-semibold">
+                              Fully Settled
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {adv.reason && (
+                        <p className="text-[11px] text-muted-foreground italic bg-muted/20 p-1.5 rounded-md">
+                          {adv.reason}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[700px]">
                   <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                     <tr>

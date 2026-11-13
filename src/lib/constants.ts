@@ -53,7 +53,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       {
         title: "POS Counter",
-        href: "/dashboard/pos",
+        href: "/pos",
         icon: ShoppingCart,
         isImplemented: true,
         moduleNumber: 4,
@@ -62,7 +62,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Jar Tracking",
-        href: "/dashboard/jars",
+        href: "/jars",
         icon: RotateCcw,
         isImplemented: true,
         moduleNumber: 10,
@@ -70,7 +70,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Orders & Dispatch",
-        href: "/dashboard/orders",
+        href: "/orders",
         icon: Truck,
         isImplemented: true,
         moduleNumber: 8,
@@ -79,7 +79,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Products",
-        href: "/dashboard/products",
+        href: "/products",
         icon: Package,
         isImplemented: true,
         moduleNumber: 9,
@@ -87,7 +87,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Inventory",
-        href: "/dashboard/inventory",
+        href: "/inventory",
         icon: Boxes,
         isImplemented: true,
         moduleNumber: 5,
@@ -96,7 +96,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Customers",
-        href: "/dashboard/customers",
+        href: "/customers",
         icon: Users,
         isImplemented: true,
         moduleNumber: 2,
@@ -105,7 +105,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Suppliers",
-        href: "/dashboard/suppliers",
+        href: "/suppliers",
         icon: Building2,
         isImplemented: true,
         moduleNumber: 3,
@@ -113,7 +113,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Purchases",
-        href: "/dashboard/purchases",
+        href: "/purchases",
         icon: ShoppingBag,
         isImplemented: true,
         moduleNumber: 7,
@@ -121,7 +121,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Central Warehouse",
-        href: "/dashboard/warehouses",
+        href: "/warehouses",
         icon: Warehouse,
         isImplemented: true,
         moduleNumber: 6,
@@ -135,7 +135,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       {
         title: "Staff Management",
-        href: "/dashboard/staff",
+        href: "/staff",
         icon: UserCheck,
         isImplemented: true,
         moduleNumber: 11,
@@ -143,7 +143,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Staff Salaries",
-        href: "/dashboard/payroll",
+        href: "/payroll",
         icon: CreditCard,
         isImplemented: true,
         moduleNumber: 15,
@@ -156,7 +156,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       {
         title: "Special Pricing",
-        href: "/dashboard/pricing",
+        href: "/pricing",
         icon: Tag,
         isImplemented: true,
         moduleNumber: 22,
@@ -164,7 +164,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Expenses",
-        href: "/dashboard/expenses",
+        href: "/expenses",
         icon: FileSpreadsheet,
         isImplemented: true,
         moduleNumber: 13,
@@ -172,7 +172,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Accounting & Ledger",
-        href: "/dashboard/accounting",
+        href: "/accounting",
         icon: BookOpen,
         isImplemented: true,
         moduleNumber: 12,
@@ -180,7 +180,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Financial Reports",
-        href: "/dashboard/reports",
+        href: "/reports",
         icon: BarChart3,
         isImplemented: true,
         moduleNumber: 18,
@@ -188,7 +188,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
       {
         title: "Business Settings",
-        href: "/dashboard/settings",
+        href: "/settings",
         icon: Settings,
         isImplemented: true,
         moduleNumber: 21,

@@ -536,11 +536,127 @@ export default function PricingPage() {
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto relative">
-            <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-              <span>Swipe horizontally to view agreement details</span>
-              <span>&rarr;</span>
-            </div>
+          {/* Mobile View: High-density Special Price Agreement Cards */}
+          <div className="md:hidden divide-y divide-border/60">
+            {isLoading ? (
+              <div className="p-8 text-center text-xs text-muted-foreground">
+                <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                Loading special price contracts...
+              </div>
+            ) : agreements.length === 0 ? (
+              <div className="p-8 text-center text-xs text-muted-foreground space-y-2">
+                <Tag className="h-8 w-8 mx-auto text-muted-foreground/30" />
+                <p className="font-semibold text-foreground">No price agreements found</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {searchQuery || selectedCustomerId || selectedProductId || statusFilter !== "ALL"
+                    ? "Try clearing or modifying your filter criteria."
+                    : "Click 'New Price Agreement' above."}
+                </p>
+              </div>
+            ) : (
+              agreements.map((agr) => {
+                const stdPrice = agr.product?.default_sale_price || 0;
+                const discountAmt = agr.discount_amount || 0;
+                return (
+                  <div key={agr.id} className="p-3.5 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="text-xs font-bold text-foreground">
+                            {agr.customer?.contact_name || "Unknown Customer"}
+                          </h4>
+                          <Badge
+                            variant={agr.customer?.customer_type === "B2B" ? "primary" : "secondary"}
+                            className="text-[9px] py-0 px-1 font-semibold"
+                          >
+                            {agr.customer?.customer_type || "Client"}
+                          </Badge>
+                        </div>
+                        {agr.customer?.business_name && (
+                          <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Building className="h-3 w-3 shrink-0" />
+                            {agr.customer.business_name}
+                          </p>
+                        )}
+                        <p className="text-xs font-medium text-foreground mt-1">
+                          {agr.product?.name || "Product"}
+                          <span className="text-[10px] text-muted-foreground font-mono ml-1.5">
+                            ({agr.product?.sku})
+                          </span>
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block">
+                          {formatCurrency(agr.special_price)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground line-through block">
+                          {formatCurrency(stdPrice)}
+                        </span>
+                        {discountAmt > 0 && (
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 block">
+                            -{agr.discount_percent}% off
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-0.5">
+                      <span className="text-[10px] text-muted-foreground">
+                        Valid: {agr.effective_from} {agr.effective_to ? `to ${agr.effective_to}` : "(Permanent)"}
+                      </span>
+                      {agr.status === "ACTIVE" ? (
+                        <Badge variant="success" className="text-[9px] py-0">Active</Badge>
+                      ) : agr.status === "EXPIRED" ? (
+                        <Badge variant="outline" className="text-[9px] py-0 text-muted-foreground">Expired</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[9px] py-0 text-blue-600">Upcoming</Badge>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-border/40">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditModal(agr)}
+                        className="h-7 px-2 text-[11px] gap-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <Edit3 className="h-3 w-3" /> Edit
+                      </Button>
+                      {agr.status === "ACTIVE" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setActiveAgreement(agr);
+                            setIsDeactivateOpen(true);
+                          }}
+                          className="h-7 px-2 text-[11px] gap-1 text-amber-600 border-amber-500/30"
+                        >
+                          <Ban className="h-3 w-3" /> Deactivate
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setActiveAgreement(agr);
+                          setIsDeleteOpen(true);
+                        }}
+                        className="h-7 px-2 text-[11px] gap-1 text-rose-600 border-rose-500/30 hover:bg-rose-500/10"
+                      >
+                        <Trash2 className="h-3 w-3" /> Delete
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop View: Full Data Table */}
+          <div className="hidden md:block overflow-x-auto relative">
             <table className="w-full text-left text-xs min-w-[750px]">
               <thead className="bg-muted/40 text-muted-foreground border-b border-border">
                 <tr>

@@ -673,11 +673,76 @@ export default function JarCustodyTrackingPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <div className="overflow-x-auto relative">
-              <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                <span>Swipe horizontally to view customer balances</span>
-                <span>&rarr;</span>
-              </div>
+            {/* Mobile View: High-density Customer Holding Cards */}
+            <div className="md:hidden divide-y divide-border/60">
+              {filteredHoldings.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No customer holdings matched your search.
+                </div>
+              ) : (
+                filteredHoldings.map((c) => (
+                  <div key={c.customer_id} className="p-3.5 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="text-xs font-bold text-foreground">{c.customer_name}</h4>
+                        <a
+                          href={`tel:${c.phone}`}
+                          className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1 mt-0.5"
+                        >
+                          {c.phone}
+                        </a>
+                      </div>
+                      {c.pending_empty_collections > 0 ? (
+                        <Badge variant="warning" className="text-[9px] py-0 px-1.5 font-bold">
+                          {c.pending_empty_collections} Empties Due
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] py-0 text-muted-foreground">
+                          Clean
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Jar Balances Grid */}
+                    <div className="grid grid-cols-3 gap-2 bg-muted/30 p-2 rounded-lg border border-border/40 text-center">
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block">Full Jars</span>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                          {c.total_full_jars_holding}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block">Empties</span>
+                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                          {c.total_empty_jars_holding}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-muted-foreground block">Total Holding</span>
+                        <span className="text-xs font-extrabold text-foreground">
+                          {c.total_holding} <span className="text-[9px] text-muted-foreground font-normal">/ {c.max_jar_limit}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-0.5">
+                      <span className="text-muted-foreground text-[10px]">
+                        Deposit Held: <strong className="text-foreground">₹{c.total_deposit_held.toLocaleString()}</strong>
+                      </span>
+                      <a
+                        href={`tel:${c.phone}`}
+                        className="text-[11px] text-primary font-semibold hover:underline"
+                      >
+                        Call Customer &rarr;
+                      </a>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop View: Full Data Table */}
+            <div className="hidden md:block overflow-x-auto relative">
               <table className="w-full text-left text-xs min-w-[750px]">
                 <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                   <tr>
@@ -842,11 +907,65 @@ export default function JarCustodyTrackingPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <div className="overflow-x-auto relative">
-              <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                <span>Swipe horizontally to view customer balances</span>
-                <span>&rarr;</span>
-              </div>
+            {/* Mobile View: High-density Jar Movement Cards */}
+            <div className="md:hidden divide-y divide-border/60">
+              {movements.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No jar custody movements recorded yet.
+                </div>
+              ) : (
+                movements.map((m) => (
+                  <div key={m.id} className="p-3.5 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <Badge
+                          variant={
+                            m.movement_type === "SCRAP_WRITEOFF"
+                              ? "destructive"
+                              : m.movement_type === "INTERNAL_ADJUSTMENT"
+                              ? "warning"
+                              : m.movement_type === "CUSTOMER_DELIVERY"
+                              ? "success"
+                              : "outline"
+                          }
+                          className="text-[9px] py-0"
+                        >
+                          {m.movement_type}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">
+                          {formatDate(m.created_at)}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-black font-mono text-foreground block">
+                          {m.quantity} Jars
+                        </span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {m.condition_from} &rarr; {m.condition_to}
+                        </span>
+                      </div>
+                    </div>
+
+                    {(m.source_location_name || m.destination_location_name) && (
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <span className="font-semibold text-foreground">{m.source_location_name || "—"}</span>
+                        <span>&rarr;</span>
+                        <span className="font-semibold text-foreground">{m.destination_location_name || "—"}</span>
+                      </div>
+                    )}
+
+                    {m.notes && (
+                      <p className="text-[11px] text-muted-foreground italic bg-muted/20 p-1.5 rounded-md">
+                        {m.notes}
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop View: Full Data Table */}
+            <div className="hidden md:block overflow-x-auto relative">
               <table className="w-full text-left text-xs min-w-[750px]">
                 <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                   <tr>

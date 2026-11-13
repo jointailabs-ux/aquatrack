@@ -370,7 +370,7 @@ export default function PosPage() {
         </div>
 
         {/* Right 5 Columns: Active POS Cart & Tender */}
-        <div className="lg:col-span-5 space-y-4">
+        <div id="pos-checkout-section" className="lg:col-span-5 space-y-4">
           <Card className="border-border shadow-xs bg-card">
             <CardHeader className="p-4 pb-3 border-b border-border">
               <div className="flex items-center justify-between">
@@ -584,6 +584,29 @@ export default function PosPage() {
           </Card>
         </div>
       </div>
+
+      {/* Mobile Floating Cart Summary */}
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed bottom-16 left-3 right-3 z-30 shadow-xl rounded-xl bg-primary text-primary-foreground p-3 flex items-center justify-between animate-in slide-in-from-bottom duration-200">
+          <div>
+            <span className="text-xs font-bold block">
+              {cart.reduce((s, i) => s + i.quantity, 0)} Items in Cart
+            </span>
+            <span className="text-sm font-black">{formatCurrency(finalTotal)}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              const cartEl = document.getElementById("pos-checkout-section");
+              if (cartEl) cartEl.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="font-bold text-xs"
+          >
+            Checkout &darr;
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

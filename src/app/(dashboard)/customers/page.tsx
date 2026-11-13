@@ -61,6 +61,7 @@ export default function CustomersPage() {
   const [typeFilter, setTypeFilter] = React.useState<"ALL" | "B2C" | "B2B">("ALL");
   const [statusFilter, setStatusFilter] = React.useState<"ALL" | "ACTIVE" | "INACTIVE">("ACTIVE");
   const [hasBalanceFilter, setHasBalanceFilter] = React.useState(false);
+  const [mobileView, setMobileView] = React.useState<"list" | "detail">("list");
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalCount, setTotalCount] = React.useState(0);
@@ -569,7 +570,7 @@ export default function CustomersPage() {
       {/* Main Two-Column Master-Detail Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Customer Directory List */}
-        <div className="lg:col-span-5 space-y-3">
+        <div className={`lg:col-span-5 space-y-3 ${mobileView === "detail" ? "hidden lg:block" : "block"}`}>
           <Card className="border-border shadow-xs">
             <CardHeader className="p-3.5 border-b border-border flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
@@ -615,7 +616,10 @@ export default function CustomersPage() {
                     return (
                       <div
                         key={cust.id}
-                        onClick={() => setSelectedCustomer(cust)}
+                        onClick={() => {
+                          setSelectedCustomer(cust);
+                          setMobileView("detail");
+                        }}
                         className={`p-3.5 cursor-pointer transition-all ${
                           isSelected
                             ? "bg-primary/10 border-l-4 border-primary"
@@ -652,6 +656,32 @@ export default function CustomersPage() {
                               <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                               {cust.phone}
                             </p>
+
+                            {/* Mobile Quick Actions */}
+                            <div className="flex items-center gap-2 mt-2 pt-1 border-t border-border/40 sm:hidden">
+                              <a
+                                href={`tel:${cust.phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-md"
+                              >
+                                <Phone className="h-3 w-3" />
+                                Call
+                              </a>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDirectPaymentModal(cust);
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md"
+                              >
+                                <DollarSign className="h-3 w-3" />
+                                Collect ₹
+                              </button>
+                              <span className="ml-auto text-[10px] font-bold text-muted-foreground flex items-center gap-0.5">
+                                View <ChevronRight className="h-3 w-3" />
+                              </span>
+                            </div>
                           </div>
 
                           <div className="text-right shrink-0 space-y-1">
@@ -719,7 +749,26 @@ export default function CustomersPage() {
         </div>
 
         {/* Right Column: Customer Detailed Screen & History Tabs */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className={`lg:col-span-7 space-y-4 ${mobileView === "list" ? "hidden lg:block" : "block"}`}>
+          {mobileView === "detail" && (
+            <div className="lg:hidden flex items-center justify-between pb-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMobileView("list")}
+                className="gap-1.5 text-xs font-semibold"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back to Directory
+              </Button>
+              {selectedCustomer && (
+                <Badge variant="primary" className="text-xs">
+                  {selectedCustomer.contact_name}
+                </Badge>
+              )}
+            </div>
+          )}
+
           {selectedCustomer ? (
             <div className="space-y-4">
               {/* Customer Header Profile Card */}

@@ -248,11 +248,48 @@ export default function ExpensesPage() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <div className="overflow-x-auto relative">
-                <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                  <span>Swipe horizontally to view expense details</span>
-                  <span>&rarr;</span>
-                </div>
+              {/* Mobile View: High-density Expense Cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {filteredExpenses.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    No operating expense vouchers recorded.
+                  </div>
+                ) : (
+                  filteredExpenses.map((e) => (
+                    <div key={e.id} className="p-3.5 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge variant="outline" className="text-[9px] py-0">
+                              {e.category.replace(/_/g, " ")}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">{e.expense_date}</span>
+                          </div>
+                          <p className="text-xs font-semibold text-foreground mt-1">
+                            {e.description}
+                          </p>
+                          {e.vehicle_number && (
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              Vehicle: {e.vehicle_number}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-sm font-extrabold text-foreground block">
+                            {formatCurrency(e.amount)}
+                          </span>
+                          <Badge variant="secondary" className="text-[9px] py-0 font-bold mt-0.5">
+                            {e.payment_method}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View: Full Data Table */}
+              <div className="hidden md:block overflow-x-auto relative">
                 <table className="w-full text-left text-xs min-w-[550px]">
                   <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                     <tr>

@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Search } from "lucide-react";
+import { Search, Droplets, Menu } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { NotificationsDropdown } from "@/components/layout/NotificationsDropdown";
 import { Badge } from "@/components/ui/Badge";
 import { NAVIGATION_GROUPS } from "@/lib/constants";
+import { getBusinessSettings } from "@/modules/settings/business-settings.service";
 
 interface TopbarProps {
   onOpenMobileNav: () => void;
@@ -15,11 +17,42 @@ interface TopbarProps {
 
 export function Topbar({ onOpenMobileNav }: TopbarProps) {
   const pathname = usePathname();
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function loadLogo() {
+      try {
+        const res = await getBusinessSettings();
+        if (isMounted && res.success && res.data?.logo_url) {
+          setLogoUrl(res.data.logo_url);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    loadLogo();
+
+    const handleLogoUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent<string | null>;
+      if (customEvt.detail !== undefined) {
+        setLogoUrl(customEvt.detail);
+      } else {
+        loadLogo();
+      }
+    };
+
+    window.addEventListener("aquatrack_logo_updated", handleLogoUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("aquatrack_logo_updated", handleLogoUpdate);
+    };
+  }, []);
 
   const activeTitle = React.useMemo(() => {
     for (const group of NAVIGATION_GROUPS) {
       for (const item of group.items) {
-        if (item.href === pathname || (item.href !== "/dashboard" && pathname.startsWith(item.href))) {
+        if (item.href === pathname || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`))) {
           return item.title;
         }
       }
@@ -29,26 +62,44 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 w-full items-center justify-between border-b border-border bg-card/95 backdrop-blur-xs px-3 sm:px-4 md:px-6">
-      {/* Left: Mobile trigger & Breadcrumbs / Active Title */}
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <header className="sticky top-0 z-20 flex h-14 md:h-16 w-full items-center justify-between border-b border-border bg-card/95 backdrop-blur-md px-3 sm:px-4 md:px-6">
+      {/* Left: Mobile Branding + Page Title / Desktop Breadcrumbs */}
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        {/* Mobile Logo & Title */}
+        <div className="flex md:hidden items-center gap-2 min-w-0">
+          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+            {logoUrl ? (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/30 border border-border p-0.5 shadow-xs overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+              </div>
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+                <Droplets className="h-4.5 w-4.5" />
+              </div>
+            )}
+          </Link>
+
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
+            <span className="font-bold text-sm truncate text-foreground">
+              {activeTitle}
+            </span>
+          </div>
+        </div>
+
+        {/* Mobile Quick More Trigger */}
         <button
           type="button"
           onClick={onOpenMobileNav}
-          className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground active:scale-95 md:hidden transition-all touch-manipulation cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground active:scale-95 md:hidden transition-all touch-manipulation cursor-pointer"
           aria-label="Open navigation menu"
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-4.5 w-4.5" />
         </button>
 
         {/* Desktop Breadcrumbs */}
-        <div className="hidden sm:block">
+        <div className="hidden md:block">
           <Breadcrumbs />
-        </div>
-
-        {/* Mobile Active Page Title */}
-        <div className="sm:hidden font-bold text-xs truncate max-w-[125px] xs:max-w-[170px] text-foreground">
-          {activeTitle}
         </div>
       </div>
 
@@ -75,12 +126,12 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
           variant="outline"
           className="hidden sm:inline-flex text-[11px] font-normal border-primary/30 text-primary bg-primary/5 py-0.5"
         >
-          Branch: Central Hub #1
+          Central Hub #1
         </Badge>
 
         <NotificationsDropdown />
 
-        <div className="h-5 w-px bg-border mx-0.5" />
+        <div className="h-4 w-px bg-border mx-0.5 hidden xs:block" />
 
         <UserMenu />
       </div>

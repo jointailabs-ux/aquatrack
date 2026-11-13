@@ -161,7 +161,7 @@ export default function HomePage() {
                   Cash, UPI & Instant Bill Printing
                 </li>
               </ul>
-              <Link href="/dashboard/pos" className="w-full block">
+              <Link href="/pos" className="w-full block">
                 <Button variant="outline" className="w-full gap-2">
                   Launch Counter POS
                   <ArrowRight className="h-4 w-4" />

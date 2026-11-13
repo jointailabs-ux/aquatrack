@@ -510,12 +510,93 @@ export default function DeliveriesPage() {
 
                         {/* Detailed Stops Table */}
                         {isExpanded && (
-                          <div className="rounded-xl border border-border overflow-x-auto relative">
-                            <div className="sm:hidden text-[10px] text-muted-foreground px-3 py-1 bg-muted/40 border-b border-border flex items-center justify-between">
-                              <span>Swipe horizontally to view full route stops</span>
-                              <span>&rarr;</span>
+                          <div className="rounded-xl border border-border overflow-hidden">
+                            {/* Mobile View: Route Stop Cards */}
+                            <div className="md:hidden divide-y divide-border/60">
+                              {trip.stops.map((stop) => (
+                                <div key={stop.id} className="p-3.5 space-y-2 bg-card">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <Badge variant="outline" className="font-mono text-[10px] font-bold">#{stop.sequence_number}</Badge>
+                                      <span className="font-mono text-xs font-bold text-foreground">{stop.order_number}</span>
+                                    </div>
+                                    <Badge
+                                      variant={
+                                        stop.status === "COMPLETED"
+                                          ? "success"
+                                          : stop.status === "FAILED"
+                                          ? "destructive"
+                                          : stop.status === "EN_ROUTE"
+                                          ? "primary"
+                                          : "secondary"
+                                      }
+                                      className="text-[10px]"
+                                    >
+                                      {stop.status}
+                                    </Badge>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-xs font-bold text-foreground">{stop.customer_name}</p>
+                                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                      <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                                      {stop.delivery_address}
+                                    </p>
+                                  </div>
+
+                                  <div className="bg-muted/30 p-2 rounded-lg text-xs space-y-1">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                      <span className="text-muted-foreground">Items:</span>
+                                      <span className="font-medium text-foreground">
+                                        {stop.items.map((it) => `${it.product_name} x${it.ordered_quantity}`).join(", ")}
+                                      </span>
+                                    </div>
+                                    {stop.status === "COMPLETED" && (
+                                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/40">
+                                        <span className="text-muted-foreground">Custody:</span>
+                                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                          +{stop.actual_delivered_quantity} Full • -{stop.empty_jars_collected} Empties
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center justify-between text-xs pt-1">
+                                    <div>
+                                      {stop.payment_collected > 0 ? (
+                                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                          {formatCurrency(stop.payment_collected)} ({stop.payment_method})
+                                        </span>
+                                      ) : (
+                                        <span className="text-muted-foreground text-[10px]">
+                                          {stop.status === "COMPLETED" ? "No Payment (Credit)" : "Pending Payment"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {stop.customer_phone && (
+                                        <a
+                                          href={`tel:${stop.customer_phone}`}
+                                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-md"
+                                        >
+                                          <Phone className="h-3 w-3" /> Call
+                                        </a>
+                                      )}
+                                      <Link
+                                        href={`/driver?tripId=${trip.staff_id}`}
+                                        className="text-[11px] text-primary font-semibold hover:underline"
+                                      >
+                                        Driver View &rarr;
+                                      </Link>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                            <table className="w-full text-left text-xs min-w-[700px]">
+
+                            {/* Desktop View: Full Data Table */}
+                            <div className="hidden md:block overflow-x-auto relative">
+                              <table className="w-full text-left text-xs min-w-[700px]">
                               <thead className="bg-muted/50 border-b border-border text-muted-foreground">
                                 <tr>
                                   <th className="py-2.5 px-3">#</th>
@@ -644,7 +725,8 @@ export default function DeliveriesPage() {
                               </tbody>
                             </table>
                           </div>
-                        )}
+                        </div>
+                      )}
                       </CardContent>
                     </Card>
                   );
@@ -675,12 +757,82 @@ export default function DeliveriesPage() {
                   All active orders are currently assigned to delivery drivers.
                 </div>
               ) : (
-                <div className="overflow-x-auto relative">
-                  <div className="sm:hidden text-[10px] text-muted-foreground px-4 py-1.5 bg-muted/40 border-b border-border flex items-center justify-between">
-                    <span>Swipe horizontally to assign drivers</span>
-                    <span>&rarr;</span>
+                <>
+                  {/* Mobile View: Dispatch Queue Cards */}
+                  <div className="md:hidden divide-y divide-border/60">
+                    {awaitingOrders.map((ord) => (
+                      <div key={ord.id} className="p-3.5 space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-mono text-xs font-bold text-foreground">{ord.order_number}</span>
+                            <p className="text-xs font-semibold text-foreground mt-0.5">{ord.customer_name}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-extrabold text-foreground">{formatCurrency(ord.total_amount)}</span>
+                            <span className="text-[10px] text-muted-foreground block">{ord.delivery_date}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                          {ord.delivery_address}
+                        </p>
+
+                        {/* Driver Assignment Form */}
+                        <div className="pt-1">
+                          {assigningOrderId === ord.id ? (
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={assigneeDriverId}
+                                onChange={(e) => setAssigneeDriverId(e.target.value)}
+                                className="h-8 flex-1 rounded-lg border border-border bg-background px-2 text-xs text-foreground"
+                              >
+                                <option value="">Select Driver...</option>
+                                {staffList.map((s) => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.full_name}
+                                  </option>
+                                ))}
+                              </select>
+                              <Button
+                                size="sm"
+                                onClick={() => handleAssignOrder(ord.id)}
+                                disabled={isAssigning}
+                                className="h-8 text-xs font-semibold"
+                              >
+                                {isAssigning ? "..." : "Confirm"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setAssigningOrderId(null)}
+                                className="h-8 text-xs"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setAssigningOrderId(ord.id);
+                                setAssigneeDriverId("");
+                              }}
+                              className="w-full h-8 text-xs gap-1.5 font-semibold"
+                            >
+                              <UserCheck className="h-3.5 w-3.5" />
+                              Assign Route Driver
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <table className="w-full text-left text-xs min-w-[650px]">
+
+                  {/* Desktop View: Full Data Table */}
+                  <div className="hidden md:block overflow-x-auto relative">
+                    <table className="w-full text-left text-xs min-w-[650px]">
                     <thead className="bg-muted/40 text-muted-foreground border-y border-border">
                       <tr>
                         <th className="py-2.5 px-4 font-semibold">Order #</th>
@@ -766,6 +918,7 @@ export default function DeliveriesPage() {
                     </tbody>
                   </table>
                 </div>
+                </>
               )}
             </CardContent>
           </Card>
