@@ -51,21 +51,41 @@ const RevenueChart = dynamic(
   }
 );
 
+// Module-level client cache for instant zero-latency page transitions
+let cachedDashboardState: {
+  key: string;
+  data: DashboardSummaryData;
+  timestamp: number;
+} | null = null;
+
 export default function DashboardPage() {
   const [dateRange, setDateRange] = React.useState<DashboardDateRangeType>("today");
   const [customFrom, setCustomFrom] = React.useState<string>("");
   const [customTo, setCustomTo] = React.useState<string>("");
-  const [loading, setLoading] = React.useState<boolean>(true);
+
+  // Instant render from cache if available
+  const [dashboardData, setDashboardData] = React.useState<DashboardSummaryData | null>(() => {
+    if (cachedDashboardState && cachedDashboardState.key === "today") {
+      return cachedDashboardState.data;
+    }
+    return null;
+  });
+
+  const [loading, setLoading] = React.useState<boolean>(() => {
+    return !cachedDashboardState || cachedDashboardState.key !== "today";
+  });
   const [refreshing, setRefreshing] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [dashboardData, setDashboardData] = React.useState<DashboardSummaryData | null>(null);
   const [showMobileAnalytics, setShowMobileAnalytics] = React.useState<boolean>(false);
 
   const fetchSummary = React.useCallback(
     async (range: DashboardDateRangeType, from?: string, to?: string, isRefresh = false) => {
+      const cacheKey = `${range}-${from || ""}-${to || ""}`;
+      const hasMatchingCache = cachedDashboardState && cachedDashboardState.key === cacheKey;
+
       if (isRefresh) {
         setRefreshing(true);
-      } else {
+      } else if (!hasMatchingCache) {
         setLoading(true);
       }
       setError(null);
@@ -79,6 +99,11 @@ export default function DashboardPage() {
 
         if (res.success && res.data) {
           setDashboardData(res.data);
+          cachedDashboardState = {
+            key: cacheKey,
+            data: res.data,
+            timestamp: Date.now(),
+          };
         } else {
           setError(res.error || "Failed to retrieve dashboard metrics.");
         }

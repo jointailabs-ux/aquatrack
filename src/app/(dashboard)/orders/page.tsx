@@ -40,17 +40,25 @@ interface OrderItemFormRow {
   gst_rate: number;
 }
 
+// Module-level client cache for instant zero-latency transitions
+let cachedOrdersState: {
+  orders: OrderRecord[];
+  customers: CustomerRecord[];
+  staffList: StaffRecord[];
+  products: ProductRecord[];
+} | null = null;
+
 export default function OrdersPage() {
   const { addToast } = useToast();
 
-  // State
-  const [orders, setOrders] = React.useState<OrderRecord[]>([]);
-  const [customers, setCustomers] = React.useState<CustomerRecord[]>([]);
-  const [staffList, setStaffList] = React.useState<StaffRecord[]>([]);
-  const [products, setProducts] = React.useState<ProductRecord[]>([]);
+  // State with instant cache initialization
+  const [orders, setOrders] = React.useState<OrderRecord[]>(() => cachedOrdersState?.orders || []);
+  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => cachedOrdersState?.customers || []);
+  const [staffList, setStaffList] = React.useState<StaffRecord[]>(() => cachedOrdersState?.staffList || []);
+  const [products, setProducts] = React.useState<ProductRecord[]>(() => cachedOrdersState?.products || []);
   const [customerSpecialPrices, setCustomerSpecialPrices] = React.useState<Record<string, number>>({});
 
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedOrdersState);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
@@ -73,7 +81,9 @@ export default function OrdersPage() {
 
   // Load initial data
   const loadData = React.useCallback(async () => {
-    setIsLoading(true);
+    if (!cachedOrdersState) {
+      setIsLoading(true);
+    }
     setLoadError(null);
     try {
       const [ordersRes, custRes, staffRes, prodRes] = await Promise.all([
@@ -87,19 +97,22 @@ export default function OrdersPage() {
         throw new Error(ordersRes.error || "Failed to load orders.");
       }
 
-      setOrders(ordersRes.data || []);
+      const freshOrders = ordersRes.data || [];
+      const freshCustomers = custRes.success && custRes.data ? custRes.data.items : [];
+      const freshStaff = staffRes.success && staffRes.data ? staffRes.data.filter((s) => s.role === "staff") : [];
+      const freshProducts = prodRes.success && prodRes.data?.items ? prodRes.data.items.filter((p) => p.is_active) : [];
 
-      if (custRes.success && custRes.data) {
-        setCustomers(custRes.data.items);
-      }
-      if (staffRes.success && staffRes.data) {
-        setStaffList(staffRes.data.filter((s) => s.role === "staff"));
-      }
-      if (prodRes.success && prodRes.data?.items) {
-        // Only active products
-        const activeProds = prodRes.data.items.filter((p) => p.is_active);
-        setProducts(activeProds);
-      }
+      setOrders(freshOrders);
+      setCustomers(freshCustomers);
+      setStaffList(freshStaff);
+      setProducts(freshProducts);
+
+      cachedOrdersState = {
+        orders: freshOrders,
+        customers: freshCustomers,
+        staffList: freshStaff,
+        products: freshProducts,
+      };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load dashboard data.";
       setLoadError(msg);

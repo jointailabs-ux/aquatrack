@@ -32,12 +32,18 @@ import {
 } from "@/modules/inventory/inventory.schema";
 import { formatCurrency } from "@/lib/utils";
 
+// Module-level client cache for instant zero-latency inventory transitions
+let cachedInventoryState: {
+  items: InventoryItemRecord[];
+  summary: InventoryValuationSummary | null;
+} | null = null;
+
 export default function SingleWarehouseInventoryPage() {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = React.useState<"stock" | "history">("stock");
-  const [items, setItems] = React.useState<InventoryItemRecord[]>([]);
-  const [summary, setSummary] = React.useState<InventoryValuationSummary | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [items, setItems] = React.useState<InventoryItemRecord[]>(() => cachedInventoryState?.items || []);
+  const [summary, setSummary] = React.useState<InventoryValuationSummary | null>(() => cachedInventoryState?.summary || null);
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedInventoryState);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState("ALL");
   const [showLowStockOnly, setShowLowStockOnly] = React.useState(false);
@@ -61,15 +67,30 @@ export default function SingleWarehouseInventoryPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
-    setIsLoading(true);
-    const stockRes = await getInventoryStockLevels();
+    if (!cachedInventoryState) {
+      setIsLoading(true);
+    }
+    const [stockRes, valRes] = await Promise.all([
+      getInventoryStockLevels(),
+      getInventoryValuationSummary(),
+    ]);
+
+    let freshItems: InventoryItemRecord[] = [];
+    let freshSummary: InventoryValuationSummary | null = null;
+
     if (stockRes.success && stockRes.data) {
+      freshItems = stockRes.data;
       setItems(stockRes.data);
     }
-    const valRes = await getInventoryValuationSummary();
     if (valRes.success && valRes.data) {
+      freshSummary = valRes.data;
       setSummary(valRes.data);
     }
+
+    cachedInventoryState = {
+      items: freshItems,
+      summary: freshSummary,
+    };
     setIsLoading(false);
   }, []);
 

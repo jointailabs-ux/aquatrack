@@ -58,7 +58,39 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // 3. Initialize Supabase SSR client for real session checking
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname === route);
+
+  // 3. Fast cookie-level session presence check (Zero-network latency optimization)
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookie = allCookies.some(
+    (c) => c.name.startsWith("sb-") && c.name.includes("-auth-token")
+  );
+
+  // If unauthenticated and accessing a protected route -> redirect to login immediately without network roundtrip
+  if (!hasAuthCookie && !isPublicRoute) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // If unauthenticated and accessing a public route -> return immediately with zero network overhead
+  if (!hasAuthCookie && isPublicRoute) {
+    return response;
+  }
+
+  // 4. Prefetch request optimization:
+  // If user already holds auth cookies, do not block Link prefetch requests with cross-continental Supabase Auth calls.
+  // Full session & role verification will execute during real page navigation.
+  const isPrefetch =
+    request.headers.get("x-middleware-prefetch") === "1" ||
+    request.headers.get("purpose") === "prefetch" ||
+    request.headers.get("sec-purpose") === "prefetch";
+
+  if (isPrefetch && hasAuthCookie) {
+    return response;
+  }
+
+  // 5. Initialize Supabase SSR client for verified session checking on active navigations
   const env = getPublicEnv();
   const supabase = createServerClient(
     env.NEXT_PUBLIC_SUPABASE_URL,
@@ -81,26 +113,24 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // 4. Server-verified session check via getUser()
+  // 6. Server-verified session check via getUser()
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname === route);
-
-  // 5. Unauthenticated user accessing protected route -> redirect to login
+  // 7. Unauthenticated user accessing protected route -> redirect to login
   if (!user && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 6. Authenticated user accessing login / register -> redirect to dashboard
+  // 8. Authenticated user accessing login / register -> redirect to dashboard
   if (user && (pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // 7. Enforce owner-only route access: Authenticated staff cannot access owner pages
+  // 9. Enforce owner-only route access: Authenticated staff cannot access owner pages
   if (user) {
     const isOwnerRoute = OWNER_ONLY_ROUTES.some(
       (route) => pathname === route || pathname.startsWith(route + "/")
@@ -116,21 +146,14 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/forbidden", request.url));
       }
 
-      // Bypass extra database roundtrip on prefetch requests to keep page transitions fast
-      const isPrefetch =
-        request.headers.get("x-middleware-prefetch") === "1" ||
-        request.headers.get("purpose") === "prefetch";
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      if (!isPrefetch) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (profile?.role !== "owner") {
-          return NextResponse.redirect(new URL("/forbidden", request.url));
-        }
+      if (profile?.role !== "owner") {
+        return NextResponse.redirect(new URL("/forbidden", request.url));
       }
     }
   }
@@ -140,6 +163,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ico)$).*)",
   ],
 };

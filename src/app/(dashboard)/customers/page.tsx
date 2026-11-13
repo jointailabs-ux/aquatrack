@@ -47,13 +47,25 @@ import {
 import { OrderRecord } from "@/modules/orders/order.schema";
 import { formatCurrency } from "@/lib/utils";
 
+// Module-level client cache for instant zero-latency customer navigation
+let cachedCustomersState: {
+  key: string;
+  items: CustomerRecord[];
+  total: number;
+  totalPages: number;
+} | null = null;
+
 export default function CustomersPage() {
   const { addToast } = useToast();
 
-  // Directory Data
-  const [customers, setCustomers] = React.useState<CustomerRecord[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = React.useState<CustomerRecord | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Directory Data with instant cache initialization
+  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => {
+    return cachedCustomersState?.items || [];
+  });
+  const [selectedCustomer, setSelectedCustomer] = React.useState<CustomerRecord | null>(() => {
+    return cachedCustomersState?.items?.[0] || null;
+  });
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedCustomersState);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Filters & Pagination
@@ -63,8 +75,8 @@ export default function CustomersPage() {
   const [hasBalanceFilter, setHasBalanceFilter] = React.useState(false);
   const [mobileView, setMobileView] = React.useState<"list" | "detail">("list");
   const [page, setPage] = React.useState(1);
-  const [totalPages, setTotalPages] = React.useState(1);
-  const [totalCount, setTotalCount] = React.useState(0);
+  const [totalPages, setTotalPages] = React.useState(() => cachedCustomersState?.totalPages || 1);
+  const [totalCount, setTotalCount] = React.useState(() => cachedCustomersState?.total || 0);
 
   // Tabs in Details Panel
   const [activeTab, setActiveTab] = React.useState<"orders" | "payments" | "jars" | "invoices">("orders");
@@ -117,7 +129,12 @@ export default function CustomersPage() {
 
   // Load Customers
   const loadCustomers = React.useCallback(async (targetPage = page) => {
-    setIsLoading(true);
+    const cacheKey = `${searchQuery}-${typeFilter}-${statusFilter}-${hasBalanceFilter}-${targetPage}`;
+    const hasMatchingCache = cachedCustomersState && cachedCustomersState.key === cacheKey;
+
+    if (!hasMatchingCache) {
+      setIsLoading(true);
+    }
     try {
       const res = await getCustomers({
         search: searchQuery.trim() || undefined,
@@ -132,6 +149,13 @@ export default function CustomersPage() {
         setCustomers(res.data.items);
         setTotalPages(res.data.totalPages || 1);
         setTotalCount(res.data.total || 0);
+
+        cachedCustomersState = {
+          key: cacheKey,
+          items: res.data.items,
+          total: res.data.total || 0,
+          totalPages: res.data.totalPages || 1,
+        };
 
         // Keep current selected customer or pick first
         if (selectedCustomer) {

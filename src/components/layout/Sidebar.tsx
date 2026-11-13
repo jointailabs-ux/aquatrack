@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { NAVIGATION_GROUPS } from "@/lib/constants";
 import { Droplets, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import { getBusinessSettings } from "@/modules/settings/business-settings.service";
+import { useAppSession } from "@/components/providers/AppSessionProvider";
 
 export interface SidebarProps {
   isCollapsed: boolean;
@@ -21,41 +21,7 @@ export function Sidebar({
   className,
 }: SidebarProps) {
   const pathname = usePathname();
-  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    let isMounted = true;
-
-    const fetchSharedLogo = async () => {
-      try {
-        const res = await getBusinessSettings();
-        if (isMounted && res.success && res.data?.logo_url) {
-          setLogoUrl(res.data.logo_url);
-        } else if (isMounted && res.success && !res.data?.logo_url) {
-          setLogoUrl(null);
-        }
-      } catch {
-        // Fallback silently if unauthenticated or network error
-      }
-    };
-
-    fetchSharedLogo();
-
-    const handleLogoUpdate = (e: Event) => {
-      const customEvt = e as CustomEvent<string | null>;
-      if (customEvt.detail !== undefined) {
-        setLogoUrl(customEvt.detail);
-      } else {
-        fetchSharedLogo();
-      }
-    };
-
-    window.addEventListener("aquatrack_logo_updated", handleLogoUpdate);
-    return () => {
-      isMounted = false;
-      window.removeEventListener("aquatrack_logo_updated", handleLogoUpdate);
-    };
-  }, []);
+  const { logoUrl } = useAppSession();
 
   return (
     <aside

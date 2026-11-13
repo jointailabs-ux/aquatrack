@@ -10,6 +10,7 @@ import { ROLE_PERMISSIONS } from "@/types/auth.types";
 import { useToast } from "@/components/ui/Toast";
 
 import { createClient } from "@/lib/supabase/client";
+import { useAppSession } from "@/components/providers/AppSessionProvider";
 
 interface UserMenuProps {
   currentUser?: {
@@ -20,44 +21,14 @@ interface UserMenuProps {
 }
 
 export function UserMenu({
-  currentUser = {
-    name: "AquaTrack User",
-    email: "",
-    role: "staff",
-  },
+  currentUser,
 }: UserMenuProps) {
-  const [userData, setUserData] = React.useState(currentUser);
+  const { user: sessionUser } = useAppSession();
+  const userData = currentUser || sessionUser;
   const [isOpen, setIsOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { addToast } = useToast();
-
-  React.useEffect(() => {
-    async function fetchUser() {
-      try {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, role")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          setUserData({
-            name: profile?.full_name || user.email?.split("@")[0] || "User",
-            email: user.email || "",
-            role: (profile?.role as UserRole) || "staff",
-          });
-        }
-      } catch {
-        // Fallback to default
-      }
-    }
-    fetchUser();
-  }, []);
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -129,7 +100,7 @@ export function UserMenu({
             <div className="mt-2 flex items-center gap-1.5">
               <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-semibold">
                 <Shield className="h-2.5 w-2.5 mr-1" />
-                {roleMeta?.title || currentUser.role}
+                {roleMeta?.title || userData.role}
               </Badge>
               <span className="text-[10px] text-muted-foreground">Internal</span>
             </div>

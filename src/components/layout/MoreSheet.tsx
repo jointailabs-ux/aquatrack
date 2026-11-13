@@ -28,7 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
-import { UserRole } from "@/types/auth.types";
+import { useAppSession } from "@/components/providers/AppSessionProvider";
 
 interface MoreSheetProps {
   isOpen: boolean;
@@ -206,11 +206,12 @@ export function MoreSheet({ isOpen, onClose }: MoreSheetProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { addToast } = useToast();
+  const { user, permissions: sessionPermissions } = useAppSession();
 
   const [search, setSearch] = React.useState("");
-  const [userRole, setUserRole] = React.useState<UserRole>("owner");
-  const [userName, setUserName] = React.useState("User");
-  const [permissions, setPermissions] = React.useState<Record<string, boolean>>({});
+  const userRole = user.role;
+  const userName = user.name;
+  const permissions = sessionPermissions;
 
   // Close when pathname changes
   const prevPathname = React.useRef(pathname);
@@ -230,43 +231,6 @@ export function MoreSheet({ isOpen, onClose }: MoreSheetProps) {
     }
     return () => {
       document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
-
-  // Load user profile & permissions
-  React.useEffect(() => {
-    let isMounted = true;
-    async function loadUser() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && isMounted) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, role, can_pos, can_warehouse, can_manage_customers, can_manage_orders")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          if (profile && isMounted) {
-            setUserRole((profile.role as UserRole) || "staff");
-            setUserName(profile.full_name || "User");
-            setPermissions({
-              canPos: !!profile.can_pos,
-              canWarehouse: !!profile.can_warehouse,
-              canManageCustomers: !!profile.can_manage_customers,
-              canManageOrders: !!profile.can_manage_orders,
-            });
-          }
-        }
-      } catch {
-        // Fallback gracefully
-      }
-    }
-    if (isOpen) {
-      loadUser();
-    }
-    return () => {
-      isMounted = false;
     };
   }, [isOpen]);
 

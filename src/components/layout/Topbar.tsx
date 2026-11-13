@@ -9,7 +9,7 @@ import { UserMenu } from "@/components/layout/UserMenu";
 import { NotificationsDropdown } from "@/components/layout/NotificationsDropdown";
 import { Badge } from "@/components/ui/Badge";
 import { NAVIGATION_GROUPS } from "@/lib/constants";
-import { getBusinessSettings } from "@/modules/settings/business-settings.service";
+import { useAppSession } from "@/components/providers/AppSessionProvider";
 
 interface TopbarProps {
   onOpenMobileNav: () => void;
@@ -17,37 +17,7 @@ interface TopbarProps {
 
 export function Topbar({ onOpenMobileNav }: TopbarProps) {
   const pathname = usePathname();
-  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    let isMounted = true;
-    async function loadLogo() {
-      try {
-        const res = await getBusinessSettings();
-        if (isMounted && res.success && res.data?.logo_url) {
-          setLogoUrl(res.data.logo_url);
-        }
-      } catch {
-        // Fallback
-      }
-    }
-    loadLogo();
-
-    const handleLogoUpdate = (e: Event) => {
-      const customEvt = e as CustomEvent<string | null>;
-      if (customEvt.detail !== undefined) {
-        setLogoUrl(customEvt.detail);
-      } else {
-        loadLogo();
-      }
-    };
-
-    window.addEventListener("aquatrack_logo_updated", handleLogoUpdate);
-    return () => {
-      isMounted = false;
-      window.removeEventListener("aquatrack_logo_updated", handleLogoUpdate);
-    };
-  }, []);
+  const { logoUrl } = useAppSession();
 
   const activeTitle = React.useMemo(() => {
     for (const group of NAVIGATION_GROUPS) {
