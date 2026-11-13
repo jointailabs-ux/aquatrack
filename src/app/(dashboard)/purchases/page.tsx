@@ -59,16 +59,23 @@ interface ReceiveItemFormRow {
   quantity_to_receive: number;
 }
 
+// Module-level client cache for instant purchases navigation
+let cachedPurchasesState: {
+  purchases: PurchaseRecord[];
+  suppliers: SupplierRecord[];
+  products: ProductRecord[];
+} | null = null;
+
 export default function PurchasesPage() {
   const { addToast } = useToast();
 
-  // Primary Data
-  const [purchases, setPurchases] = React.useState<PurchaseRecord[]>([]);
-  const [suppliers, setSuppliers] = React.useState<SupplierRecord[]>([]);
-  const [products, setProducts] = React.useState<ProductRecord[]>([]);
+  // Primary Data with instant cache initialization
+  const [purchases, setPurchases] = React.useState<PurchaseRecord[]>(() => cachedPurchasesState?.purchases || []);
+  const [suppliers, setSuppliers] = React.useState<SupplierRecord[]>(() => cachedPurchasesState?.suppliers || []);
+  const [products, setProducts] = React.useState<ProductRecord[]>(() => cachedPurchasesState?.products || []);
 
   // State
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedPurchasesState);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
@@ -108,7 +115,9 @@ export default function PurchasesPage() {
 
   // Load Data
   const loadData = React.useCallback(async () => {
-    setIsLoading(true);
+    if (!cachedPurchasesState) {
+      setIsLoading(true);
+    }
     setLoadError(null);
     try {
       const [purchasesRes, suppliersRes, productsRes] = await Promise.all([
@@ -121,14 +130,19 @@ export default function PurchasesPage() {
         throw new Error(purchasesRes.error || "Failed to load purchases.");
       }
 
-      setPurchases(purchasesRes.data || []);
+      const freshPurchases = purchasesRes.data || [];
+      const freshSuppliers = suppliersRes.success && suppliersRes.data?.items ? suppliersRes.data.items : [];
+      const freshProducts = productsRes.success && productsRes.data?.items ? productsRes.data.items : [];
 
-      if (suppliersRes.success && suppliersRes.data?.items) {
-        setSuppliers(suppliersRes.data.items);
-      }
-      if (productsRes.success && productsRes.data?.items) {
-        setProducts(productsRes.data.items);
-      }
+      setPurchases(freshPurchases);
+      setSuppliers(freshSuppliers);
+      setProducts(freshProducts);
+
+      cachedPurchasesState = {
+        purchases: freshPurchases,
+        suppliers: freshSuppliers,
+        products: freshProducts,
+      };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load purchase data.";
       setLoadError(msg);

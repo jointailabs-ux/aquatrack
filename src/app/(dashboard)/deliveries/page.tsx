@@ -40,6 +40,12 @@ import {
 import { getStaffMembers } from "@/modules/staff/staff.service";
 import { StaffRecord } from "@/modules/staff/staff.schema";
 
+// Module-level client cache for instant deliveries navigation
+let cachedDeliveriesState: {
+  key: string;
+  data: AdminDeliveriesData;
+} | null = null;
+
 export default function DeliveriesPage() {
   const { addToast } = useToast();
   const [selectedDate, setSelectedDate] = React.useState<string>(
@@ -47,10 +53,19 @@ export default function DeliveriesPage() {
   );
   const [selectedDriver, setSelectedDriver] = React.useState<string>("");
   const [selectedStatus, setSelectedStatus] = React.useState<string>("ALL");
-  const [loading, setLoading] = React.useState<boolean>(true);
+  const [overviewData, setOverviewData] = React.useState<AdminDeliveriesData | null>(() => {
+    const today = new Date().toISOString().split("T")[0];
+    if (cachedDeliveriesState && cachedDeliveriesState.key.startsWith(today)) {
+      return cachedDeliveriesState.data;
+    }
+    return null;
+  });
+  const [loading, setLoading] = React.useState<boolean>(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return !cachedDeliveriesState || !cachedDeliveriesState.key.startsWith(today);
+  });
   const [refreshing, setRefreshing] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [overviewData, setOverviewData] = React.useState<AdminDeliveriesData | null>(null);
   const [staffList, setStaffList] = React.useState<StaffRecord[]>([]);
 
   // Expanded trip IDs for details
@@ -63,8 +78,11 @@ export default function DeliveriesPage() {
 
   const fetchOverview = React.useCallback(
     async (date: string, driverId?: string, status?: string, isRefresh = false) => {
+      const cacheKey = `${date}-${driverId || "ALL"}-${status || "ALL"}`;
+      const hasMatchingCache = cachedDeliveriesState && cachedDeliveriesState.key === cacheKey;
+
       if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+      else if (!hasMatchingCache) setLoading(true);
       setError(null);
 
       try {
@@ -76,6 +94,10 @@ export default function DeliveriesPage() {
 
         if (res.success && res.data) {
           setOverviewData(res.data);
+          cachedDeliveriesState = {
+            key: cacheKey,
+            data: res.data,
+          };
           // Auto expand trips by default
           const initialExpanded: Record<string, boolean> = {};
           res.data.trips.forEach((t) => {

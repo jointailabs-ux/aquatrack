@@ -262,10 +262,18 @@ export default function CustomersPage() {
     setIsSubmitting(false);
 
     if (res.success && res.data) {
+      const createdCustomer = res.data;
+      setCustomers((prev) => [createdCustomer, ...prev]);
+      setSelectedCustomer(createdCustomer);
+      if (cachedCustomersState) {
+        cachedCustomersState.items = [createdCustomer, ...cachedCustomersState.items];
+        cachedCustomersState.total += 1;
+      }
+
       addToast({
         type: "success",
         title: "Customer Registered",
-        message: `Registered ${res.data.contact_name} successfully.`,
+        message: `Registered ${createdCustomer.contact_name} successfully.`,
       });
       setIsAddModalOpen(false);
       // Reset form

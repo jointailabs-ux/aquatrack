@@ -46,23 +46,34 @@ import { CustomerRecord } from "@/modules/customers/customer.schema";
 import { ProductRecord } from "@/modules/products/product.schema";
 import { formatCurrency } from "@/lib/utils";
 
+// Module-level client cache for instant pricing navigation
+let cachedPricingState: {
+  key: string;
+  kpis: PricingKPIs;
+  items: SpecialPriceWithDetails[];
+  total: number;
+  totalPages: number;
+  customers: CustomerRecord[];
+  products: ProductRecord[];
+} | null = null;
+
 export default function PricingPage() {
   const { addToast } = useToast();
 
-  // Data
-  const [agreements, setAgreements] = React.useState<SpecialPriceWithDetails[]>([]);
-  const [kpis, setKpis] = React.useState<PricingKPIs>({
+  // Data with instant cache initialization
+  const [agreements, setAgreements] = React.useState<SpecialPriceWithDetails[]>(() => cachedPricingState?.items || []);
+  const [kpis, setKpis] = React.useState<PricingKPIs>(() => cachedPricingState?.kpis || {
     totalActive: 0,
     totalCustomers: 0,
     totalProducts: 0,
     totalExpired: 0,
     totalUpcomingExpirations: 0,
   });
-  const [customers, setCustomers] = React.useState<CustomerRecord[]>([]);
-  const [products, setProducts] = React.useState<ProductRecord[]>([]);
+  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => cachedPricingState?.customers || []);
+  const [products, setProducts] = React.useState<ProductRecord[]>(() => cachedPricingState?.products || []);
 
   // UI States
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedPricingState);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Filters & Pagination
@@ -73,8 +84,8 @@ export default function PricingPage() {
     "ALL" | "ACTIVE" | "EXPIRING_SOON" | "EXPIRED" | "UPCOMING"
   >("ALL");
   const [page, setPage] = React.useState(1);
-  const [totalPages, setTotalPages] = React.useState(1);
-  const [totalCount, setTotalCount] = React.useState(0);
+  const [totalPages, setTotalPages] = React.useState(() => cachedPricingState?.totalPages || 1);
+  const [totalCount, setTotalCount] = React.useState(() => cachedPricingState?.total || 0);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
@@ -100,7 +111,12 @@ export default function PricingPage() {
   // Load KPI metrics and agreements
   const loadData = React.useCallback(
     async (targetPage = page) => {
-      setIsLoading(true);
+      const cacheKey = `${selectedCustomerId}-${selectedProductId}-${statusFilter}-${searchQuery}-${targetPage}`;
+      const hasMatchingCache = cachedPricingState && cachedPricingState.key === cacheKey;
+
+      if (!hasMatchingCache) {
+        setIsLoading(true);
+      }
       try {
         const [kpiRes, listRes] = await Promise.all([
           getPricingDashboardKPIs(),
@@ -114,25 +130,44 @@ export default function PricingPage() {
           }),
         ]);
 
+        let freshKPIs = kpis;
+        let freshItems: SpecialPriceWithDetails[] = [];
+        let freshTotal = 0;
+        let freshPages = 1;
+
         if (kpiRes.success && kpiRes.data) {
+          freshKPIs = kpiRes.data;
           setKpis(kpiRes.data);
         }
         if (listRes.success && listRes.data) {
+          freshItems = listRes.data.items;
+          freshTotal = listRes.data.total || 0;
+          freshPages = listRes.data.totalPages || 1;
           setAgreements(listRes.data.items);
-          setTotalPages(listRes.data.totalPages || 1);
-          setTotalCount(listRes.data.total || 0);
+          setTotalPages(freshPages);
+          setTotalCount(freshTotal);
         } else {
           setAgreements([]);
           setTotalPages(1);
           setTotalCount(0);
         }
+
+        cachedPricingState = {
+          key: cacheKey,
+          kpis: freshKPIs,
+          items: freshItems,
+          total: freshTotal,
+          totalPages: freshPages,
+          customers: cachedPricingState?.customers || customers,
+          products: cachedPricingState?.products || products,
+        };
       } catch {
         addToast({ type: "error", title: "Error", message: "Failed to connect to database." });
       } finally {
         setIsLoading(false);
       }
     },
-    [selectedCustomerId, selectedProductId, statusFilter, searchQuery, page, addToast]
+    [selectedCustomerId, selectedProductId, statusFilter, searchQuery, page, addToast, kpis, customers, products]
   );
 
   // Load Customers & Products for dropdowns

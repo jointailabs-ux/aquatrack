@@ -392,15 +392,38 @@ export default function OrdersPage() {
         throw new Error(res.error || "Failed to create order.");
       }
 
+      const createdOrder = res.data;
+      if (cust) {
+        createdOrder.customer_name = cust.business_name || cust.contact_name;
+        createdOrder.customer_phone = cust.phone;
+      }
+      const staff = staffList.find((s) => s.id === assignedStaffId);
+      if (staff) {
+        createdOrder.assigned_staff_name = staff.full_name;
+      }
+
+      // Optimistic update: display new order immediately without blocking
+      setOrders((prev) => [createdOrder, ...prev]);
+      if (cachedOrdersState) {
+        cachedOrdersState.orders = [createdOrder, ...cachedOrdersState.orders];
+      }
+
+      setIsCreateModalOpen(false);
+      setIsSubmitting(false);
+
       addToast({
         type: "success",
         title: "Order Dispatched",
-        message: `Order #${res.data.order_number} created successfully with ${payloadItems.length} line items.`,
+        message: `Order #${createdOrder.order_number} created successfully with ${payloadItems.length} line items.`,
       });
 
-      setIsCreateModalOpen(false);
-      // Refresh list to display live server state with customer/staff joins
-      await loadData();
+      // Background silent revalidation of orders list
+      getOrders().then((freshRes) => {
+        if (freshRes.success && freshRes.data) {
+          setOrders(freshRes.data);
+          if (cachedOrdersState) cachedOrdersState.orders = freshRes.data;
+        }
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Order creation failed.";
       addToast({
@@ -408,7 +431,6 @@ export default function OrdersPage() {
         title: "Order Creation Failed",
         message: msg,
       });
-    } finally {
       setIsSubmitting(false);
     }
   };

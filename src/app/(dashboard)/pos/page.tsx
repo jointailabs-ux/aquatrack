@@ -39,14 +39,20 @@ interface SellableItem {
   isReusableJar: boolean;
 }
 
+// Module-level client cache for instant POS catalog display
+let cachedPosState: {
+  catalogItems: SellableItem[];
+  customers: CustomerRecord[];
+} | null = null;
+
 export default function PosPage() {
   const { addToast } = useToast();
-  const [catalogItems, setCatalogItems] = React.useState<SellableItem[]>([]);
+  const [catalogItems, setCatalogItems] = React.useState<SellableItem[]>(() => cachedPosState?.catalogItems || []);
   const [cart, setCart] = React.useState<PosCartItem[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("ALL");
   const [customerName, setCustomerName] = React.useState("Walk-in Customer");
-  const [customers, setCustomers] = React.useState<CustomerRecord[]>([]);
+  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => cachedPosState?.customers || []);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string>("");
   const [customerSpecialPrices, setCustomerSpecialPrices] = React.useState<Record<string, number>>({});
   const [paymentMode, setPaymentMode] = React.useState<"CASH" | "UPI" | "CARD">("UPI");
@@ -67,8 +73,11 @@ export default function PosPage() {
         invRes.data.forEach((inv) => stockMap.set(inv.product_id, inv.available_stock));
       }
 
+      let freshItems: SellableItem[] = [];
+      let freshCustomers: CustomerRecord[] = [];
+
       if (prodRes.success && prodRes.data?.items) {
-        const sellable: SellableItem[] = prodRes.data.items.map((p) => ({
+        freshItems = prodRes.data.items.map((p) => ({
           id: p.id,
           sku: p.sku,
           name: p.name,
@@ -78,12 +87,18 @@ export default function PosPage() {
           stock: stockMap.get(p.id) || 0,
           isReusableJar: p.is_reusable_jar,
         }));
-        setCatalogItems(sellable);
+        setCatalogItems(freshItems);
       }
 
       if (custRes.success && custRes.data) {
-        setCustomers(custRes.data.items);
+        freshCustomers = custRes.data.items;
+        setCustomers(freshCustomers);
       }
+
+      cachedPosState = {
+        catalogItems: freshItems,
+        customers: freshCustomers,
+      };
     }
     loadCatalog();
   }, []);
