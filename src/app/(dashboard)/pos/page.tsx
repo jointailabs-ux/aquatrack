@@ -274,15 +274,15 @@ export default function PosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Point of Sale (POS) Counter
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+              Shop Counter Sale (दुकान काउंटर बिक्री)
             </h1>
-            <Badge variant="primary" className="text-xs">
-              Fast Walk-in Checkout
+            <Badge variant="primary" className="text-xs font-bold">
+              Instant Sale
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Counter sales for water refills and packaged beverages with automatic inventory deduction and bill printing.
+            Instant counter sale for water jars and drinks. Collect cash or UPI and print receipt.
           </p>
         </div>
 
@@ -291,10 +291,10 @@ export default function PosPage() {
             size="sm"
             variant="outline"
             onClick={() => window.print()}
-            className="gap-2 text-xs"
+            className="gap-2 text-xs font-semibold"
           >
             <Printer className="h-4 w-4" />
-            Print Last Receipt (#{lastReceipt.receipt_number})
+            Print Last Bill (#{lastReceipt.receipt_number})
           </Button>
         )}
       </div>
@@ -307,17 +307,22 @@ export default function PosPage() {
             <CardHeader className="p-4 pb-3 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap pb-1 sm:pb-0">
-                  {["ALL", "WATER_JAR", "BEVERAGE", "PACKAGED_WATER"].map((cat) => (
+                  {[
+                    { id: "ALL", label: "All (सब)" },
+                    { id: "WATER_JAR", label: "Water Jars (20L बोतल)" },
+                    { id: "BEVERAGE", label: "Drinks (कोल्ड ड्रिंक्स)" },
+                    { id: "PACKAGED_WATER", label: "Small Bottles (पानी बोतल)" },
+                  ].map((cat) => (
                     <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shrink-0 touch-manipulation ${
-                        selectedCategory === cat
-                          ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                        selectedCategory === cat.id
+                          ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-xs font-bold"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
                     >
-                      {cat.replace(/_/g, " ")}
+                      {cat.label}
                     </button>
                   ))}
                 </div>
@@ -654,14 +659,14 @@ export default function PosPage() {
 
               {/* Cash Fast Tender Preset Chips */}
               {paymentMode === "CASH" && cart.length > 0 && (
-                <div className="p-2.5 rounded-xl bg-muted/40 border border-border space-y-2 animate-in fade-in-50 duration-200">
+                <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2.5 animate-in fade-in-50 duration-200">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      Cash Tendered
+                    <span className="text-[11px] font-bold text-amber-900">
+                      Cash Given by Customer (ग्राहक ने कितने दिए)
                     </span>
                     {Number(tenderedAmount) > finalTotal && (
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                        Change: {formatCurrency(Number(tenderedAmount) - finalTotal)}
+                      <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                        Return: {formatCurrency(Number(tenderedAmount) - finalTotal)}
                       </span>
                     )}
                   </div>
@@ -670,7 +675,7 @@ export default function PosPage() {
                     <button
                       type="button"
                       onClick={() => setTenderedAmount(String(finalTotal))}
-                      className="px-2 py-1 rounded text-xs font-bold bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary text-white shadow-xs hover:bg-primary/90 transition-colors cursor-pointer"
                     >
                       Exact ({formatCurrency(finalTotal)})
                     </button>
@@ -681,7 +686,7 @@ export default function PosPage() {
                             key={amt}
                             type="button"
                             onClick={() => setTenderedAmount(String(amt))}
-                            className="px-2 py-1 rounded text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-border hover:bg-slate-100 text-foreground transition-colors cursor-pointer"
                           >
                             ₹{amt}
                           </button>
@@ -693,10 +698,10 @@ export default function PosPage() {
 
                   <Input
                     type="number"
-                    placeholder={`Tendered (Defaults to ${formatCurrency(finalTotal)})`}
+                    placeholder={`Cash Given (₹${finalTotal})`}
                     value={tenderedAmount}
                     onChange={(e) => setTenderedAmount(e.target.value)}
-                    className="text-xs h-8"
+                    className="text-xs h-9 bg-white font-bold"
                   />
                 </div>
               )}
@@ -705,10 +710,10 @@ export default function PosPage() {
               <Button
                 onClick={handleCompleteSale}
                 disabled={cart.length === 0}
-                className="w-full min-h-[48px] h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md gap-2 touch-manipulation"
+                className="w-full min-h-[50px] h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm shadow-md shadow-emerald-600/30 gap-2 touch-manipulation active:scale-[0.99]"
               >
                 <CheckCircle2 className="h-5 w-5" />
-                Complete Sale ({formatCurrency(finalTotal)})
+                Complete Sale & Print Bill ({formatCurrency(finalTotal)})
               </Button>
             </CardContent>
           </Card>
@@ -717,23 +722,22 @@ export default function PosPage() {
 
       {/* Mobile Floating Cart Summary */}
       {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-16 left-3 right-3 z-30 shadow-xl rounded-xl bg-primary text-primary-foreground p-3 flex items-center justify-between animate-in slide-in-from-bottom duration-200">
+        <div className="lg:hidden fixed bottom-20 left-3 right-3 z-30 shadow-2xl rounded-2xl bg-gradient-to-r from-slate-900 to-blue-950 text-white border border-sky-500/40 p-3.5 flex items-center justify-between animate-in slide-in-from-bottom duration-200">
           <div>
-            <span className="text-xs font-bold block">
+            <span className="text-xs font-bold block text-sky-300">
               {cart.reduce((s, i) => s + i.quantity, 0)} Items in Cart
             </span>
-            <span className="text-sm font-black">{formatCurrency(finalTotal)}</span>
+            <span className="text-base font-black text-white">{formatCurrency(finalTotal)}</span>
           </div>
           <Button
             size="sm"
-            variant="secondary"
             onClick={() => {
               const cartEl = document.getElementById("pos-checkout-section");
               if (cartEl) cartEl.scrollIntoView({ behavior: "smooth" });
             }}
-            className="font-bold text-xs"
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md"
           >
-            Checkout &darr;
+            Checkout & Pay &darr;
           </Button>
         </div>
       )}

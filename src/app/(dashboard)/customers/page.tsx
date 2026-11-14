@@ -498,15 +498,15 @@ export default function CustomersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Customer Accounts & Directory
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+              Customers & Khata Book (ग्राहक खाता)
             </h1>
-            <Badge variant="primary" className="text-xs">
-              {totalCount} Total Accounts
+            <Badge variant="primary" className="text-xs font-bold">
+              {totalCount} Customers
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Internal customer master registry, empty jar reconciliation, outstanding A/R, and direct payment collection.
+            Customer details, empty bottle balance, pending udhaari, and receive payments.
           </p>
         </div>
 
@@ -516,10 +516,10 @@ export default function CustomersPage() {
               size="sm"
               variant="outline"
               onClick={() => openDirectPaymentModal(selectedCustomer)}
-              className="gap-1.5 text-xs font-semibold border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100/70 text-emerald-800 active:scale-95 transition-all"
+              className="gap-1.5 text-xs font-bold border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 active:scale-95 transition-all"
             >
               <DollarSign className="h-4 w-4 text-emerald-600" />
-              Collect Payment
+              Receive Money (पैसे लें)
             </Button>
           )}
 
@@ -529,7 +529,7 @@ export default function CustomersPage() {
             className="gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold shadow-sm shadow-sky-500/25 active:scale-95 transition-all"
           >
             <Plus className="h-4 w-4" />
-            Add Customer
+            + New Customer (ग्राहक)
           </Button>
         </div>
       </div>
@@ -542,7 +542,7 @@ export default function CustomersPage() {
             <div className="sm:col-span-4 relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, company, or phone..."
+                placeholder="Search name, phone, or shop..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 text-xs h-9"
@@ -560,7 +560,7 @@ export default function CustomersPage() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                All Types
+                All
               </button>
               <button
                 type="button"
@@ -571,7 +571,7 @@ export default function CustomersPage() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                B2C
+                Home (B2C)
               </button>
               <button
                 type="button"
@@ -582,7 +582,7 @@ export default function CustomersPage() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                B2B
+                Shop (B2B)
               </button>
             </div>
 
@@ -608,7 +608,7 @@ export default function CustomersPage() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Inactive
+                Stopped
               </button>
               <button
                 type="button"
@@ -633,7 +633,7 @@ export default function CustomersPage() {
                   className="rounded border-border text-primary focus:ring-primary h-4 w-4"
                 />
                 <span className={hasBalanceFilter ? "font-bold text-rose-600 dark:text-rose-400" : ""}>
-                  Unpaid A/R Only
+                  Pending Due Only (बाकी)
                 </span>
               </label>
             </div>
@@ -856,19 +856,19 @@ export default function CustomersPage() {
                         </h2>
                         <Badge
                           variant={selectedCustomer.customer_type === "B2B" ? "primary" : "secondary"}
-                          className="text-[10px]"
+                          className="text-[10px] font-bold"
                         >
-                          {selectedCustomer.customer_type} Account
+                          {selectedCustomer.customer_type === "B2B" ? "Shop / Business" : "Home Customer"}
                         </Badge>
                         <Badge
                           variant={selectedCustomer.is_active ? "outline" : "destructive"}
-                          className={`text-[10px] ${
+                          className={`text-[10px] font-bold ${
                             selectedCustomer.is_active
-                              ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                              ? "text-emerald-700 bg-emerald-50 border-emerald-300"
                               : ""
                           }`}
                         >
-                          {selectedCustomer.is_active ? "Active Client" : "Deactivated"}
+                          {selectedCustomer.is_active ? "Active" : "Stopped / Inactive"}
                         </Badge>
                       </div>
 
@@ -890,39 +890,39 @@ export default function CustomersPage() {
                       <Button
                         size="sm"
                         onClick={() => openDirectPaymentModal(selectedCustomer)}
-                        className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold active:scale-95 transition-all shadow-xs"
                       >
                         <DollarSign className="h-3.5 w-3.5" />
-                        Collect Payment
+                        Receive Money (पैसे लें)
                       </Button>
 
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => openEditModal(selectedCustomer)}
-                        className="h-8 gap-1.5 text-xs border-border hover:bg-muted text-foreground"
+                        className="h-8 gap-1.5 text-xs border-border hover:bg-muted text-foreground font-medium"
                       >
                         <Edit3 className="h-3.5 w-3.5 text-muted-foreground" />
-                        Edit
+                        Edit Details
                       </Button>
 
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setIsToggleActiveOpen(true)}
-                        className={`h-8 gap-1.5 text-xs border-border hover:bg-muted ${
+                        className={`h-8 gap-1.5 text-xs border-border hover:bg-muted font-medium ${
                           selectedCustomer.is_active ? "text-rose-600 hover:text-rose-700" : "text-emerald-600"
                         }`}
                       >
                         {selectedCustomer.is_active ? (
                           <>
                             <Ban className="h-3.5 w-3.5" />
-                            Deactivate
+                            Stop Customer
                           </>
                         ) : (
                           <>
                             <ShieldCheck className="h-3.5 w-3.5" />
-                            Reactivate
+                            Start Again
                           </>
                         )}
                       </Button>
@@ -959,11 +959,11 @@ export default function CustomersPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground flex items-center gap-1.5">
                           <Phone className="h-3.5 w-3.5 text-primary" />
-                          Phone:
+                          Phone Number:
                         </span>
                         <a
                           href={`tel:${selectedCustomer.phone}`}
-                          className="font-semibold text-foreground hover:text-primary transition-colors"
+                          className="font-bold text-foreground hover:text-primary transition-colors"
                         >
                           {selectedCustomer.phone}
                         </a>
@@ -985,16 +985,16 @@ export default function CustomersPage() {
                       )}
 
                       <div className="flex items-center justify-between pt-1 border-t border-border/60">
-                        <span className="text-muted-foreground">Credit Limit:</span>
-                        <span className="font-semibold text-foreground">
+                        <span className="text-muted-foreground">Max Udhaari Allowed:</span>
+                        <span className="font-bold text-foreground">
                           {formatCurrency(selectedCustomer.credit_limit)}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Max Allowed Jars:</span>
-                        <span className="font-semibold text-foreground">
-                          {selectedCustomer.max_jar_limit} Jars
+                        <span className="text-muted-foreground">Max Empty Bottles:</span>
+                        <span className="font-bold text-foreground">
+                          {selectedCustomer.max_jar_limit} Bottles
                         </span>
                       </div>
                     </div>
@@ -1002,46 +1002,46 @@ export default function CustomersPage() {
 
                   {/* 4 KPI Summary Cards: Full, Empty, Damaged, Outstanding A/R */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="rounded-xl border border-border bg-card p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                        <Package className="h-3 w-3 text-blue-500" />
-                        Full Jars Held
+                    <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-3 space-y-1 shadow-2xs">
+                      <span className="text-[10px] uppercase font-bold text-blue-900/80 flex items-center gap-1">
+                        <Package className="h-3 w-3 text-blue-600" />
+                        Filled Bottles (भरी)
                       </span>
-                      <p className="text-lg font-extrabold text-blue-600 dark:text-blue-400">
+                      <p className="text-xl font-black text-blue-700">
                         {selectedCustomer.total_full_jars_holding}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-border bg-card p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                        <Package className="h-3 w-3 text-amber-500" />
-                        Empty Jars Held
+                    <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-3 space-y-1 shadow-2xs">
+                      <span className="text-[10px] uppercase font-bold text-amber-900/80 flex items-center gap-1">
+                        <Package className="h-3 w-3 text-amber-600" />
+                        Empty Bottles (खाली)
                       </span>
-                      <p className="text-lg font-extrabold text-amber-600 dark:text-amber-400">
+                      <p className="text-xl font-black text-amber-700">
                         {selectedCustomer.total_empty_jars_holding}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-border bg-card p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3 text-rose-500" />
-                        Damaged Jars
+                    <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-3 space-y-1 shadow-2xs">
+                      <span className="text-[10px] uppercase font-bold text-rose-900/80 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 text-rose-600" />
+                        Broken (टूटी बोतल)
                       </span>
-                      <p className="text-lg font-extrabold text-rose-600 dark:text-rose-400">
+                      <p className="text-xl font-black text-rose-700">
                         {selectedCustomer.total_damaged_jars_holding || 0}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-border bg-card p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
-                        <DollarSign className="h-3 w-3 text-emerald-500" />
-                        Unpaid Invoices (A/R)
+                    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3 space-y-1 shadow-2xs">
+                      <span className="text-[10px] uppercase font-bold text-emerald-900/80 flex items-center gap-1">
+                        <DollarSign className="h-3 w-3 text-emerald-600" />
+                        Pending Udhaari (बाकी)
                       </span>
                       <p
-                        className={`text-lg font-extrabold ${
+                        className={`text-xl font-black ${
                           Number(selectedCustomer.current_balance) > 0
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-emerald-600 dark:text-emerald-400"
+                            ? "text-rose-600"
+                            : "text-emerald-700"
                         }`}
                       >
                         {formatCurrency(selectedCustomer.current_balance)}
@@ -1062,7 +1062,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Order History
+                          Orders & Deliveries (ऑर्डर)
                         </button>
                         <button
                           type="button"
@@ -1073,7 +1073,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Payment Receipts
+                          Payments Received (पैसे जमा)
                         </button>
                         <button
                           type="button"
@@ -1084,7 +1084,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Invoices & A/R
+                          Bills & Invoices (बिल)
                         </button>
                         <button
                           type="button"
@@ -1095,7 +1095,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Jar Custody Movements
+                          Empty Bottles History (बोतलें)
                         </button>
                       </div>
 

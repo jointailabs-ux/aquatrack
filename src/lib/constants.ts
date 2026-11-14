@@ -39,7 +39,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     label: "OVERVIEW",
     items: [
       {
-        title: "Dashboard",
+        title: "Home Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
         isImplemented: true,
@@ -52,7 +52,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     label: "OPERATIONS",
     items: [
       {
-        title: "POS Counter",
+        title: "Shop Counter Sale",
         href: "/pos",
         icon: ShoppingCart,
         isImplemented: true,
@@ -61,7 +61,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         requiredPermission: "canPos",
       },
       {
-        title: "Jar Tracking",
+        title: "Bottle Tracking (Jars)",
         href: "/jars",
         icon: RotateCcw,
         isImplemented: true,
@@ -69,7 +69,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner", "staff"],
       },
       {
-        title: "Orders & Dispatch",
+        title: "Orders & Delivery",
         href: "/orders",
         icon: Truck,
         isImplemented: true,
@@ -78,7 +78,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         requiredPermission: "canManageOrders",
       },
       {
-        title: "Products",
+        title: "Products Catalog",
         href: "/products",
         icon: Package,
         isImplemented: true,
@@ -86,7 +86,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner", "staff"],
       },
       {
-        title: "Inventory",
+        title: "Stock in Godown",
         href: "/inventory",
         icon: Boxes,
         isImplemented: true,
@@ -95,7 +95,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         requiredPermission: "canWarehouse",
       },
       {
-        title: "Customers",
+        title: "Customers & Khata",
         href: "/customers",
         icon: Users,
         isImplemented: true,
@@ -104,7 +104,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         requiredPermission: "canManageCustomers",
       },
       {
-        title: "Suppliers",
+        title: "Suppliers (विक्रेता)",
         href: "/suppliers",
         icon: Building2,
         isImplemented: true,
@@ -112,7 +112,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner"],
       },
       {
-        title: "Purchases",
+        title: "Purchases (खरीददारी)",
         href: "/purchases",
         icon: ShoppingBag,
         isImplemented: true,
@@ -120,7 +120,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner"],
       },
       {
-        title: "Central Warehouse",
+        title: "Godown Warehouse",
         href: "/warehouses",
         icon: Warehouse,
         isImplemented: true,
@@ -134,7 +134,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     label: "WORKFORCE",
     items: [
       {
-        title: "Staff Management",
+        title: "Staff & Drivers",
         href: "/staff",
         icon: UserCheck,
         isImplemented: true,
@@ -155,7 +155,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     label: "FINANCE & CONTROLS",
     items: [
       {
-        title: "Special Pricing",
+        title: "Customer Rates (रेट)",
         href: "/pricing",
         icon: Tag,
         isImplemented: true,
@@ -163,7 +163,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner"],
       },
       {
-        title: "Expenses",
+        title: "Daily Expenses (खर्चा)",
         href: "/expenses",
         icon: FileSpreadsheet,
         isImplemented: true,
@@ -171,7 +171,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner"],
       },
       {
-        title: "Accounting & Ledger",
+        title: "Accounts & Ledger",
         href: "/accounting",
         icon: BookOpen,
         isImplemented: true,

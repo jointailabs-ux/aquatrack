@@ -576,15 +576,15 @@ export default function OrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Customer Orders & Route Dispatch
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+              Orders & Delivery (ऑर्डर और डिलीवरी)
             </h1>
-            <Badge variant="primary" className="text-xs">
-              Delivery Operations
+            <Badge variant="primary" className="text-xs font-bold">
+              Deliveries
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Create multi-product refill orders, manage fleet dispatch, and monitor delivery reconciliation.
+            Create water jar orders, assign drivers, and check delivery status.
           </p>
         </div>
 
@@ -594,7 +594,7 @@ export default function OrdersPage() {
             size="sm"
             onClick={loadData}
             disabled={isLoading}
-            className="gap-1.5 text-xs"
+            className="gap-1.5 text-xs font-medium"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
@@ -606,7 +606,7 @@ export default function OrdersPage() {
             className="gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold shadow-sm shadow-sky-500/25 active:scale-95 transition-all"
           >
             <Plus className="h-4 w-4" />
-            Create Order
+            + New Order (नया ऑर्डर)
           </Button>
         </div>
       </div>
@@ -615,32 +615,32 @@ export default function OrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pb-1 sm:pb-0">
           {[
-            "ALL",
-            "PENDING",
-            "ASSIGNED",
-            "OUT_FOR_DELIVERY",
-            "PARTIALLY_DELIVERED",
-            "DELIVERED",
-            "CANCELLED",
+            { id: "ALL", label: "All (सब)" },
+            { id: "PENDING", label: "Pending (बाकी)" },
+            { id: "ASSIGNED", label: "With Driver (चालक)" },
+            { id: "OUT_FOR_DELIVERY", label: "On the Way (रास्ते में)" },
+            { id: "PARTIALLY_DELIVERED", label: "Half Done" },
+            { id: "DELIVERED", label: "Delivered (पहुंच गया)" },
+            { id: "CANCELLED", label: "Cancelled (रद्द)" },
           ].map((st) => (
             <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
+              key={st.id}
+              onClick={() => setStatusFilter(st.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0 touch-manipulation ${
-                statusFilter === st
-                  ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                statusFilter === st.id
+                  ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-xs font-bold"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
-              <span>{st.replace(/_/g, " ")}</span>
+              <span>{st.label}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  statusFilter === st
-                    ? "bg-primary-foreground/20 text-primary-foreground"
+                  statusFilter === st.id
+                    ? "bg-white/20 text-white font-bold"
                     : "bg-background text-muted-foreground"
                 }`}
               >
-                {statusCounts[st] || 0}
+                {statusCounts[st.id] || 0}
               </span>
             </button>
           ))}

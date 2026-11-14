@@ -36,7 +36,7 @@ const TABS: BottomTabItem[] = [
     icon: Truck,
   },
   {
-    label: "Inventory",
+    label: "Stock",
     href: "/inventory",
     icon: Package,
   },
@@ -46,7 +46,7 @@ const TABS: BottomTabItem[] = [
     icon: Users,
   },
   {
-    label: "More",
+    label: "All Menu",
     icon: Grid,
     isMore: true,
   },
@@ -57,7 +57,7 @@ export function BottomNav({ onOpenMore, isMoreOpen = false }: BottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.04)] safe-area-bottom select-none"
+      className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-slate-900/98 backdrop-blur-xl border-t border-slate-800 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] safe-area-bottom select-none"
       role="navigation"
       aria-label="Mobile Bottom Navigation"
     >
@@ -75,8 +75,8 @@ export function BottomNav({ onOpenMore, isMoreOpen = false }: BottomNavProps) {
                 className={cn(
                   "flex flex-1 flex-col items-center justify-center py-1.5 px-1 min-h-[48px] rounded-xl transition-all touch-manipulation cursor-pointer",
                   isActive
-                    ? "text-primary font-bold"
-                    : "text-muted-foreground hover:text-foreground active:scale-95"
+                    ? "text-sky-400 font-bold"
+                    : "text-slate-400 hover:text-white active:scale-95"
                 )}
                 aria-label="Open more navigation options"
                 aria-expanded={isMoreOpen}
@@ -84,12 +84,12 @@ export function BottomNav({ onOpenMore, isMoreOpen = false }: BottomNavProps) {
                 <div
                   className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-lg transition-all",
-                    isActive ? "bg-primary text-primary-foreground shadow-xs shadow-primary/30" : "text-muted-foreground"
+                    isActive ? "bg-gradient-to-tr from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/30" : "text-slate-400"
                   )}
                 >
                   <Icon className="h-4.5 w-4.5" />
                 </div>
-                <span className={cn("text-[10px] mt-0.5 tracking-tight font-medium", isActive ? "text-primary font-bold" : "text-muted-foreground")}>
+                <span className={cn("text-[10px] mt-0.5 tracking-tight font-medium", isActive ? "text-sky-400 font-bold" : "text-slate-400")}>
                   {tab.label}
                 </span>
               </button>
@@ -110,19 +110,19 @@ export function BottomNav({ onOpenMore, isMoreOpen = false }: BottomNavProps) {
               className={cn(
                 "flex flex-1 flex-col items-center justify-center py-1.5 px-1 min-h-[48px] rounded-xl transition-all touch-manipulation",
                 isActive
-                  ? "text-primary font-bold"
-                  : "text-muted-foreground hover:text-foreground active:scale-95"
+                  ? "text-sky-400 font-bold"
+                  : "text-slate-400 hover:text-white active:scale-95"
               )}
             >
               <div
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-lg transition-all",
-                  isActive ? "bg-primary text-primary-foreground shadow-xs shadow-primary/30" : "text-muted-foreground"
+                  isActive ? "bg-gradient-to-tr from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/30" : "text-slate-400"
                 )}
               >
                 <Icon className="h-4.5 w-4.5" />
               </div>
-              <span className={cn("text-[10px] mt-0.5 tracking-tight font-medium", isActive ? "text-primary font-bold" : "text-muted-foreground")}>
+              <span className={cn("text-[10px] mt-0.5 tracking-tight font-medium", isActive ? "text-sky-400 font-bold" : "text-slate-400")}>
                 {tab.label}
               </span>
             </Link>

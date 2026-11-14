@@ -21,7 +21,6 @@ import {
   ChevronUp,
   PlusCircle,
   UserPlus,
-  ShoppingBag,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -357,15 +356,15 @@ export default function DashboardPage() {
         {/* B. Business Overview: Compact 2 × 2 Metric Grid */}
         <div className="grid grid-cols-2 gap-2.5">
           {/* Tile 1: Today's Sales */}
-          <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/30 p-3 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-900/80">Sales Revenue</span>
+              <span className="text-[11px] font-bold text-emerald-900/90">Today&apos;s Sales (बिक्री)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
                 <DollarSign className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-emerald-950 dark:text-emerald-300 tracking-tight block">
+              <span className="text-xl font-black text-emerald-950 dark:text-emerald-300 tracking-tight block">
                 {formatCurrency(kpis.orderRevenue + kpis.posSalesTotal)}
               </span>
               <span className="text-[10px] text-emerald-700/80 font-semibold">
@@ -375,15 +374,15 @@ export default function DashboardPage() {
           </div>
 
           {/* Tile 2: Orders Count */}
-          <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/30 p-3 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-sky-900/80">Route Orders</span>
+              <span className="text-[11px] font-bold text-sky-900/90">Deliveries (डिलीवरी)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/25">
                 <Truck className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-sky-950 dark:text-sky-300 tracking-tight block">
+              <span className="text-xl font-black text-sky-950 dark:text-sky-300 tracking-tight block">
                 {kpis.orderCount}
               </span>
               <span className="text-[10px] text-sky-700/80 font-semibold">
@@ -393,43 +392,43 @@ export default function DashboardPage() {
           </div>
 
           {/* Tile 3: Outstanding A/R */}
-          <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/30 p-3 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-amber-900/80">Customer A/R</span>
+              <span className="text-[11px] font-bold text-amber-900/90">Pending Due (उधारी)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
                 <Clock className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-amber-950 dark:text-amber-300 tracking-tight block">
+              <span className="text-xl font-black text-amber-950 dark:text-amber-300 tracking-tight block">
                 {formatCurrency(financials.accountsReceivable)}
               </span>
               <span className="text-[10px] text-amber-700/80 font-semibold">
-                Pending collection
+                Money to collect
               </span>
             </div>
           </div>
 
           {/* Tile 4: Available Stock */}
-          <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/30 p-3 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-indigo-900/80">Available Stock</span>
+              <span className="text-[11px] font-bold text-indigo-900/90">Stock (गोदाम का माल)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
                 <PackageCheck className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-indigo-950 dark:text-indigo-300 tracking-tight block">
+              <span className="text-xl font-black text-indigo-950 dark:text-indigo-300 tracking-tight block">
                 {kpis.inventoryStockSummary.totalUnits}{" "}
-                <span className="text-xs font-semibold text-indigo-700">units</span>
+                <span className="text-xs font-semibold text-indigo-700">jars</span>
               </span>
               <span className="text-[10px] text-indigo-700/80 font-semibold">
                 {kpis.inventoryStockSummary.lowStockCount > 0 ? (
                   <span className="text-destructive font-semibold">
-                    {kpis.inventoryStockSummary.lowStockCount} below reorder
+                    {kpis.inventoryStockSummary.lowStockCount} low stock!
                   </span>
                 ) : (
-                  "Levels nominal"
+                  "Stock healthy"
                 )}
               </span>
             </div>
@@ -437,89 +436,89 @@ export default function DashboardPage() {
         </div>
 
         {/* C. Quick Actions: 4 Touch-Optimized Tiles */}
-        <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between mb-2 px-0.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Quick Actions
+        <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-500/5 via-primary/5 to-cyan-500/5 p-3.5 shadow-xs">
+          <div className="flex items-center justify-between mb-2.5 px-0.5">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
+              Quick 1-Click Actions (तुरंत काम)
             </span>
-            <span className="text-[10px] text-primary font-medium">Shortcuts</span>
+            <span className="text-[10px] text-sky-600 font-semibold">Fast Shortcuts</span>
           </div>
 
           <div className="grid grid-cols-4 gap-2">
             <Link
-              href="/orders"
-              className="flex flex-col items-center justify-center p-2 rounded-xl bg-primary/5 hover:bg-primary/10 active:scale-95 transition-all text-center touch-manipulation"
+              href="/orders?new=true"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white active:scale-95 transition-all text-center shadow-sm shadow-sky-500/25 touch-manipulation"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs mb-1">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white mb-1">
                 <PlusCircle className="h-4 w-4" />
               </div>
-              <span className="text-[10px] font-bold text-foreground truncate w-full">
-                New Order
+              <span className="text-[10px] font-bold text-white truncate w-full">
+                + Order
               </span>
             </Link>
 
             <Link
-              href="/customers"
-              className="flex flex-col items-center justify-center p-2 rounded-xl bg-sky-500/5 hover:bg-sky-500/10 active:scale-95 transition-all text-center touch-manipulation"
+              href="/customers?new=true"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white active:scale-95 transition-all text-center shadow-sm shadow-indigo-500/25 touch-manipulation"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-600 text-white shadow-xs mb-1">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white mb-1">
                 <UserPlus className="h-4 w-4" />
               </div>
-              <span className="text-[10px] font-bold text-foreground truncate w-full">
-                Customer
+              <span className="text-[10px] font-bold text-white truncate w-full">
+                + Customer
               </span>
             </Link>
 
             <Link
               href="/pos"
-              className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-500/5 hover:bg-emerald-500/10 active:scale-95 transition-all text-center touch-manipulation"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white active:scale-95 transition-all text-center shadow-sm shadow-emerald-500/25 touch-manipulation"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs mb-1">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white mb-1">
                 <Store className="h-4 w-4" />
               </div>
-              <span className="text-[10px] font-bold text-foreground truncate w-full">
-                POS Sale
+              <span className="text-[10px] font-bold text-white truncate w-full">
+                + POS Sale
               </span>
             </Link>
 
             <Link
-              href="/purchases"
-              className="flex flex-col items-center justify-center p-2 rounded-xl bg-purple-500/5 hover:bg-purple-500/10 active:scale-95 transition-all text-center touch-manipulation"
+              href="/expenses?new=true"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white active:scale-95 transition-all text-center shadow-sm shadow-amber-500/25 touch-manipulation"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-600 text-white shadow-xs mb-1">
-                <ShoppingBag className="h-4 w-4" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white mb-1">
+                <FileSpreadsheet className="h-4 w-4" />
               </div>
-              <span className="text-[10px] font-bold text-foreground truncate w-full">
-                Purchase
+              <span className="text-[10px] font-bold text-white truncate w-full">
+                + Expense
               </span>
             </Link>
           </div>
         </div>
 
         {/* D. Today's Operations: Fleet & Route Progress */}
-        <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-2.5">
+        <div className="rounded-2xl border border-border/80 bg-card p-3.5 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Truck className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-bold text-foreground">Delivery Execution</span>
+              <Truck className="h-4 w-4 text-sky-600" />
+              <span className="text-xs font-bold text-foreground">Today&apos;s Deliveries (आज की डिलीवरी)</span>
             </div>
             <Link
               href="/deliveries"
-              className="text-[11px] font-semibold text-primary hover:underline inline-flex items-center gap-0.5"
+              className="text-[11px] font-semibold text-sky-600 hover:underline inline-flex items-center gap-0.5"
             >
-              Manage Stops <ArrowRight className="h-3 w-3" />
+              View Stops <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
 
           {/* Progress Bar */}
           <div>
-            <div className="flex justify-between text-[11px] font-medium text-muted-foreground mb-1">
-              <span>{kpis.completedDeliveries} completed</span>
-              <span>{kpis.awaitingDeliveryCount} pending route</span>
+            <div className="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+              <span>{kpis.completedDeliveries} Delivered</span>
+              <span>{kpis.awaitingDeliveryCount} Left to Deliver</span>
             </div>
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
               <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
                 style={{ width: `${deliveryPct}%` }}
               />
             </div>
@@ -685,11 +684,11 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Fast Operations Launchpad
+                Quick 1-Click Actions (तुरंत काम)
               </h3>
             </div>
-            <span className="text-[11px] text-muted-foreground">
-              Instant 1-Click Form Openers
+            <span className="text-[11px] text-muted-foreground font-medium">
+              Instant Shortcuts
             </span>
           </div>
 
@@ -703,10 +702,10 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-sky-950 block group-hover:text-sky-600 transition-colors">
-                  + New Order
+                  + New Order (ऑर्डर)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block">
-                  Route Delivery Order
+                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                  Home & Shop Delivery
                 </span>
               </div>
             </Link>
@@ -720,10 +719,10 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-emerald-950 block group-hover:text-emerald-600 transition-colors">
-                  + POS Counter
+                  + Shop Counter (दुकान)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block">
-                  Walk-in Quick Sale
+                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                  Instant Cash & UPI Sale
                 </span>
               </div>
             </Link>
@@ -737,10 +736,10 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-indigo-950 block group-hover:text-indigo-600 transition-colors">
-                  + Add Customer
+                  + New Customer (ग्राहक)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block">
-                  30-Second Express Add
+                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                  Add Account & Bottles
                 </span>
               </div>
             </Link>
@@ -754,10 +753,10 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-amber-950 block group-hover:text-amber-600 transition-colors">
-                  + Log Expense
+                  + Log Expense (खर्चा)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block">
-                  Fuel, Repairs & Supplies
+                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                  Diesel, Tea, Repairs
                 </span>
               </div>
             </Link>
@@ -852,7 +851,7 @@ export default function DashboardPage() {
           <Card className="border-sky-200/90 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/60 shadow-xs hover:shadow-md hover:shadow-sky-500/15 hover:border-sky-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Orders & Sales (Period)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Total Water Sales (कुल बिक्री)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/30">
                   <DollarSign className="h-4 w-4" />
                 </div>
@@ -863,9 +862,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[11px] text-sky-700/80">
-                <span>{kpis.orderCount} active order(s)</span>
+                <span>{kpis.orderCount} active delivery order(s)</span>
                 <Link href="/orders" className="text-sky-700 hover:text-sky-900 hover:underline font-semibold inline-flex items-center gap-0.5">
-                  Orders <ArrowRight className="h-3 w-3" />
+                  See Orders <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
@@ -874,7 +873,7 @@ export default function DashboardPage() {
           <Card className="border-emerald-200/90 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/60 shadow-xs hover:shadow-md hover:shadow-emerald-500/15 hover:border-emerald-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Collections (Cash & UPI)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Money Collected (कैश & UPI मिला)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30">
                   <Receipt className="h-4 w-4" />
                 </div>
@@ -884,8 +883,8 @@ export default function DashboardPage() {
                   {formatCurrency(financials.totalCollections)}
                 </span>
               </div>
-              <p className="mt-1 text-[11px] text-emerald-700/80">
-                {formatCurrency(financials.cashCollections)} Cash • {formatCurrency(financials.upiBankCollections)} UPI/Bank
+              <p className="mt-1 text-[11px] text-emerald-700/80 font-medium">
+                {formatCurrency(financials.cashCollections)} Cash • {formatCurrency(financials.upiBankCollections)} Online UPI
               </p>
             </CardContent>
           </Card>
@@ -893,7 +892,7 @@ export default function DashboardPage() {
           <Card className="border-amber-200/90 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60 shadow-xs hover:shadow-md hover:shadow-amber-500/15 hover:border-amber-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Customer Receivables (A/R)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Pending Customer Due (बाकी उधारी)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/30">
                   <Clock className="h-4 w-4" />
                 </div>
@@ -904,9 +903,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[11px] text-amber-700/80">
-                <span>Cumulative across accounts</span>
+                <span>Total uncollected money</span>
                 <Link href="/customers" className="text-amber-700 hover:text-amber-900 hover:underline font-semibold inline-flex items-center gap-0.5">
-                  Customers <ArrowRight className="h-3 w-3" />
+                  See Customers <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
@@ -915,7 +914,7 @@ export default function DashboardPage() {
           <Card className="border-purple-200/90 bg-gradient-to-br from-white via-purple-50/50 to-pink-50/60 shadow-xs hover:shadow-md hover:shadow-purple-500/15 hover:border-purple-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Period Operating Expenses</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Daily Expenses (खर्चा - डीजल, मरम्मत)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500 text-white shadow-sm shadow-purple-500/30">
                   <FileSpreadsheet className="h-4 w-4" />
                 </div>
@@ -926,9 +925,9 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[11px] text-purple-700/80">
-                <span>Fuel, repairs & supplies</span>
+                <span>Fuel, tea, vehicle repairs & bills</span>
                 <Link href="/expenses" className="text-purple-700 hover:text-purple-900 hover:underline font-semibold inline-flex items-center gap-0.5">
-                  Expenses <ArrowRight className="h-3 w-3" />
+                  See Expenses <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
@@ -944,9 +943,9 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500 text-white shadow-xs">
                     <PackageCheck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Inventory Valuation</span>
+                  <span className="text-xs font-bold text-slate-800">Total Stock Value (गोदाम का माल)</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-blue-200 bg-blue-50 text-blue-700">
+                <Badge variant="outline" className="text-[10px] border-blue-200 bg-blue-50 text-blue-700 font-semibold">
                   Warehouse Stock
                 </Badge>
               </div>
@@ -955,13 +954,13 @@ export default function DashboardPage() {
                   {formatCurrency(kpis.inventoryStockSummary.totalValuation)}
                 </span>
                 <span className="text-xs font-medium text-slate-500">
-                  {kpis.inventoryStockSummary.totalUnits} Units
+                  {kpis.inventoryStockSummary.totalUnits} Jars Available
                 </span>
               </div>
               <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
-                <span>{kpis.inventoryStockSummary.totalProducts} active products</span>
-                <Link href="/inventory" className="text-blue-600 hover:underline font-medium">
-                  Stock List
+                <span>{kpis.inventoryStockSummary.totalProducts} active product SKUs</span>
+                <Link href="/inventory" className="text-blue-600 hover:underline font-semibold">
+                  Open Stock
                 </Link>
               </div>
             </CardContent>
@@ -974,10 +973,10 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500 text-white shadow-xs">
                     <Store className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Counter POS Sales</span>
+                  <span className="text-xs font-bold text-slate-800">Counter Sales (दुकान की बिक्री)</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-teal-200 bg-teal-50 text-teal-700">
-                  Walk-ins
+                <Badge variant="outline" className="text-[10px] border-teal-200 bg-teal-50 text-teal-700 font-semibold">
+                  Counter Sales
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
@@ -985,13 +984,13 @@ export default function DashboardPage() {
                   {formatCurrency(kpis.posSalesTotal)}
                 </span>
                 <span className="text-xs font-medium text-slate-500">
-                  {kpis.posSalesCount} Sales
+                  {kpis.posSalesCount} Counter Bills
                 </span>
               </div>
               <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
-                <span>Cash & UPI counter</span>
-                <Link href="/pos" className="text-teal-600 hover:underline font-medium">
-                  Open POS
+                <span>Instant Cash & UPI</span>
+                <Link href="/pos" className="text-teal-600 hover:underline font-semibold">
+                  Open Counter
                 </Link>
               </div>
             </CardContent>
@@ -1004,24 +1003,24 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-white shadow-xs">
                     <Truck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Route Deliveries</span>
+                  <span className="text-xs font-bold text-slate-800">Tempo Deliveries (गाड़ी डिलीवरी)</span>
                 </div>
                 <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
-                  Fleet
+                  Driver Fleet
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
                 <span className="text-xl font-bold text-emerald-950">
                   {kpis.completedDeliveries} Delivered
                 </span>
-                <span className="text-xs font-medium text-slate-500">
-                  {kpis.awaitingDeliveryCount} Awaiting
+                <span className="text-xs font-semibold text-amber-700">
+                  {kpis.awaitingDeliveryCount} Left
                 </span>
               </div>
               <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
-                <span>Delivery stop execution</span>
-                <Link href="/orders" className="text-emerald-600 hover:underline font-medium">
-                  Dispatch View
+                <span>Trip & Stop tracking</span>
+                <Link href="/orders" className="text-emerald-600 hover:underline font-semibold">
+                  Delivery List
                 </Link>
               </div>
             </CardContent>
@@ -1034,10 +1033,10 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-xs">
                     <Users className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Customers & Queue</span>
+                  <span className="text-xs font-bold text-slate-800">Total Customers (कुल ग्राहक)</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-indigo-200 bg-indigo-50 text-indigo-700">
-                  Accounts
+                <Badge variant="outline" className="text-[10px] border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold">
+                  Khata
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
@@ -1045,13 +1044,13 @@ export default function DashboardPage() {
                   {kpis.activeCustomersCount} Active
                 </span>
                 <span className="text-xs font-medium text-slate-500">
-                  {kpis.pendingOrdersCount} Pending Orders
+                  {kpis.pendingOrdersCount} Waiting Today
                 </span>
               </div>
               <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
-                <span>Customer directory</span>
-                <Link href="/customers" className="text-indigo-600 hover:underline font-medium">
-                  Directory
+                <span>Full khata directory</span>
+                <Link href="/customers" className="text-indigo-600 hover:underline font-semibold">
+                  Open Customers
                 </Link>
               </div>
             </CardContent>
@@ -1159,71 +1158,71 @@ export default function DashboardPage() {
             <div>
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                Managerial Accounting & Profitability (Accrual Dual-Entry)
+                Profit & Loss Summary (कमाई और बचत का हिसाब)
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Complies strictly with Section 12 invariants: Revenue - COGS - Period Operating Expenses = Net Profit.
+                Total Water Sales minus Bottle/Water Cost minus Daily Expenses = Final Pocket Profit.
               </p>
             </div>
-            <Badge variant="outline" className="text-[10px] w-fit">
-              GAAP / Accrual Compliant
+            <Badge variant="outline" className="text-[10px] w-fit font-semibold border-emerald-200 bg-emerald-50 text-emerald-800">
+              Clear Accounting
             </Badge>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-border">
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-medium">Net Sales Revenue</span>
-                <div className="text-base font-bold text-foreground mt-1">
+                <span className="text-[11px] text-muted-foreground uppercase font-bold">Total Sales (कुल बिक्री)</span>
+                <div className="text-base font-extrabold text-foreground mt-1">
                   {formatCurrency(financials.salesRevenue)}
                 </div>
-                <span className="text-[10px] text-muted-foreground">Orders & POS subtotal</span>
+                <span className="text-[10px] text-muted-foreground">Orders & shop counter</span>
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-medium">Cost of Goods (COGS)</span>
-                <div className="text-base font-bold text-foreground mt-1">
+                <span className="text-[11px] text-muted-foreground uppercase font-bold">Water & Bottle Cost (लागत)</span>
+                <div className="text-base font-extrabold text-foreground mt-1">
                   {formatCurrency(financials.costOfGoodsSold)}
                 </div>
-                <span className="text-[10px] text-muted-foreground">Unit product costs</span>
+                <span className="text-[10px] text-muted-foreground">Unit product raw cost</span>
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-medium">Gross Profit</span>
-                <div className="text-base font-bold text-emerald-600 mt-1">
+                <span className="text-[11px] text-emerald-700 uppercase font-bold">Profit Before Expenses</span>
+                <div className="text-base font-extrabold text-emerald-600 mt-1">
                   {formatCurrency(financials.grossProfit)}
                 </div>
-                <span className="text-[10px] font-medium text-emerald-600">
-                  {financials.grossProfitMarginPct}% margin
+                <span className="text-[10px] font-semibold text-emerald-600">
+                  {financials.grossProfitMarginPct}% gross margin
                 </span>
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-medium">Operating Expenses</span>
-                <div className="text-base font-bold text-purple-600 mt-1">
+                <span className="text-[11px] text-purple-700 uppercase font-bold">Daily Expenses (खर्चा)</span>
+                <div className="text-base font-extrabold text-purple-600 mt-1">
                   {formatCurrency(financials.operatingExpenses)}
                 </div>
-                <span className="text-[10px] text-muted-foreground">Period outflows</span>
+                <span className="text-[10px] text-muted-foreground">Fuel, tea, vehicle repairs</span>
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-medium">Net Operating Profit</span>
-                <div className={`text-base font-bold mt-1 ${financials.netOperatingProfit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                <span className="text-[11px] text-muted-foreground uppercase font-bold">Pocket Profit (शुद्ध बचत)</span>
+                <div className={`text-base font-extrabold mt-1 ${financials.netOperatingProfit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                   {formatCurrency(financials.netOperatingProfit)}
                 </div>
-                <span className="text-[10px] font-medium text-muted-foreground">
-                  {financials.netProfitMarginPct}% net margin
+                <span className="text-[10px] font-semibold text-slate-500">
+                  {financials.netProfitMarginPct}% saved in pocket
                 </span>
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-medium">Supplier Payables (A/P)</span>
-                <div className="text-base font-bold text-foreground mt-1">
+                <span className="text-[11px] text-amber-700 uppercase font-bold">Supplier Due (सप्लायर का बाकी)</span>
+                <div className="text-base font-extrabold text-foreground mt-1">
                   {formatCurrency(financials.accountsPayable)}
                 </div>
                 <div className="text-[10px] text-muted-foreground flex items-center justify-between">
-                  <span>Cumulative</span>
-                  <Link href="/purchases" className="text-primary hover:underline font-medium">
-                    Payables
+                  <span>To pay suppliers</span>
+                  <Link href="/purchases" className="text-amber-700 hover:underline font-semibold">
+                    Bills ›
                   </Link>
                 </div>
               </div>
