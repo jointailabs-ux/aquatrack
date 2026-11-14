@@ -87,6 +87,7 @@ export async function createStaffAccount(
         id: newUserId,
         full_name: validated.full_name,
         phone: validated.phone,
+        email: staffEmail,
         role: "staff", // Strictly hardcoded to prevent privilege escalation
         login_pin: validated.login_pin,
         is_active: true,
@@ -313,7 +314,7 @@ export async function authenticateStaffWithPin(
     const adminSupabase = createAdminClient();
     const { data: profile, error } = await adminSupabase
       .from("profiles")
-      .select("id, full_name, phone, role, is_active, login_pin")
+      .select("id, full_name, phone, role, is_active, login_pin, email")
       .eq("id", staffId)
       .maybeSingle();
 
@@ -329,9 +330,8 @@ export async function authenticateStaffWithPin(
       return { success: false, error: "Incorrect 6-digit staff PIN. Please check and try again." };
     }
 
-    // Retrieve auth email for Supabase signInWithPassword
-    const { data: userData } = await adminSupabase.auth.admin.getUserById(profile.id);
-    const staffEmail = userData?.user?.email || `staff_${profile.phone.replace(/\D/g, "")}@aquatrack.internal`;
+    // Direct in-memory fast credential resolution without slow external GoTrue API lookup
+    const staffEmail = profile.email || `staff_${profile.phone.replace(/\D/g, "")}@aquatrack.internal`;
     const staffPassword = `Staff@${profile.login_pin}#Safe`;
 
     return {

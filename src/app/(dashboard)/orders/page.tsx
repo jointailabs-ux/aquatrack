@@ -21,6 +21,7 @@ import {
   MapPin,
   DollarSign,
   X,
+  Droplets,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -1301,16 +1302,25 @@ export default function OrdersPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <div className="p-2 rounded-lg bg-card/80 border border-border text-center min-w-[90px]">
-                      <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Empty Jars</span>
-                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
-                        {selectedCustomer.total_empty_jars_holding || 0} jars
+                    <div className="p-2.5 rounded-xl bg-card border border-border text-center min-w-[120px] shadow-xs">
+                      <span className="text-[10px] text-sky-600 dark:text-sky-400 uppercase block font-black flex items-center justify-center gap-1">
+                        <Droplets className="h-3 w-3" />
+                        Jars at House
+                      </span>
+                      <span className="text-base font-black text-foreground">
+                        {(selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)} jars
+                      </span>
+                      <span className="text-[9px] text-muted-foreground font-semibold block">
+                        {selectedCustomer.total_full_jars_holding || 0} full • {selectedCustomer.total_empty_jars_holding || 0} empty
                       </span>
                     </div>
-                    <div className="p-2 rounded-lg bg-card/80 border border-border text-center min-w-[90px]">
+                    <div className="p-2.5 rounded-xl bg-card border border-border text-center min-w-[100px] shadow-xs">
                       <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Current Due</span>
-                      <span className={`text-sm font-black ${Number(selectedCustomer.current_balance) > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+                      <span className={`text-base font-black ${Number(selectedCustomer.current_balance) > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
                         ₹{selectedCustomer.current_balance || 0}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground font-semibold block">
+                        {Number(selectedCustomer.current_balance) > 0 ? "Pending Due" : "All Clear"}
                       </span>
                     </div>
                   </div>
@@ -1344,7 +1354,7 @@ export default function OrdersPage() {
                           >
                             <div>{c.contact_name}</div>
                             <div className="text-[10px] opacity-80 font-normal">
-                              {c.phone} {Number(c.current_balance) > 0 ? `• Due ₹${c.current_balance}` : ""}
+                              {c.phone} • {((c.total_full_jars_holding || 0) + (c.total_empty_jars_holding || 0))} jars at house {Number(c.current_balance) > 0 ? `• Due ₹${c.current_balance}` : ""}
                             </div>
                           </button>
                         ))}
@@ -1362,7 +1372,7 @@ export default function OrdersPage() {
                     <option value="">-- Or Choose From Full Customer Directory --</option>
                     {filteredCustomers.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.contact_name} {c.business_name ? `(${c.business_name})` : ""} — {c.phone}
+                        {c.contact_name} {c.business_name ? `(${c.business_name})` : ""} — {c.phone} [Holds {((c.total_full_jars_holding || 0) + (c.total_empty_jars_holding || 0))} jars at house]
                       </option>
                     ))}
                   </select>

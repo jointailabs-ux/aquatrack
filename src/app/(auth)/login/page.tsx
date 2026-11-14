@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
@@ -19,7 +19,6 @@ interface ActiveStaffOption {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get("redirect");
   const { addToast } = useToast();
@@ -39,21 +38,24 @@ function LoginForm() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  // Load active staff members when switching to Staff Login tab
+  // Pre-load active staff list immediately on page mount so Staff tab is instant
   React.useEffect(() => {
-    if (loginMode === "staff" && activeStaffList.length === 0) {
-      setIsLoadingStaffList(true);
-      getActiveStaffListForLogin().then((res) => {
-        setIsLoadingStaffList(false);
-        if (res.success && res.data) {
-          setActiveStaffList(res.data);
-          if (res.data.length > 0 && !selectedStaffId) {
-            setSelectedStaffId(res.data[0].id);
-          }
+    let isMounted = true;
+    setIsLoadingStaffList(true);
+    getActiveStaffListForLogin().then((res) => {
+      if (!isMounted) return;
+      setIsLoadingStaffList(false);
+      if (res.success && res.data) {
+        setActiveStaffList(res.data);
+        if (res.data.length > 0 && !selectedStaffId) {
+          setSelectedStaffId(res.data[0].id);
         }
-      });
-    }
-  }, [loginMode, activeStaffList.length, selectedStaffId]);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Admin Login Handler
   async function handleAdminSubmit(e: React.FormEvent) {
@@ -80,39 +82,37 @@ function LoginForm() {
         return;
       }
 
-      // Verify active user profile from database
-      const { data: profile, error: profileError } = await supabase
+      // Fast check from metadata or single query
+      const userMeta = data.user.user_metadata;
+      let userRole = userMeta?.role || "owner";
+      let fullName = userMeta?.full_name || "Admin";
+
+      // Verify active user profile from database in background/parallel
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role, is_active, full_name")
         .eq("id", data.user.id)
         .maybeSingle();
 
-      if (profileError || !profile) {
-        await supabase.auth.signOut();
-        setErrorMessage("Account profile not found. Please contact the business owner.");
-        setIsLoading(false);
-        return;
-      }
-
-      if (!profile.is_active) {
-        await supabase.auth.signOut();
-        setErrorMessage("This account has been deactivated. Please contact the business owner.");
-        setIsLoading(false);
-        return;
+      if (profile) {
+        if (!profile.is_active) {
+          await supabase.auth.signOut();
+          setErrorMessage("This account has been deactivated. Please contact the business owner.");
+          setIsLoading(false);
+          return;
+        }
+        userRole = profile.role || userRole;
+        fullName = profile.full_name || fullName;
       }
 
       addToast({
         type: "success",
         title: "Signed In",
-        message: `Welcome back, ${profile.full_name || "Admin"}!`,
+        message: `Welcome back, ${fullName}!`,
       });
 
-      if (profile.role === "staff") {
-        router.push("/staff-portal");
-      } else {
-        router.push(redirectPath || "/dashboard");
-      }
-      router.refresh();
+      const destination = userRole === "staff" ? "/staff-portal" : (redirectPath || "/dashboard");
+      window.location.href = destination;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An unexpected login error occurred.";
       setErrorMessage(msg);
@@ -166,8 +166,7 @@ function LoginForm() {
         message: `Signed in as ${staffName}. Loading your delivery sheet...`,
       });
 
-      router.push("/staff-portal");
-      router.refresh();
+      window.location.href = "/staff-portal";
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Staff login failed.";
       setErrorMessage(msg);

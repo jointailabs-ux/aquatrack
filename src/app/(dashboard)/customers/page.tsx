@@ -21,6 +21,7 @@ import {
   ChevronUp,
   ShieldCheck,
   Zap,
+  Droplets,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -1120,8 +1121,18 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  {/* 4 KPI Summary Cards: Full, Empty, Damaged, Outstanding A/R */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {/* 5 KPI Summary Cards: Total At House, Full, Empty, Damaged, Outstanding A/R */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="rounded-xl border border-sky-300/80 bg-sky-50/60 dark:bg-sky-950/30 p-3 space-y-1 shadow-2xs col-span-2 sm:col-span-1">
+                      <span className="text-[10px] uppercase font-bold text-sky-900/80 dark:text-sky-300 flex items-center gap-1">
+                        <Droplets className="h-3 w-3 text-sky-600" />
+                        Total at House (মোট জার)
+                      </span>
+                      <p className="text-xl font-black text-sky-700 dark:text-sky-300">
+                        {(selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)}
+                      </p>
+                    </div>
+
                     <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-3 space-y-1 shadow-2xs">
                       <span className="text-[10px] uppercase font-bold text-blue-900/80 flex items-center gap-1">
                         <Package className="h-3 w-3 text-blue-600" />
