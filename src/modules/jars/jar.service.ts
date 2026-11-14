@@ -142,6 +142,16 @@ export async function getJarSystemSummary(): Promise<ActionResponse<Comprehensiv
           }
         });
 
+        // Deduct empty jars already returned to warehouse by staff
+        const { data: returnMovements } = await supabase
+          .from("jar_custody_movements")
+          .select("quantity")
+          .eq("movement_type", "VEHICLE_RETURN_TO_WAREHOUSE")
+          .eq("reference_id", st.id);
+
+        const totalReturned = (returnMovements || []).reduce((s, m) => s + Number(m.quantity || 0), 0);
+        emptyJars = Math.max(0, emptyJars - totalReturned);
+
         return {
           staff_id: st.id,
           staff_name: st.full_name,
@@ -756,3 +766,45 @@ export async function getJarCustodyMovements(
     return { success: false, error: message };
   }
 }
+
+/**
+ * Return staff's collected empty jars from vehicle back into godown/warehouse stock
+ */
+export async function returnStaffJarsToStock(input: {
+  staff_id: string;
+  quantity: number;
+  notes?: string;
+}): Promise<ActionResponse<{ success: boolean; returned_quantity: number; message: string }>> {
+  try {
+    if (!input.staff_id) {
+      return { success: false, error: "Staff ID is required." };
+    }
+    if (!input.quantity || input.quantity <= 0) {
+      return { success: false, error: "Quantity must be at least 1." };
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("rpc_return_staff_jars_to_stock", {
+      p_staff_id: input.staff_id,
+      p_quantity: input.quantity,
+      p_notes: input.notes || "Staff returned empty jars to godown",
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      data: {
+        success: true,
+        returned_quantity: input.quantity,
+        message: data?.message || `Successfully returned ${input.quantity} jars to godown stock.`,
+      },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to return jars to stock.";
+    return { success: false, error: message };
+  }
+}
+

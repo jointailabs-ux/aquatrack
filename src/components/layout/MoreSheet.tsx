@@ -10,7 +10,6 @@ import {
   Package,
   Building2,
   ShoppingBag,
-  Warehouse,
   UserCheck,
   CreditCard,
   Tag,
@@ -61,14 +60,6 @@ const DESTINATIONS: DestinationItem[] = [
     description: "Custody, damaged & scrap jars",
     icon: RotateCcw,
     badge: "Assets",
-    category: "operations",
-  },
-  {
-    title: "Central Warehouse",
-    href: "/warehouses",
-    description: "Depot locations & balances",
-    icon: Warehouse,
-    requiredPermission: "canWarehouse",
     category: "operations",
   },
 

@@ -111,6 +111,7 @@ export interface OrderRecord {
   customer_id: string;
   customer_name: string;
   customer_phone: string;
+  customer_jars_holding?: number;
   assigned_staff_id: string | null;
   assigned_staff_name: string | null;
   order_date: string;

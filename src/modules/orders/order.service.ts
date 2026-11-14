@@ -46,7 +46,7 @@ export async function getOrders(params?: {
         notes,
         created_at,
         updated_at,
-        customer:customers(contact_name, business_name, phone, delivery_instructions),
+        customer:customers(contact_name, business_name, phone, delivery_instructions, total_full_jars_holding, total_empty_jars_holding),
         assigned_staff:profiles!orders_assigned_staff_id_fkey(full_name),
         items:order_items(
           product_id,
@@ -118,7 +118,14 @@ export async function getOrders(params?: {
       notes?: string | null;
       created_at: string;
       updated_at: string;
-      customer?: { contact_name: string; business_name?: string | null; phone: string; delivery_instructions?: string | null } | null;
+      customer?: {
+        contact_name: string;
+        business_name?: string | null;
+        phone: string;
+        delivery_instructions?: string | null;
+        total_full_jars_holding?: number;
+        total_empty_jars_holding?: number;
+      } | null;
       assigned_staff?: { full_name: string } | null;
       items?: OrderQueryItem[] | null;
       stop?: {
@@ -167,6 +174,7 @@ export async function getOrders(params?: {
         customer_id: row.customer_id,
         customer_name: custName,
         customer_phone: cust?.phone || "",
+        customer_jars_holding: (cust?.total_full_jars_holding || 0) + (cust?.total_empty_jars_holding || 0),
         assigned_staff_id: row.assigned_staff_id || null,
         assigned_staff_name: row.assigned_staff?.full_name || null,
         order_date: row.created_at ? row.created_at.split("T")[0] : new Date().toISOString().split("T")[0],

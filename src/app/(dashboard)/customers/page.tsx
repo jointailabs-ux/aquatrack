@@ -22,7 +22,6 @@ import {
   ShieldCheck,
   Zap,
   Droplets,
-  RotateCcw,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -122,6 +121,11 @@ export default function CustomersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false);
   const [isToggleActiveOpen, setIsToggleActiveOpen] = React.useState(false);
+
+  // Customer Orders Filters
+  const [orderFromDate, setOrderFromDate] = React.useState("");
+  const [orderToDate, setOrderToDate] = React.useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = React.useState<"ALL" | "DELIVERED" | "PENDING" | "CANCELLED">("ALL");
 
   // Add Customer Form States
   const [addCustomerType, setAddCustomerType] = React.useState<"B2C" | "B2B">("B2C");
@@ -1126,87 +1130,35 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  {/* 5 VIBRANT KPI SUMMARY CARDS (Bright, Colorful, High-Contrast for Any Staff) */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-3.5">
-                    {/* 1. Total at House */}
-                    <div className="rounded-2xl border-2 border-cyan-400 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-500/15 via-sky-500/10 to-blue-500/15 dark:from-cyan-950/40 dark:via-sky-950/30 dark:to-blue-950/40 p-3.5 space-y-1 shadow-sm col-span-2 sm:col-span-1 transition-all">
+                  {/* 2 VIBRANT HIGH-IMPACT CARDS (Physical Jars Held & Outstanding Udhaari) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* 1. Jars Held at Customer House */}
+                    <div className="rounded-2xl border-2 border-cyan-400 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-500/15 via-sky-500/10 to-blue-500/15 dark:from-cyan-950/40 dark:via-sky-950/30 dark:to-blue-950/40 p-4 space-y-1.5 shadow-sm transition-all">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-cyan-900 dark:text-cyan-300 flex items-center gap-1">
-                          <Droplets className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-                          মোট জার (Total)
+                        <span className="text-xs font-black uppercase tracking-wider text-cyan-900 dark:text-cyan-300 flex items-center gap-1.5">
+                          <Droplets className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                          গ্রাহকের কাছে মোট জার (Jars with Customer)
                         </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-800 dark:text-cyan-200 font-bold">
-                          বাড়িতে
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-800 dark:text-cyan-200 font-extrabold">
+                          বাড়িতে বর্তমান
                         </span>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-cyan-700 dark:text-cyan-300">
-                        {(selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)}
-                      </p>
-                      <span className="text-[10px] text-cyan-800/80 dark:text-cyan-400/80 font-bold block">
-                        Jars at Customer House
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-3xl sm:text-4xl font-black text-cyan-700 dark:text-cyan-300">
+                          {(selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)}
+                        </p>
+                        <span className="text-xs font-bold text-cyan-800/80 dark:text-cyan-400/80">
+                          টি জার (Jars)
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-cyan-800/80 dark:text-cyan-400/80 font-bold block">
+                        পরের ডেলিভারিতে এই জারগুলি ফেরত সংগ্রহ করা যাবে (Can collect on future deliveries)
                       </span>
                     </div>
 
-                    {/* 2. Filled Bottles */}
-                    <div className="rounded-2xl border-2 border-blue-400 dark:border-blue-500/50 bg-gradient-to-br from-blue-500/15 via-blue-500/10 to-indigo-500/15 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 p-3.5 space-y-1 shadow-sm transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 flex items-center gap-1">
-                          <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                          ভরা বোতল (Full)
-                        </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-800 dark:text-blue-200 font-bold">
-                          জল আছে
-                        </span>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-300">
-                        {selectedCustomer.total_full_jars_holding}
-                      </p>
-                      <span className="text-[10px] text-blue-800/80 dark:text-blue-400/80 font-bold block">
-                        Filled Purified Water
-                      </span>
-                    </div>
-
-                    {/* 3. Empty Bottles */}
-                    <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500/50 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-orange-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 p-3.5 space-y-1 shadow-sm transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300 flex items-center gap-1">
-                          <RotateCcw className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                          খালি বোতল (Empty)
-                        </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 font-bold">
-                          ফেরত নিন
-                        </span>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300">
-                        {selectedCustomer.total_empty_jars_holding}
-                      </p>
-                      <span className="text-[10px] text-amber-800/80 dark:text-amber-400/80 font-bold block">
-                        Empty Jars to Collect
-                      </span>
-                    </div>
-
-                    {/* 4. Broken Bottles */}
-                    <div className="rounded-2xl border-2 border-orange-400 dark:border-orange-500/50 bg-gradient-to-br from-orange-500/15 via-rose-500/10 to-rose-500/15 dark:from-orange-950/40 dark:via-rose-950/30 dark:to-orange-950/40 p-3.5 space-y-1 shadow-sm transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-orange-900 dark:text-orange-300 flex items-center gap-1">
-                          <AlertCircle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-                          ভাঙা (Broken)
-                        </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-800 dark:text-orange-200 font-bold">
-                          নষ্ট
-                        </span>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-orange-700 dark:text-orange-300">
-                        {selectedCustomer.total_damaged_jars_holding || 0}
-                      </p>
-                      <span className="text-[10px] text-orange-800/80 dark:text-orange-400/80 font-bold block">
-                        Damaged at Customer
-                      </span>
-                    </div>
-
-                    {/* 5. Pending Udhaari */}
+                    {/* 2. Pending Udhaari */}
                     <div
-                      className={`rounded-2xl border-2 p-3.5 space-y-1 shadow-sm col-span-2 sm:col-span-1 transition-all ${
+                      className={`rounded-2xl border-2 p-4 space-y-1.5 shadow-sm transition-all ${
                         Number(selectedCustomer.current_balance) > 0
                           ? "border-rose-500 dark:border-rose-500/60 bg-gradient-to-br from-rose-500/20 via-red-500/15 to-rose-500/25 dark:from-rose-950/50 dark:via-red-950/40 dark:to-rose-950/50"
                           : "border-emerald-400 dark:border-emerald-500/50 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-500/15 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40"
@@ -1214,42 +1166,56 @@ export default function CustomersPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span
-                          className={`text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                          className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
                             Number(selectedCustomer.current_balance) > 0
                               ? "text-rose-900 dark:text-rose-300"
                               : "text-emerald-900 dark:text-emerald-300"
                           }`}
                         >
-                          <DollarSign className="h-3.5 w-3.5" />
-                          বাকি টাকা (Due)
+                          <DollarSign className="h-4 w-4" />
+                          বাকি ধারের টাকা (Pending Udhaari)
                         </span>
                         <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
                             Number(selectedCustomer.current_balance) > 0
                               ? "bg-rose-500/25 text-rose-800 dark:text-rose-200"
                               : "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200"
                           }`}
                         >
-                          {Number(selectedCustomer.current_balance) > 0 ? "পাওনা আছে" : "শোধ"}
+                          {Number(selectedCustomer.current_balance) > 0 ? "পাওনা বাকি আছে" : "সব শোধ"}
                         </span>
                       </div>
-                      <p
-                        className={`text-2xl sm:text-3xl font-black ${
-                          Number(selectedCustomer.current_balance) > 0
-                            ? "text-rose-600 dark:text-rose-400"
-                            : "text-emerald-700 dark:text-emerald-300"
-                        }`}
-                      >
-                        {formatCurrency(selectedCustomer.current_balance)}
-                      </p>
+                      <div className="flex items-baseline justify-between">
+                        <p
+                          className={`text-3xl sm:text-4xl font-black ${
+                            Number(selectedCustomer.current_balance) > 0
+                              ? "text-rose-600 dark:text-rose-400"
+                              : "text-emerald-700 dark:text-emerald-300"
+                          }`}
+                        >
+                          {formatCurrency(selectedCustomer.current_balance)}
+                        </p>
+                        {Number(selectedCustomer.current_balance) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentAmount(selectedCustomer.current_balance.toString());
+                              setIsPaymentModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer active:scale-95"
+                          >
+                            টাকা জমা নিন
+                          </button>
+                        )}
+                      </div>
                       <span
-                        className={`text-[10px] font-bold block ${
+                        className={`text-[11px] font-bold block ${
                           Number(selectedCustomer.current_balance) > 0
                             ? "text-rose-700/90 dark:text-rose-400/90"
                             : "text-emerald-700/90 dark:text-emerald-400/90"
                         }`}
                       >
-                        {Number(selectedCustomer.current_balance) > 0 ? "Collect Payment" : "All Dues Cleared"}
+                        {Number(selectedCustomer.current_balance) > 0 ? "Outstanding balance to collect" : "All dues settled"}
                       </span>
                     </div>
                   </div>
@@ -1300,7 +1266,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Empty Bottles History (খালি জারের হিসাব)
+                          Jar Custody History (জারের হিসাব)
                         </button>
                       </div>
 
@@ -1317,20 +1283,86 @@ export default function CustomersPage() {
                     {/* Tab 1: Orders History */}
                     {activeTab === "orders" && (
                       <div className="space-y-3">
-                        {isTabLoading ? (
-                          <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border">
-                            <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
-                            Loading customer orders...
+                        {/* Date & Status Filters */}
+                        <div className="p-2.5 rounded-xl bg-card border border-border flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground font-semibold">From (শুরু):</span>
+                              <input
+                                type="date"
+                                value={orderFromDate}
+                                onChange={(e) => setOrderFromDate(e.target.value)}
+                                className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground font-semibold">To (শেষ):</span>
+                              <input
+                                type="date"
+                                value={orderToDate}
+                                onChange={(e) => setOrderToDate(e.target.value)}
+                                className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+                              />
+                            </div>
+                            <select
+                              value={orderStatusFilter}
+                              onChange={(e) => setOrderStatusFilter(e.target.value as "ALL" | "DELIVERED" | "PENDING" | "CANCELLED")}
+                              className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+                            >
+                              <option value="ALL">All Status / সব</option>
+                              <option value="DELIVERED">Delivered (ডেলিভারি সম্পন্ন)</option>
+                              <option value="PENDING">Pending / Out for Delivery</option>
+                              <option value="CANCELLED">Cancelled</option>
+                            </select>
                           </div>
-                        ) : customerOrders.length === 0 ? (
-                          <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border space-y-1">
-                            <Package className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1" />
-                            <p className="font-bold text-foreground">No orders recorded yet</p>
-                            <p>Place an order from the Orders page to see delivery records here.</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2.5">
-                            {customerOrders.map((o) => {
+                          {(orderFromDate || orderToDate || orderStatusFilter !== "ALL") && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOrderFromDate("");
+                                setOrderToDate("");
+                                setOrderStatusFilter("ALL");
+                              }}
+                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground px-2 py-1 rounded border border-border bg-muted cursor-pointer active:scale-95"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+
+                        {(() => {
+                          const displayedOrders = customerOrders.filter((o) => {
+                            if (orderStatusFilter === "DELIVERED" && o.status !== "DELIVERED") return false;
+                            if (orderStatusFilter === "PENDING" && (o.status === "DELIVERED" || o.status === "CANCELLED")) return false;
+                            if (orderStatusFilter === "CANCELLED" && o.status !== "CANCELLED") return false;
+                            const dDate = o.delivery_date || (o.created_at ? o.created_at.split("T")[0] : "");
+                            if (orderFromDate && dDate < orderFromDate) return false;
+                            if (orderToDate && dDate > orderToDate) return false;
+                            return true;
+                          });
+
+                          if (isTabLoading) {
+                            return (
+                              <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border">
+                                <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                                Loading customer orders...
+                              </div>
+                            );
+                          }
+
+                          if (displayedOrders.length === 0) {
+                            return (
+                              <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border space-y-1">
+                                <Package className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1" />
+                                <p className="font-bold text-foreground">No matching orders found</p>
+                                <p>Try clearing your date or status filters, or place an order from the Orders page.</p>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-2.5">
+                              {displayedOrders.map((o) => {
                               const totalUnits = o.items ? o.items.reduce((s, it) => s + it.quantity, 0) : 0;
                               const jarUnits = o.items ? o.items.filter((it) => it.is_reusable_jar).reduce((s, it) => s + it.quantity, 0) : 0;
                               const formattedTime = o.created_at
@@ -1435,9 +1467,10 @@ export default function CustomersPage() {
                               );
                             })}
                           </div>
-                        )}
-                      </div>
-                    )}
+                        );
+                      })()}
+                    </div>
+                  )}
 
                     {/* Tab 2: Payments Receipts */}
                     {activeTab === "payments" && (

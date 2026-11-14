@@ -15,6 +15,7 @@ import {
   LogOut,
   Clock,
   CreditCard,
+  Boxes,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,7 @@ import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { getStaffAssignedDeliveries, executeDeliveryStop } from "@/modules/orders/order.service";
 import { getCurrentUserProfile } from "@/modules/staff/staff.service";
+import { returnStaffJarsToStock } from "@/modules/jars/jar.service";
 import { OrderRecord } from "@/modules/orders/order.schema";
 import { StaffRecord } from "@/modules/staff/staff.schema";
 import { formatCurrency } from "@/lib/utils";
@@ -49,6 +51,53 @@ export default function StaffPortalPage() {
   const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "UPI" | "CREDIT">("CASH");
   const [deliveryNotes, setDeliveryNotes] = React.useState<string>("");
   const [isDelivering, setIsDelivering] = React.useState(false);
+
+  // Return Jars to Stock Modal State
+  const [isReturnModalOpen, setIsReturnModalOpen] = React.useState(false);
+  const [returnQty, setReturnQty] = React.useState<number>(1);
+  const [returnNotes, setReturnNotes] = React.useState<string>("");
+  const [isSubmittingReturn, setIsSubmittingReturn] = React.useState(false);
+
+  const openReturnModal = (defaultQty?: number) => {
+    setReturnQty(defaultQty && defaultQty > 0 ? defaultQty : 1);
+    setReturnNotes("");
+    setIsReturnModalOpen(true);
+  };
+
+  const handleConfirmReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!staffProfile?.id || returnQty <= 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Quantity",
+        message: "Enter at least 1 jar to return to godown stock.",
+      });
+      return;
+    }
+    setIsSubmittingReturn(true);
+    try {
+      const res = await returnStaffJarsToStock({
+        staff_id: staffProfile.id,
+        quantity: returnQty,
+        notes: returnNotes || `Driver ${staffProfile.full_name} returned jars to godown`,
+      });
+      if (!res.success) {
+        throw new Error(res.error || "Failed to return jars to stock.");
+      }
+      addToast({
+        type: "success",
+        title: "Stock Updated / স্টকে জমা সম্পন্ন",
+        message: `${returnQty} jars returned to Godown Stock successfully.`,
+      });
+      setIsReturnModalOpen(false);
+      loadData(selectedDate);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to return jars to stock.";
+      addToast({ type: "error", title: "Stock Return Failed", message: msg });
+    } finally {
+      setIsSubmittingReturn(false);
+    }
+  };
 
   // Load staff profile and daily deliveries
   const loadData = React.useCallback(async (targetDate: string) => {
@@ -79,9 +128,14 @@ export default function StaffPortalPage() {
   // Open delivery execution modal
   const openDeliveryModal = (order: OrderRecord) => {
     setOrderToDeliver(order);
+    const hasReusableJars = Boolean(order.items && order.items.some((it) => it.is_reusable_jar));
+    const jarQty = order.items
+      ? order.items.filter((it) => it.is_reusable_jar).reduce((s, it) => s + (it.quantity || 0), 0)
+      : 0;
     const totalOrderQty = order.items?.reduce((s, it) => s + (it.quantity || 0), 0) || 1;
-    setDeliverQty(totalOrderQty);
-    setEmptyCollected(totalOrderQty);
+
+    setDeliverQty(hasReusableJars ? jarQty : totalOrderQty);
+    setEmptyCollected(hasReusableJars ? jarQty : 0);
     setAmountCollected(order.total_amount);
     setPaymentMethod("CASH");
     setDeliveryNotes("");
@@ -92,11 +146,16 @@ export default function StaffPortalPage() {
     e.preventDefault();
     if (!orderToDeliver) return;
 
-    if (deliverQty < 0) {
+    const hasReusableJars = Boolean(orderToDeliver.items && orderToDeliver.items.some((it) => it.is_reusable_jar));
+    const jarsDelivered = hasReusableJars ? deliverQty : 0;
+    const customerHolding = orderToDeliver.customer_jars_holding ?? 0;
+    const jarsCollected = hasReusableJars || customerHolding > 0 ? emptyCollected : 0;
+
+    if (hasReusableJars && deliverQty < 0) {
       addToast({
         type: "error",
         title: "Invalid Quantity",
-        message: "Delivered quantity cannot be negative.",
+        message: "Delivered jars quantity cannot be negative.",
       });
       return;
     }
@@ -123,8 +182,8 @@ export default function StaffPortalPage() {
     try {
       const res = await executeDeliveryStop({
         order_id: orderToDeliver.id,
-        actual_quantity_delivered: deliverQty,
-        empty_jars_collected: emptyCollected,
+        actual_quantity_delivered: jarsDelivered,
+        empty_jars_collected: jarsCollected,
         damaged_jars_collected: 0,
         amount_collected: paymentMethod === "CREDIT" ? 0 : amountCollected,
         payment_method: paymentMethod,
@@ -380,32 +439,39 @@ export default function StaffPortalPage() {
                 </div>
               </div>
 
-              {/* Full Jars Delivered */}
+              {/* Jars Delivered */}
               <div className="p-4 rounded-2xl border-2 border-sky-400 dark:border-sky-500/50 bg-gradient-to-br from-sky-500/15 via-blue-500/10 to-indigo-500/15 dark:from-sky-950/40 dark:via-blue-950/30 dark:to-indigo-950/40 shadow-sm space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-sky-900 dark:text-sky-300">ভরা জার দিয়েছেন</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-sky-900 dark:text-sky-300">জার দেওয়া হয়েছে</span>
                   <Droplets className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-black text-sky-800 dark:text-sky-200">
                   {metrics.fullJars} <span className="text-xs font-normal text-sky-700/80 dark:text-sky-400">jars</span>
                 </div>
                 <div className="text-[10px] text-sky-800 dark:text-sky-300 font-bold">
-                  গ্রাহককে দেওয়া হয়েছে
+                  গ্রাহককে ডেলিভারি দেওয়া হয়েছে
                 </div>
               </div>
 
-              {/* Empty Jars Collected */}
-              <div className="p-4 rounded-2xl border-2 border-amber-400 dark:border-amber-500/50 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 shadow-sm space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">খালি জার ফেরত</span>
-                  <RotateCcw className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              {/* Jars Collected */}
+              <div className="p-4 rounded-2xl border-2 border-amber-400 dark:border-amber-500/50 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 shadow-sm space-y-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">জার সংগ্রহ হয়েছে</span>
+                    <RotateCcw className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-amber-800 dark:text-amber-200">
+                    {metrics.emptyJars} <span className="text-xs font-normal text-amber-700/80 dark:text-amber-400">jars</span>
+                  </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-800 dark:text-amber-200">
-                  {metrics.emptyJars} <span className="text-xs font-normal text-amber-700/80 dark:text-amber-400">jars</span>
-                </div>
-                <div className="text-[10px] text-amber-800 dark:text-amber-300 font-bold">
-                  ফেরত নেওয়া বোতল
-                </div>
+                <button
+                  type="button"
+                  onClick={() => openReturnModal(metrics.emptyJars)}
+                  className="mt-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                >
+                  <Boxes className="h-3 w-3" />
+                  <span>স্টকে জমা দিন (Return)</span>
+                </button>
               </div>
 
               {/* Total Money Collected */}
@@ -673,105 +739,138 @@ export default function StaffPortalPage() {
                 </div>
               </div>
 
-              {/* Steppers: Full Delivered & Empty Collected */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Full Jars Delivered */}
-                <div className="p-3 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border-2 border-sky-200 dark:border-sky-800/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
-                      <span>💧 Full Delivered *</span>
-                    </label>
-                    <span className="text-[10px] text-sky-700 dark:text-sky-300 font-bold">ভরা জার</span>
-                  </div>
+              {/* Conditional Jar Steppers */}
+              {(() => {
+                const hasReusableJars = Boolean(
+                  orderToDeliver.items && orderToDeliver.items.some((it) => it.is_reusable_jar)
+                );
+                const customerHolding = orderToDeliver.customer_jars_holding ?? 0;
+                const canCollectJars = hasReusableJars || customerHolding > 0;
 
-                  <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-xl p-1">
-                    <button
-                      type="button"
-                      onClick={() => setDeliverQty(Math.max(0, deliverQty - 1))}
-                      className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <div className="text-center font-black text-base text-foreground">
-                      {deliverQty} <span className="text-[10px] font-normal text-muted-foreground">jars</span>
+                if (!hasReusableJars && !canCollectJars) {
+                  return (
+                    <div className="p-3 rounded-xl bg-muted/40 border border-border text-center text-xs text-muted-foreground font-semibold">
+                      📦 Non-reusable order (প্যাকেজ সামগ্রী) • No jar custody involved
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setDeliverQty(deliverQty + 1)}
-                      className="h-9 w-9 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer shadow-xs"
-                    >
-                      +
-                    </button>
-                  </div>
+                  );
+                }
 
-                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                    {[1, 2, 5, 10, 15, 20].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setDeliverQty(preset)}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
-                          deliverQty === preset ? "bg-sky-500 text-white border-sky-400" : "bg-card text-foreground border-border hover:bg-muted"
-                        }`}
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                return (
+                  <div className={`grid gap-3 ${hasReusableJars ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                    {/* Jars Delivered */}
+                    {hasReusableJars && (
+                      <div className="p-3 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border-2 border-sky-200 dark:border-sky-800/60 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                            <span>💧 Jars Delivered *</span>
+                          </label>
+                          <span className="text-[10px] text-sky-700 dark:text-sky-300 font-bold">জার দিয়েছেন</span>
+                        </div>
 
-                {/* Empty Jars Collected */}
-                <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
-                      <span>🔄 Empty Collected</span>
-                    </label>
-                    <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold">খালি জার</span>
-                  </div>
+                        <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-xl p-1">
+                          <button
+                            type="button"
+                            onClick={() => setDeliverQty(Math.max(0, deliverQty - 1))}
+                            className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <div className="text-center font-black text-base text-foreground">
+                            {deliverQty} <span className="text-[10px] font-normal text-muted-foreground">jars</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setDeliverQty(deliverQty + 1)}
+                            className="h-9 w-9 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer shadow-xs"
+                          >
+                            +
+                          </button>
+                        </div>
 
-                  <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 rounded-xl p-1">
-                    <button
-                      type="button"
-                      onClick={() => setEmptyCollected(Math.max(0, emptyCollected - 1))}
-                      className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <div className="text-center font-black text-base text-foreground">
-                      {emptyCollected} <span className="text-[10px] font-normal text-muted-foreground">jars</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setEmptyCollected(emptyCollected + 1)}
-                      className="h-9 w-9 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer shadow-xs"
-                    >
-                      +
-                    </button>
-                  </div>
+                        <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                          {[1, 2, 5, 10, 15, 20].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setDeliverQty(preset)}
+                              className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
+                                deliverQty === preset ? "bg-sky-500 text-white border-sky-400" : "bg-card text-foreground border-border hover:bg-muted"
+                              }`}
+                            >
+                              {preset}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                    {[0, 1, 2, 5, 10, 15].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setEmptyCollected(preset)}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
-                          emptyCollected === preset ? "bg-emerald-500 text-white border-emerald-400" : "bg-card text-foreground border-border hover:bg-muted"
-                        }`}
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setEmptyCollected(deliverQty)}
-                      className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/20 cursor-pointer"
-                    >
-                      = Same ({deliverQty})
-                    </button>
+                    {/* Jars Collected */}
+                    {canCollectJars && (
+                      <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800/60 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                            <span>🔄 Jars Collected</span>
+                          </label>
+                          <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold">জার ফেরত</span>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 rounded-xl p-1">
+                          <button
+                            type="button"
+                            onClick={() => setEmptyCollected(Math.max(0, emptyCollected - 1))}
+                            className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <div className="text-center font-black text-base text-foreground">
+                            {emptyCollected} <span className="text-[10px] font-normal text-muted-foreground">{customerHolding > 0 ? `held: ${customerHolding}` : "jars"}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEmptyCollected(emptyCollected + 1)}
+                            className="h-9 w-9 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer shadow-xs"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                          {[0, 1, 2, 5, 10].map((preset) => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setEmptyCollected(preset)}
+                              className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
+                                emptyCollected === preset ? "bg-emerald-500 text-white border-emerald-400" : "bg-card text-foreground border-border hover:bg-muted"
+                              }`}
+                            >
+                              {preset}
+                            </button>
+                          ))}
+                          {hasReusableJars && (
+                            <button
+                              type="button"
+                              onClick={() => setEmptyCollected(deliverQty)}
+                              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/20 cursor-pointer"
+                            >
+                              = Same ({deliverQty})
+                            </button>
+                          )}
+                          {customerHolding > 0 && customerHolding !== deliverQty && (
+                            <button
+                              type="button"
+                              onClick={() => setEmptyCollected(customerHolding)}
+                              className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 cursor-pointer"
+                            >
+                              All ({customerHolding})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Payment Mode & Amount Collected */}
               <div className="space-y-2">
@@ -867,6 +966,105 @@ export default function StaffPortalPage() {
             </div>
           </form>
         )}
+      </Dialog>
+
+      {/* RETURN JARS TO GODOWN STOCK MODAL */}
+      <Dialog
+        isOpen={isReturnModalOpen}
+        onClose={() => !isSubmittingReturn && setIsReturnModalOpen(false)}
+        className="max-w-md"
+      >
+        <form onSubmit={handleConfirmReturn} className="p-4 sm:p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Boxes className="h-5 w-5 text-amber-500" />
+                Return Jars to Godown Stock (স্টকে জমা)
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Staff: <span className="font-bold text-foreground">{staffProfile?.full_name}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="p-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-800/60 space-y-2">
+              <label className="text-xs font-black text-foreground flex items-center justify-between">
+                <span>Number of Jars Returning to Godown *</span>
+                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-bold">কতগুলি জার জমা দেবেন</span>
+              </label>
+
+              <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-amber-300 dark:border-amber-800 rounded-xl p-1 shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setReturnQty(Math.max(1, returnQty - 1))}
+                  className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
+                >
+                  -
+                </button>
+                <div className="text-center font-black text-base text-foreground">
+                  {returnQty} <span className="text-[10px] font-normal text-muted-foreground">jars</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReturnQty(returnQty + 1)}
+                  className="h-9 w-9 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer shadow-xs"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                {[1, 5, 10, 20, 30, 50].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setReturnQty(preset)}
+                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer ${
+                      returnQty === preset
+                        ? "bg-amber-500 text-white border-amber-400"
+                        : "bg-card text-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">
+                Notes / Remark (মন্তব্য)
+              </label>
+              <Input
+                value={returnNotes}
+                onChange={(e) => setReturnNotes(e.target.value)}
+                placeholder="e.g. Unloaded into godown washing bay"
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReturnModalOpen(false)}
+              disabled={isSubmittingReturn}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={isSubmittingReturn}
+              className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold"
+            >
+              {isSubmittingReturn ? "Saving..." : "Confirm Stock Return (স্টকে জমা দিন)"}
+            </Button>
+          </div>
+        </form>
       </Dialog>
     </div>
   );
