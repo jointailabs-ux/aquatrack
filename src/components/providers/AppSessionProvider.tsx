@@ -121,12 +121,26 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
 
   const loadData = React.useCallback(async () => {
     try {
-      setIsLoading(true);
       const supabase = createClient();
 
+      const timeoutPromise = async <T,>(fn: () => Promise<T>, ms: number, fallback: T): Promise<T> => {
+        return Promise.race([
+          fn(),
+          new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+        ]);
+      };
+
       const [authRes, settingsRes] = await Promise.all([
-        supabase.auth.getUser(),
-        getBusinessSettings(),
+        timeoutPromise(
+          async () => await supabase.auth.getUser(),
+          4000,
+          { data: { user: null }, error: null } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>
+        ),
+        timeoutPromise(
+          async () => await getBusinessSettings(),
+          4000,
+          { success: false, error: "timeout" }
+        ),
       ]);
 
       let newUser = DEFAULT_USER;
@@ -134,12 +148,20 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
 
       if (authRes.data?.user) {
         const authUser = authRes.data.user;
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, role, can_pos, can_warehouse, can_manage_customers, can_manage_orders")
-          .eq("id", authUser.id)
-          .maybeSingle();
+        const fetchProfile = async () =>
+          await supabase
+            .from("profiles")
+            .select("full_name, role, can_pos, can_warehouse, can_manage_customers, can_manage_orders")
+            .eq("id", authUser.id)
+            .maybeSingle();
 
+        const profileRes = await timeoutPromise(
+          fetchProfile,
+          3000,
+          { data: null, error: null } as unknown as Awaited<ReturnType<typeof fetchProfile>>
+        );
+
+        const profile = profileRes.data;
         const role = (profile?.role as UserRole) || (authUser.user_metadata?.role as UserRole) || "staff";
         newUser = {
           id: authUser.id,

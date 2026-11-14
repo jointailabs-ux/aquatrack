@@ -125,6 +125,26 @@ export interface CustomerJarHoldingSummary {
   pending_empty_collections: number;
 }
 
+export interface DirectInventoryJarSummary {
+  godownStock: number;
+  customerHolding: number;
+  totalJars: number;
+  warehouseName: string;
+  jarProducts: Array<{
+    id: string;
+    name: string;
+    sku: string;
+    quantityOnHand: number;
+  }>;
+  customersHoldingJars: Array<{
+    id: string;
+    customer_name: string;
+    phone: string;
+    address: string;
+    total_jars: number;
+  }>;
+}
+
 export interface ComprehensiveJarSystemSummary {
   warehouse: WarehouseJarBalance;
   staff: StaffJarBalance[];

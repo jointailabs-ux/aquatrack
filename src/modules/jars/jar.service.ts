@@ -5,6 +5,7 @@ import { ActionResponse } from "@/types/api.types";
 import {
   ComprehensiveJarSystemSummary,
   CustomerJarHoldingSummary,
+  DirectInventoryJarSummary,
   JarMovementRecord,
   RecordJarMovementInput,
   RecordJarMovementSchema,
@@ -15,6 +16,132 @@ import {
   JarCustodyLocation,
   JarCondition,
 } from "./jar.schema";
+
+/**
+ * Direct Inventory Jar Tracking Summary
+ * Directly tracks jars from inventory_balances in the godown and customer holdings.
+ * Eliminates slow unindexed full-table scans.
+ */
+export async function getDirectInventoryJarSummary(): Promise<ActionResponse<DirectInventoryJarSummary>> {
+  try {
+    const supabase = await createClient();
+
+    // 1. Fetch default warehouse
+    const { data: defaultWh } = await supabase
+      .from("warehouses")
+      .select("id, name")
+      .eq("is_default", true)
+      .maybeSingle();
+
+    let whId = defaultWh?.id;
+    let warehouseName = defaultWh?.name || "Godown (গুদাম)";
+
+    if (!whId) {
+      const { data: fallbackWh } = await supabase
+        .from("warehouses")
+        .select("id, name")
+        .limit(1)
+        .maybeSingle();
+      whId = fallbackWh?.id;
+      if (fallbackWh?.name) warehouseName = fallbackWh.name;
+    }
+
+    // 2. Fetch reusable jar products
+    const { data: jarProductsData, error: prodErr } = await supabase
+      .from("products")
+      .select("id, name, sku, is_reusable_jar")
+      .eq("is_reusable_jar", true)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+
+    if (prodErr) {
+      return { success: false, error: prodErr.message };
+    }
+
+    const jarProductIds = (jarProductsData || []).map((p) => p.id);
+
+    // 3. Fetch inventory balances for these jar products
+    const balancesMap = new Map<string, number>();
+    if (whId && jarProductIds.length > 0) {
+      const { data: balances } = await supabase
+        .from("inventory_balances")
+        .select("product_id, quantity_on_hand")
+        .eq("warehouse_id", whId)
+        .in("product_id", jarProductIds);
+
+      (balances || []).forEach((b) => {
+        balancesMap.set(b.product_id, Number(b.quantity_on_hand || 0));
+      });
+    }
+
+    let godownStock = 0;
+    const jarProducts = (jarProductsData || []).map((p) => {
+      const qty = balancesMap.get(p.id) ?? 0;
+      godownStock += qty;
+      return {
+        id: p.id,
+        name: p.name,
+        sku: p.sku || "",
+        quantityOnHand: qty,
+      };
+    });
+
+    // 4. Fetch customer holdings
+    const { data: customersData, error: custErr } = await supabase
+      .from("customers")
+      .select("id, contact_name, business_name, phone, address, total_full_jars_holding, total_empty_jars_holding")
+      .eq("is_active", true);
+
+    if (custErr) {
+      return { success: false, error: custErr.message };
+    }
+
+    let customerHolding = 0;
+    const customersHoldingJars: Array<{
+      id: string;
+      customer_name: string;
+      phone: string;
+      address: string;
+      total_jars: number;
+    }> = [];
+
+    (customersData || []).forEach((c) => {
+      const full = Number(c.total_full_jars_holding || 0);
+      const empty = Number(c.total_empty_jars_holding || 0);
+      const holding = full + empty;
+      customerHolding += holding;
+
+      if (holding > 0) {
+        customersHoldingJars.push({
+          id: c.id,
+          customer_name: c.business_name || c.contact_name || "Customer",
+          phone: c.phone || "",
+          address: c.address || "",
+          total_jars: holding,
+        });
+      }
+    });
+
+    customersHoldingJars.sort((a, b) => b.total_jars - a.total_jars);
+
+    return {
+      success: true,
+      data: {
+        godownStock,
+        customerHolding,
+        totalJars: godownStock + customerHolding,
+        warehouseName,
+        jarProducts,
+        customersHoldingJars,
+      },
+    };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to fetch jar summary",
+    };
+  }
+}
 
 /**
  * Fetch persistent enterprise jar custody dashboard summary across all physical locations.
@@ -67,16 +194,15 @@ export async function getJarSystemSummary(): Promise<ActionResponse<Comprehensiv
     // Full usable stock in warehouse from inventory_balances for reusable jar
     let fullUsableStock = 0;
     if (whId) {
-      const { data: invRow } = await supabase
+      const { data: invRows } = await supabase
         .from("inventory_balances")
         .select("quantity_on_hand, product:products!inner(is_reusable_jar)")
         .eq("warehouse_id", whId)
-        .eq("product.is_reusable_jar", true)
-        .maybeSingle();
+        .eq("product.is_reusable_jar", true);
 
-      if (invRow) {
-        fullUsableStock = Number(invRow.quantity_on_hand || 0);
-      }
+      (invRows || []).forEach((r) => {
+        fullUsableStock += Number(r.quantity_on_hand || 0);
+      });
     }
 
     // Condition balances from jar_custody_movements
