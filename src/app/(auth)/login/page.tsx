@@ -47,8 +47,8 @@ function LoginForm() {
       setIsLoadingStaffList(false);
       if (res.success && res.data) {
         setActiveStaffList(res.data);
-        if (res.data.length > 0 && !selectedStaffId) {
-          setSelectedStaffId(res.data[0].id);
+        if (res.data.length > 0) {
+          setSelectedStaffId((prev) => prev || res.data![0].id);
         }
       }
     });
