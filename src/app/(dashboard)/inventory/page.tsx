@@ -12,6 +12,10 @@ import {
   Filter,
   RotateCcw,
   X,
+  Plus,
+  Minus,
+  PackagePlus,
+  Check,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -58,13 +62,41 @@ export default function SingleWarehouseInventoryPage() {
   const [isMovementsLoading, setIsMovementsLoading] = React.useState(false);
   const [movementSearch, setMovementSearch] = React.useState("");
 
-  // Adjustment Modal
+  // Stock Adjustment / Addition Modal
   const [isAdjustModalOpen, setIsAdjustModalOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<InventoryItemRecord | null>(null);
-  const [adjustQty, setAdjustQty] = React.useState<number>(0);
+  const [stockMode, setStockMode] = React.useState<"add" | "remove">("add");
+  const [qtyString, setQtyString] = React.useState<string>("");
   const [adjustReason, setAdjustReason] = React.useState("");
-  const [adjustType, setAdjustType] = React.useState<StockMovementType>("PHYSICAL_AUDIT_ADJUSTMENT");
+  const [adjustType, setAdjustType] = React.useState<StockMovementType>("PURCHASE_RECEIPT");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const openAddStockModal = (product?: InventoryItemRecord) => {
+    const targetProduct = product || selectedProduct || (items.length > 0 ? items[0] : null);
+    if (!targetProduct && items.length === 0) {
+      addToast({
+        type: "info",
+        title: "No Products",
+        message: "No products exist in warehouse catalog to add stock.",
+      });
+      return;
+    }
+    setSelectedProduct(targetProduct);
+    setStockMode("add");
+    setQtyString("");
+    setAdjustReason("");
+    setAdjustType("PURCHASE_RECEIPT");
+    setIsAdjustModalOpen(true);
+  };
+
+  const openAdjustStockModal = (product: InventoryItemRecord, mode: "add" | "remove" = "add") => {
+    setSelectedProduct(product);
+    setStockMode(mode);
+    setQtyString("");
+    setAdjustReason("");
+    setAdjustType(mode === "add" ? "PURCHASE_RECEIPT" : "DAMAGE_WRITEOFF");
+    setIsAdjustModalOpen(true);
+  };
 
   const loadData = React.useCallback(async () => {
     if (!cachedInventoryState) {
@@ -128,13 +160,42 @@ export default function SingleWarehouseInventoryPage() {
 
   const handleAdjustSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
+    if (!selectedProduct) {
+      addToast({
+        type: "error",
+        title: "No Product Selected",
+        message: "Please choose a product to update stock.",
+      });
+      return;
+    }
+
+    const numericQty = parseInt(qtyString, 10);
+    if (isNaN(numericQty) || numericQty <= 0) {
+      addToast({
+        type: "error",
+        title: "Enter Valid Quantity",
+        message: "Please enter a quantity greater than 0.",
+      });
+      return;
+    }
+
+    if (stockMode === "remove" && numericQty > selectedProduct.current_stock) {
+      addToast({
+        type: "error",
+        title: "Insufficient Stock",
+        message: `Cannot deduct ${numericQty} ${selectedProduct.unit_of_measure}. Only ${selectedProduct.current_stock} currently in warehouse.`,
+      });
+      return;
+    }
+
+    const signedQty = stockMode === "add" ? numericQty : -numericQty;
+    const finalReason = adjustReason.trim() || (stockMode === "add" ? "New stock received and added" : "Stock removed or damaged");
 
     setIsSubmitting(true);
     const res = await adjustStock({
       product_id: selectedProduct.product_id,
-      quantity_delta: adjustQty,
-      reason: adjustReason,
+      quantity_delta: signedQty,
+      reason: finalReason,
       movement_type: adjustType,
     });
     setIsSubmitting(false);
@@ -142,8 +203,8 @@ export default function SingleWarehouseInventoryPage() {
     if (res.success) {
       addToast({
         type: "success",
-        title: "Stock Adjusted",
-        message: `Adjusted ${selectedProduct.name} by ${adjustQty > 0 ? `+${adjustQty}` : adjustQty} units.`,
+        title: stockMode === "add" ? "🎉 Stock Added Successfully" : "Stock Updated",
+        message: `${stockMode === "add" ? "Added" : "Deducted"} ${numericQty} ${selectedProduct.unit_of_measure} for ${selectedProduct.name}.`,
       });
 
       // Reload authoritative stock and summary from database
@@ -155,7 +216,7 @@ export default function SingleWarehouseInventoryPage() {
       }
 
       setIsAdjustModalOpen(false);
-      setAdjustQty(0);
+      setQtyString("");
       setAdjustReason("");
     } else {
       addToast({
@@ -228,25 +289,26 @@ export default function SingleWarehouseInventoryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Central Warehouse Inventory
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
+              <Warehouse className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+              Warehouse & Stock Manager
             </h1>
-            <Badge variant="primary" className="text-xs">
-              Single Depot
+            <Badge variant="success" className="text-[10px] sm:text-xs font-bold py-0.5 px-2 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
+              स्टॉक & गोदाम
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Real-time stock of reusable water jars and packaged beverages with dual-entry valuation and audit history.
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Real-time stock of water jars, bottles & beverages. Easily add incoming plant stock or report damaged items.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
             variant="outline"
             onClick={loadData}
             disabled={isLoading}
-            className="gap-1.5 text-xs"
+            className="gap-1.5 text-xs h-10 px-3 rounded-xl border-border"
           >
             <RotateCcw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
@@ -254,16 +316,11 @@ export default function SingleWarehouseInventoryPage() {
 
           <Button
             size="sm"
-            onClick={() => {
-              if (items.length > 0) {
-                setSelectedProduct(items[0]);
-                setIsAdjustModalOpen(true);
-              }
-            }}
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs text-xs"
+            onClick={() => openAddStockModal()}
+            className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold shadow-md shadow-emerald-600/25 text-xs sm:text-sm h-10 px-4 rounded-xl active:scale-95 transition-all"
           >
-            <ArrowUpDown className="h-4 w-4" />
-            Audit Stock Adjustment
+            <Plus className="h-4 w-4" />
+            <span>+ Add Stock / स्टॉक जोड़ें</span>
           </Button>
         </div>
       </div>
@@ -461,14 +518,11 @@ export default function SingleWarehouseInventoryPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setSelectedProduct(item);
-                              setIsAdjustModalOpen(true);
-                            }}
-                            className="h-7 text-[11px] gap-1 text-primary border-primary/30 hover:bg-primary/10"
+                            onClick={() => openAdjustStockModal(item, "add")}
+                            className="h-7 text-[11px] gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 font-bold"
                           >
-                            <ArrowUpDown className="h-3 w-3" />
-                            Adjust
+                            <Plus className="h-3 w-3" />
+                            + Add Stock
                           </Button>
                         </div>
                       </div>
@@ -597,20 +651,25 @@ export default function SingleWarehouseInventoryPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => openProductHistory(item)}
-                              className="h-7 px-2 text-[11px] text-muted-foreground"
+                              className="h-8 px-2 text-[11px] text-muted-foreground"
                             >
-                              <History className="h-3 w-3 mr-1" /> History
+                              <History className="h-3.5 w-3.5 mr-1" /> History
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => openAdjustStockModal(item, "add")}
+                              className="h-8 px-2.5 text-xs font-bold gap-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg shadow-xs"
+                            >
+                              <Plus className="h-3.5 w-3.5" /> + Add Stock
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setSelectedProduct(item);
-                                setIsAdjustModalOpen(true);
-                              }}
-                              className="h-7 px-2 text-[11px] text-primary border-primary/30"
+                              onClick={() => openAdjustStockModal(item, "remove")}
+                              className="h-8 px-2 text-xs text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                              title="Deduct damaged or lost"
                             >
-                              <ArrowUpDown className="h-3 w-3 mr-1" /> Adjust
+                              <Minus className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
@@ -723,7 +782,7 @@ export default function SingleWarehouseInventoryPage() {
                               )}
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1">
+                              <div className="flex items-center justify-end gap-1.5">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -735,17 +794,23 @@ export default function SingleWarehouseInventoryPage() {
                                   <span className="hidden md:inline">History</span>
                                 </Button>
                                 <Button
-                                  variant="ghost"
                                   size="sm"
-                                  onClick={() => {
-                                    setSelectedProduct(item);
-                                    setIsAdjustModalOpen(true);
-                                  }}
-                                  className="h-7 px-2 text-xs text-primary gap-1"
-                                  title="Audit Stock Adjustment"
+                                  onClick={() => openAdjustStockModal(item, "add")}
+                                  className="h-7 px-2.5 text-xs font-bold gap-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md shadow-2xs"
+                                  title="Add incoming stock"
                                 >
-                                  <ArrowUpDown className="h-3.5 w-3.5" />
-                                  <span>Adjust</span>
+                                  <Plus className="h-3 w-3" />
+                                  <span>+ Add</span>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openAdjustStockModal(item, "remove")}
+                                  className="h-7 px-2 text-xs text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1 rounded-md"
+                                  title="Deduct damaged or lost stock"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                  <span>Deduct</span>
                                 </Button>
                               </div>
                             </td>
@@ -1019,15 +1084,15 @@ export default function SingleWarehouseInventoryPage() {
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
-                  variant="outline"
                   onClick={() => {
-                    setSelectedProduct(historyProduct);
-                    setIsAdjustModalOpen(true);
+                    if (historyProduct) {
+                      openAdjustStockModal(historyProduct, "add");
+                    }
                   }}
-                  className="gap-1.5 text-xs text-primary"
+                  className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                 >
-                  <ArrowUpDown className="h-3.5 w-3.5" />
-                  Adjust Stock
+                  <Plus className="h-3.5 w-3.5" />
+                  + Add Stock
                 </Button>
                 <Button
                   size="sm"
@@ -1043,122 +1108,328 @@ export default function SingleWarehouseInventoryPage() {
         </div>
       )}
 
-      {/* ADJUST STOCK MODAL (Requirement 3 — Preserved & Enhanced) */}
+      {/* ADD / ADJUST STOCK MODAL */}
       {isAdjustModalOpen && selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-4 sm:p-6 shadow-2xl space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-lg rounded-2xl bg-card border border-border p-4 sm:p-6 shadow-2xl space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                <ArrowUpDown className="h-5 w-5 text-primary" />
-                Adjust Stock — {selectedProduct.name}
-              </h3>
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`p-2 rounded-xl text-white ${
+                    stockMode === "add"
+                      ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm shadow-emerald-500/30"
+                      : "bg-gradient-to-br from-rose-500 to-amber-600 shadow-sm shadow-rose-500/30"
+                  }`}
+                >
+                  {stockMode === "add" ? (
+                    <PackagePlus className="h-5 w-5" />
+                  ) : (
+                    <ArrowUpDown className="h-5 w-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-foreground leading-tight">
+                    {stockMode === "add" ? "Add Stock / नया माल जोड़ें" : "Deduct / ख़राब माल घटाएं"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Fast update for bottles and jars in warehouse
+                  </p>
+                </div>
+              </div>
               <button
+                type="button"
                 onClick={() => setIsAdjustModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground p-2 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center text-sm font-bold"
+                className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center text-sm font-bold transition-colors"
+                aria-label="Close"
               >
                 ✕
               </button>
             </div>
 
-            <div className="rounded-lg bg-muted/30 p-3 text-xs space-y-1">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">SKU:</span>
-                <span className="font-mono font-semibold">{selectedProduct.sku}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Current Warehouse Stock:</span>
-                <strong>
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-muted/60 rounded-xl border border-border/50">
+              <button
+                type="button"
+                onClick={() => {
+                  setStockMode("add");
+                  setAdjustType("PURCHASE_RECEIPT");
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all min-h-[42px] touch-manipulation ${
+                  stockMode === "add"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/25"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/60"
+                }`}
+              >
+                <Plus className="h-4 w-4" />
+                <span>+ Add Stock (माल आया)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStockMode("remove");
+                  setAdjustType("DAMAGE_WRITEOFF");
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all min-h-[42px] touch-manipulation ${
+                  stockMode === "remove"
+                    ? "bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-md shadow-rose-600/25"
+                    : "text-muted-foreground hover:text-foreground hover:bg-card/60"
+                }`}
+              >
+                <Minus className="h-4 w-4" />
+                <span>- Remove (ख़राब / टूटा)</span>
+              </button>
+            </div>
+
+            {/* Product Selector Dropdown */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                <span>Select Item / सामान चुनें *</span>
+                <span className="text-[11px] text-muted-foreground font-normal">
+                  {items.length} products available
+                </span>
+              </label>
+              <select
+                value={selectedProduct.product_id}
+                onChange={(e) => {
+                  const prod = items.find((p) => p.product_id === e.target.value);
+                  if (prod) setSelectedProduct(prod);
+                }}
+                className="w-full h-11 px-3 text-xs sm:text-sm font-semibold rounded-xl border border-border bg-card text-foreground shadow-xs focus:ring-2 focus:ring-primary focus:outline-hidden"
+              >
+                {items.map((prod) => (
+                  <option key={prod.product_id} value={prod.product_id}>
+                    {prod.name} ({prod.sku}) — {prod.current_stock} {prod.unit_of_measure} in stock
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Current Stock Snapshot Card */}
+            <div className="rounded-xl bg-muted/40 border border-border/60 p-3 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Current Warehouse Stock:</span>
+                <strong className="text-sm font-bold text-foreground">
                   {selectedProduct.current_stock} {selectedProduct.unit_of_measure}
                 </strong>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Safety Reorder Level:</span>
-                <span>{selectedProduct.reorder_level} {selectedProduct.unit_of_measure}</span>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Available for Orders:</span>
+                <span className="font-semibold text-foreground">
+                  {selectedProduct.available_stock} {selectedProduct.unit_of_measure}
+                </span>
               </div>
-              {selectedProduct.available_stock <= selectedProduct.reorder_level && (
-                <div className="flex justify-between text-amber-600 dark:text-amber-400 font-semibold pt-1 border-t border-border/40">
-                  <span>Current Shortage:</span>
-                  <span>
-                    {Math.max(0, selectedProduct.reorder_level - selectedProduct.available_stock)} {selectedProduct.unit_of_measure}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Minimum Safety Alert Level:</span>
+                <span className="font-mono text-muted-foreground">
+                  {selectedProduct.reorder_level} {selectedProduct.unit_of_measure}
+                </span>
+              </div>
             </div>
 
-            <form onSubmit={handleAdjustSubmit} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Movement Reason / Type
+            <form onSubmit={handleAdjustSubmit} className="space-y-4">
+              {/* Quantity Input with Quick Tap Buttons */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                  <span>Quantity / कितनी संख्या है? *</span>
+                  {selectedProduct && (
+                    <span className="text-[11px] text-muted-foreground font-normal">
+                      Unit: {selectedProduct.unit_of_measure}
+                    </span>
+                  )}
                 </label>
-                <select
-                  value={adjustType}
-                  onChange={(e) => setAdjustType(e.target.value as StockMovementType)}
-                  className="w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground"
-                >
-                  <option value="PHYSICAL_AUDIT_ADJUSTMENT">Physical Count Audit Adjustment</option>
-                  <option value="DAMAGE_WRITEOFF">Damaged / Leakage Write-off</option>
-                  <option value="OPENING_BALANCE">Opening Stock Adjustment</option>
-                </select>
+
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={qtyString}
+                    onChange={(e) => setQtyString(e.target.value)}
+                    placeholder="Enter number (e.g. 50)"
+                    className="h-12 text-lg sm:text-xl font-bold font-mono tracking-wide px-3 rounded-xl border-2 focus:border-primary"
+                    required
+                    autoFocus
+                  />
+                  {qtyString && (
+                    <button
+                      type="button"
+                      onClick={() => setQtyString("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground bg-muted px-2 py-1 rounded-md"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Add Tap Buttons */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground mr-1">Quick tap:</span>
+                  {[10, 25, 50, 100, 200].map((inc) => (
+                    <button
+                      key={inc}
+                      type="button"
+                      onClick={() => {
+                        const current = parseInt(qtyString, 10) || 0;
+                        setQtyString(String(current + inc));
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-muted hover:bg-muted/80 text-foreground border border-border shadow-2xs touch-manipulation active:scale-95 transition-all"
+                    >
+                      +{inc}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setQtyString("")}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted touch-manipulation"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                {/* Live Stock Projection Preview */}
+                {(() => {
+                  const num = parseInt(qtyString, 10);
+                  if (isNaN(num) || num <= 0) return null;
+
+                  if (stockMode === "add") {
+                    const projected = selectedProduct.current_stock + num;
+                    return (
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-200 text-xs flex items-center justify-between">
+                        <span>New Projected Stock:</span>
+                        <strong className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
+                          {projected} {selectedProduct.unit_of_measure} (+{num})
+                        </strong>
+                      </div>
+                    );
+                  } else {
+                    const projected = selectedProduct.current_stock - num;
+                    const isOver = projected < 0;
+                    return (
+                      <div
+                        className={`p-2.5 rounded-xl border text-xs flex items-center justify-between ${
+                          isOver
+                            ? "bg-rose-500/10 border-rose-500/40 text-rose-800 dark:text-rose-200"
+                            : "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-200"
+                        }`}
+                      >
+                        <span>{isOver ? "⚠️ Cannot deduct more than available!" : "New Projected Stock:"}</span>
+                        <strong
+                          className={`text-sm font-extrabold ${
+                            isOver
+                              ? "text-rose-600 dark:text-rose-400"
+                              : "text-amber-600 dark:text-amber-400"
+                          }`}
+                        >
+                          {isOver ? `Max: ${selectedProduct.current_stock}` : `${projected} ${selectedProduct.unit_of_measure} (-${num})`}
+                        </strong>
+                      </div>
+                    );
+                  }
+                })()}
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Quantity Delta (+ to add, - to deduct) *
+              {/* Quick Reason Chips & Notes */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-foreground flex items-center justify-between">
+                  <span>Reason / वजह (Optional)</span>
+                  <span className="text-[11px] text-muted-foreground font-normal">Tap to pick</span>
                 </label>
-                <Input
-                  type="number"
-                  value={adjustQty}
-                  onChange={(e) => setAdjustQty(Number(e.target.value))}
-                  placeholder="e.g. -5 or +10"
-                  className="text-xs font-mono"
-                  required
-                />
-                {adjustQty !== 0 && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Projected stock:{" "}
-                    <strong>
-                      {Math.max(0, selectedProduct.current_stock + adjustQty)} {selectedProduct.unit_of_measure}
-                    </strong>{" "}
-                    ({adjustQty > 0 ? `+${adjustQty}` : adjustQty})
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Audit Notes / Justification *
-                </label>
+                {/* Preset Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(stockMode === "add"
+                    ? [
+                        { label: "🏭 Factory Delivery (फैक्ट्री से आया)", val: "Factory Plant Arrival" },
+                        { label: "🔄 Refilled (रिफिल बोतल)", val: "Refilled Bottles" },
+                        { label: "🚛 Route Return (गाड़ी से वापस)", val: "Returned from Delivery Route" },
+                        { label: "🔍 Recount Surplus (गिनती सुधार)", val: "Physical Stock Count Adjustment" },
+                      ]
+                    : [
+                        { label: "💥 Damaged / Broken (फूट/टूटा)", val: "Broken or Damaged Bottle" },
+                        { label: "💧 Leaking Bottle (लीकेज)", val: "Water Leakage Write-off" },
+                        { label: "🏭 Sent to Factory (प्लांट भेजा)", val: "Returned to Factory for Recycling" },
+                        { label: "🔍 Recount Shortage (गिनती सुधार)", val: "Physical Audit Variance" },
+                      ]
+                  ).map((chip) => (
+                    <button
+                      key={chip.val}
+                      type="button"
+                      onClick={() => setAdjustReason(chip.val)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors touch-manipulation border ${
+                        adjustReason === chip.val
+                          ? "bg-primary text-primary-foreground border-primary font-bold shadow-2xs"
+                          : "bg-muted/50 hover:bg-muted text-muted-foreground border-border/60"
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
                 <Input
-                  placeholder="e.g. Broken during unloading or recount variance"
+                  placeholder={
+                    stockMode === "add"
+                      ? "Optional notes (e.g. Truck #12 or Plant Invoice)..."
+                      : "Optional notes (e.g. Cracked during transit)..."
+                  }
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
-                  className="text-xs"
-                  required
+                  className="text-xs h-9 mt-1"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-2 border-t border-border">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
                   onClick={() => setIsAdjustModalOpen(false)}
+                  className="h-11 px-4 text-xs font-semibold rounded-xl"
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isSubmitting || adjustQty === 0 || !adjustReason.trim()}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-                >
-                  {isSubmitting ? "Posting..." : "Confirm Adjustment"}
-                </Button>
+
+                {(() => {
+                  const num = parseInt(qtyString, 10);
+                  const isValidQty = !isNaN(num) && num > 0;
+                  const isOverDeduct = stockMode === "remove" && num > selectedProduct.current_stock;
+                  const canSubmit = !isSubmitting && isValidQty && !isOverDeduct;
+
+                  return (
+                    <Button
+                      type="submit"
+                      disabled={!canSubmit}
+                      className={`h-11 flex-1 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md ${
+                        stockMode === "add"
+                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/25"
+                          : "bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white shadow-rose-500/25"
+                      } ${!canSubmit ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center gap-2">
+                          <RotateCcw className="h-4 w-4 animate-spin" />
+                          Saving to Warehouse...
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center gap-1.5">
+                          <Check className="h-4 w-4" />
+                          {stockMode === "add"
+                            ? `Confirm Add ${isValidQty ? `+${num}` : ""} ${selectedProduct.unit_of_measure} (स्टॉक जोड़ें)`
+                            : `Confirm Deduct ${isValidQty ? `-${num}` : ""} ${selectedProduct.unit_of_measure} (स्टॉक घटाएं)`}
+                        </span>
+                      )}
+                    </Button>
+                  );
+                })()}
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Extra bottom padding spacer for mobile navbar */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 }

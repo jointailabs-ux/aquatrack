@@ -20,7 +20,7 @@ export type StockMovementType = z.infer<typeof StockMovementTypeEnum>;
 export const StockAdjustmentInputSchema = z.object({
   product_id: z.string().uuid("Product ID is required"),
   quantity_delta: z.number().int("Quantity delta must be an integer"),
-  reason: z.string().min(3, "Adjustment reason is required").max(255),
+  reason: z.string().min(3, "Adjustment reason must be at least 3 characters").max(255).optional().default("Stock updated via inventory manager"),
   movement_type: StockMovementTypeEnum.optional().default("PHYSICAL_AUDIT_ADJUSTMENT"),
 });
 

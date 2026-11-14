@@ -148,7 +148,14 @@ export async function adjustStock(
   input: StockAdjustmentInput
 ): Promise<ActionResponse<{ success: boolean; newStock: number }>> {
   try {
-    const validated = StockAdjustmentInputSchema.parse(input);
+    const rawReason = input.reason?.trim();
+    const sanitizedInput: StockAdjustmentInput = {
+      ...input,
+      reason: rawReason && rawReason.length >= 3
+        ? rawReason
+        : (input.quantity_delta >= 0 ? "Stock received and added" : "Stock removed or damaged"),
+    };
+    const validated = StockAdjustmentInputSchema.parse(sanitizedInput);
     const supabase = await createClient();
 
     const { data, error } = await supabase.rpc("rpc_adjust_inventory_stock", {
