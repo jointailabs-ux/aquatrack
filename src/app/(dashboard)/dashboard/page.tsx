@@ -54,6 +54,10 @@ const RevenueChart = dynamic(
 const DASHBOARD_STORAGE_KEY = "aquatrack_dashboard_cache_v2";
 const DASHBOARD_CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for zero-latency instant transitions
 
+const getDashboardCacheKey = (range: DashboardDateRangeType, from?: string, to?: string) => {
+  return `${range}:${from || ""}:${to || ""}`;
+};
+
 // Module-level client cache for instant zero-latency page transitions
 let cachedDashboardState: {
   key: string;
@@ -62,7 +66,8 @@ let cachedDashboardState: {
 } | null = null;
 
 function getInitialDashboardData(): DashboardSummaryData | null {
-  if (cachedDashboardState && cachedDashboardState.key === "today") {
+  const defaultKey = getDashboardCacheKey("today");
+  if (cachedDashboardState && cachedDashboardState.key === defaultKey) {
     return cachedDashboardState.data;
   }
   if (typeof window !== "undefined") {
@@ -70,7 +75,7 @@ function getInitialDashboardData(): DashboardSummaryData | null {
       const saved = localStorage.getItem(DASHBOARD_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.data && parsed?.key === "today") {
+        if (parsed?.data && parsed?.key === defaultKey) {
           cachedDashboardState = parsed;
           return parsed.data;
         }
@@ -97,7 +102,7 @@ export default function DashboardPage() {
 
   const fetchSummary = React.useCallback(
     async (range: DashboardDateRangeType, from?: string, to?: string, isRefresh = false) => {
-      const cacheKey = `${range}-${from || ""}-${to || ""}`;
+      const cacheKey = getDashboardCacheKey(range, from, to);
       const now = Date.now();
       const hasFreshCache =
         !isRefresh &&
@@ -105,7 +110,10 @@ export default function DashboardPage() {
         cachedDashboardState.key === cacheKey &&
         now - (cachedDashboardState.timestamp || 0) < DASHBOARD_CACHE_TTL_MS;
 
-      if (hasFreshCache) {
+      if (hasFreshCache && cachedDashboardState?.data) {
+        setDashboardData(cachedDashboardState.data);
+        setLoading(false);
+        setRefreshing(false);
         return;
       }
 
@@ -113,7 +121,7 @@ export default function DashboardPage() {
 
       if (isRefresh) {
         setRefreshing(true);
-      } else if (!hasMatchingCache) {
+      } else if (!hasMatchingCache && !cachedDashboardState?.data) {
         setLoading(true);
       }
       setError(null);

@@ -115,7 +115,7 @@ export function NotificationsDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm rounded-2xl border border-border/90 bg-card/95 backdrop-blur-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+        <div className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-96 max-w-md mx-auto sm:mx-0 rounded-2xl border border-border/90 bg-card/95 backdrop-blur-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/40">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-foreground">Live App Activity & Audit</span>

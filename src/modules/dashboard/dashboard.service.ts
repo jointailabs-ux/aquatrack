@@ -70,7 +70,7 @@ export async function getDashboardSummary(
           id, order_number, status, total_amount, payment_status, delivery_date, delivery_address,
           customer:customers(contact_name, business_name, phone),
           assigned_staff:profiles!orders_assigned_staff_id_fkey(full_name),
-          items:order_items(product_name, quantity, delivered_quantity)
+          items:order_items(quantity, delivered_quantity, product:products(name))
         `)
         .in("status", ["PENDING", "CONFIRMED", "ASSIGNED", "OUT_FOR_DELIVERY"])
         .order("delivery_date", { ascending: true })
@@ -530,9 +530,9 @@ export async function getDashboardSummary(
       full_name?: string;
     }
     interface OrderItemData {
-      product_name?: string;
       quantity?: number;
       delivered_quantity?: number;
+      product?: { name?: string } | null;
     }
 
     const runningOrders = (allActiveOrders || []).map((ord) => {
@@ -545,7 +545,7 @@ export async function getDashboardSummary(
       const deliveryProgressPct = totalQuantity > 0 ? Math.round((deliveredQuantity / totalQuantity) * 100) : 0;
 
       const itemsSummary = items.length > 0
-        ? items.map((it) => `${it.quantity}× ${it.product_name || "Jar"}`).join(", ")
+        ? items.map((it) => `${it.quantity}× ${it.product?.name || "Jar"}`).join(", ")
         : "Standard 20L Water Jars";
 
       const customerName = cust?.business_name
