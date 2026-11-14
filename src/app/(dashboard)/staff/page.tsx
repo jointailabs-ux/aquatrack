@@ -43,19 +43,51 @@ import { getOrders, executeDeliveryStop, assignOrderStaff } from "@/modules/orde
 import { OrderRecord } from "@/modules/orders/order.schema";
 import { formatCurrency } from "@/lib/utils";
 
+const STAFF_STORAGE_KEY = "aquatrack_staff_cache_v2";
+
+// Module-level client cache for instant staff view
+let cachedStaffState: {
+  staffList: StaffRecord[];
+  dailyOrders: OrderRecord[];
+  date: string;
+} | null = null;
+
+function getInitialStaffData() {
+  if (cachedStaffState && cachedStaffState.staffList.length > 0) {
+    return cachedStaffState;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(STAFF_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.staffList) && parsed.staffList.length > 0) {
+          cachedStaffState = parsed;
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+  return { staffList: [], dailyOrders: [], date: "" };
+}
+
 export default function StaffManagementPage() {
   const { addToast } = useToast();
+  const initialData = React.useMemo(() => getInitialStaffData(), []);
+
   const [activeTab, setActiveTab] = React.useState<"deliveries" | "directory">("deliveries");
-  const [staffList, setStaffList] = React.useState<StaffRecord[]>([]);
-  const [isLoadingStaff, setIsLoadingStaff] = React.useState(true);
+  const [staffList, setStaffList] = React.useState<StaffRecord[]>(() => initialData.staffList || []);
+  const [isLoadingStaff, setIsLoadingStaff] = React.useState<boolean>(() => initialData.staffList.length === 0);
   const [selectedStaff, setSelectedStaff] = React.useState<StaffRecord | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
   // Daily Deliveries Tracking State
   const [selectedDate, setSelectedDate] = React.useState<string>(() => new Date().toISOString().split("T")[0]);
-  const [dailyOrders, setDailyOrders] = React.useState<OrderRecord[]>([]);
-  const [isLoadingOrders, setIsLoadingOrders] = React.useState(true);
+  const [dailyOrders, setDailyOrders] = React.useState<OrderRecord[]>(() => initialData.dailyOrders || []);
+  const [isLoadingOrders, setIsLoadingOrders] = React.useState<boolean>(() => initialData.dailyOrders.length === 0);
   const [expandedStaffIds, setExpandedStaffIds] = React.useState<Record<string, boolean>>({});
 
   // Direct Delivery Execution Modal State
@@ -91,11 +123,23 @@ export default function StaffManagementPage() {
 
   // Load Staff List
   const loadStaff = React.useCallback(async () => {
-    setIsLoadingStaff(true);
+    if (!cachedStaffState || cachedStaffState.staffList.length === 0) {
+      setIsLoadingStaff(true);
+    }
     const res = await getStaffMembers();
     setIsLoadingStaff(false);
     if (res.success && res.data) {
       setStaffList(res.data);
+      cachedStaffState = {
+        staffList: res.data,
+        dailyOrders: cachedStaffState?.dailyOrders || [],
+        date: cachedStaffState?.date || "",
+      };
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(cachedStaffState));
+        } catch {}
+      }
     } else {
       setStaffList([]);
     }
@@ -103,7 +147,9 @@ export default function StaffManagementPage() {
 
   // Load Daily Orders for Selected Date
   const loadOrdersForDate = React.useCallback(async (targetDate: string) => {
-    setIsLoadingOrders(true);
+    if (!cachedStaffState || cachedStaffState.dailyOrders.length === 0 || cachedStaffState.date !== targetDate) {
+      setIsLoadingOrders(true);
+    }
     try {
       const res = await getOrders();
       if (res.success && res.data) {
@@ -112,6 +158,16 @@ export default function StaffManagementPage() {
           (o) => o.delivery_date === targetDate || (o.created_at && o.created_at.startsWith(targetDate))
         );
         setDailyOrders(matched);
+        cachedStaffState = {
+          staffList: cachedStaffState?.staffList || [],
+          dailyOrders: matched,
+          date: targetDate,
+        };
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(cachedStaffState));
+          } catch {}
+        }
       } else {
         setDailyOrders([]);
       }

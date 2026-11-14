@@ -52,6 +52,8 @@ const RevenueChart = dynamic(
   }
 );
 
+const DASHBOARD_STORAGE_KEY = "aquatrack_dashboard_cache_v2";
+
 // Module-level client cache for instant zero-latency page transitions
 let cachedDashboardState: {
   key: string;
@@ -59,22 +61,36 @@ let cachedDashboardState: {
   timestamp: number;
 } | null = null;
 
+function getInitialDashboardData(): DashboardSummaryData | null {
+  if (cachedDashboardState && cachedDashboardState.key === "today") {
+    return cachedDashboardState.data;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(DASHBOARD_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.data && parsed?.key === "today") {
+          cachedDashboardState = parsed;
+          return parsed.data;
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+  return null;
+}
+
 export default function DashboardPage() {
   const [dateRange, setDateRange] = React.useState<DashboardDateRangeType>("today");
   const [customFrom, setCustomFrom] = React.useState<string>("");
   const [customTo, setCustomTo] = React.useState<string>("");
 
-  // Instant render from cache if available
-  const [dashboardData, setDashboardData] = React.useState<DashboardSummaryData | null>(() => {
-    if (cachedDashboardState && cachedDashboardState.key === "today") {
-      return cachedDashboardState.data;
-    }
-    return null;
-  });
-
-  const [loading, setLoading] = React.useState<boolean>(() => {
-    return !cachedDashboardState || cachedDashboardState.key !== "today";
-  });
+  // Instant render from cache (0ms paint)
+  const initialCached = React.useMemo(() => getInitialDashboardData(), []);
+  const [dashboardData, setDashboardData] = React.useState<DashboardSummaryData | null>(initialCached);
+  const [loading, setLoading] = React.useState<boolean>(() => !initialCached);
   const [refreshing, setRefreshing] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showMobileAnalytics, setShowMobileAnalytics] = React.useState<boolean>(false);
@@ -100,11 +116,19 @@ export default function DashboardPage() {
 
         if (res.success && res.data) {
           setDashboardData(res.data);
-          cachedDashboardState = {
+          const freshCache = {
             key: cacheKey,
             data: res.data,
             timestamp: Date.now(),
           };
+          cachedDashboardState = freshCache;
+          if (typeof window !== "undefined" && range === "today") {
+            try {
+              localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(freshCache));
+            } catch {
+              // Ignore quota errors
+            }
+          }
         } else {
           setError(res.error || "Failed to retrieve dashboard metrics.");
         }
@@ -355,82 +379,82 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* B. Business Overview: Compact 2 × 2 Metric Grid */}
+        {/* B. Business Overview: Colorful Touch Metric Cards */}
         <div className="grid grid-cols-2 gap-2.5">
           {/* Tile 1: Today's Sales */}
-          <div className="rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-slate-900 dark:via-emerald-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white p-3.5 shadow-md shadow-emerald-600/25 flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-900/90 dark:text-emerald-300">Today&apos;s Sales (আজকের বিক্রি)</span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
+              <span className="text-[11px] font-bold text-emerald-100">Today&apos;s Sales (আজকের বিক্রি)</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                 <DollarSign className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-1.5">
-              <span className="text-xl font-black text-emerald-950 dark:text-emerald-300 tracking-tight block">
+            <div className="mt-2">
+              <span className="text-xl font-black text-white tracking-tight block">
                 {formatCurrency(kpis.orderRevenue + kpis.posSalesTotal)}
               </span>
-              <span className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 font-semibold">
+              <span className="text-[10px] text-emerald-100/90 font-medium">
                 {kpis.orderCount + kpis.posSalesCount} sales recorded
               </span>
             </div>
           </div>
 
           {/* Tile 2: Orders Count */}
-          <div className="rounded-2xl border border-sky-200/80 dark:border-sky-500/30 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/40 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white p-3.5 shadow-md shadow-sky-600/25 flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-sky-900/90 dark:text-sky-300">Deliveries (ডেলিভারি)</span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/25">
+              <span className="text-[11px] font-bold text-sky-100">Deliveries (ডেলিভারি)</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                 <Truck className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-1.5">
-              <span className="text-xl font-black text-sky-950 dark:text-sky-300 tracking-tight block">
+            <div className="mt-2">
+              <span className="text-xl font-black text-white tracking-tight block">
                 {kpis.orderCount}
               </span>
-              <span className="text-[10px] text-sky-700/80 dark:text-sky-400/80 font-semibold">
+              <span className="text-[10px] text-sky-100/90 font-medium">
                 {kpis.pendingOrdersCount} pending dispatch
               </span>
             </div>
           </div>
 
           {/* Tile 3: Outstanding A/R */}
-          <div className="rounded-2xl border border-amber-200/80 dark:border-amber-500/30 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 dark:from-slate-900 dark:via-amber-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 text-white p-3.5 shadow-md shadow-amber-500/25 flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-amber-900/90 dark:text-amber-300">Pending Due (বাকি টাকা)</span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
+              <span className="text-[11px] font-bold text-amber-100">Pending Due (বাকি টাকা)</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                 <Clock className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-1.5">
-              <span className="text-xl font-black text-amber-950 dark:text-amber-300 tracking-tight block">
+            <div className="mt-2">
+              <span className="text-xl font-black text-white tracking-tight block">
                 {formatCurrency(financials.accountsReceivable)}
               </span>
-              <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 font-semibold">
-                Money to collect
+              <span className="text-[10px] text-amber-100/90 font-medium">
+                Customer credit to collect
               </span>
             </div>
           </div>
 
           {/* Tile 4: Available Stock */}
-          <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-500/30 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/40 dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-3.5 shadow-md shadow-indigo-600/25 flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-indigo-900/90 dark:text-indigo-300">Stock (গুদামের মাল)</span>
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
+              <span className="text-[11px] font-bold text-indigo-100">Stock (গুদামের মাল)</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                 <PackageCheck className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-1.5">
-              <span className="text-xl font-black text-indigo-950 dark:text-indigo-300 tracking-tight block">
+            <div className="mt-2">
+              <span className="text-xl font-black text-white tracking-tight block">
                 {kpis.inventoryStockSummary.totalUnits}{" "}
-                <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400">jars</span>
+                <span className="text-xs font-semibold text-indigo-200">jars</span>
               </span>
-              <span className="text-[10px] text-indigo-700/80 dark:text-indigo-400/80 font-semibold">
+              <span className="text-[10px] text-indigo-100/90 font-medium">
                 {kpis.inventoryStockSummary.lowStockCount > 0 ? (
-                  <span className="text-destructive font-semibold">
-                    {kpis.inventoryStockSummary.lowStockCount} low stock!
+                  <span className="text-amber-200 font-bold">
+                    ⚠️ {kpis.inventoryStockSummary.lowStockCount} low stock!
                   </span>
                 ) : (
-                  "Stock healthy"
+                  "Stock healthy in depot"
                 )}
               </span>
             </div>
@@ -925,87 +949,87 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Top Metric Cards: 4 Primary Financial Velocity Metrics */}
+        {/* Top Metric Cards: 4 Primary Financial Velocity Metrics with Saturated Vibrant Palettes */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-sky-200/90 dark:border-sky-500/30 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/60 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-sky-500/15 hover:border-sky-400 transition-all">
+          <Card className="border-sky-400/30 bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700 text-white shadow-lg shadow-sky-600/20 hover:shadow-xl hover:shadow-sky-600/30 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">Total Water Sales (মোট বিক্রি)</span>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/30">
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-100">Total Water Sales (মোট বিক্রি)</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                   <DollarSign className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-sky-950 dark:text-sky-200">
+                <span className="text-2xl font-black tracking-tight text-white">
                   {formatCurrency(kpis.orderRevenue)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-sky-700/80 dark:text-sky-400/80">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-sky-100">
                 <span>{kpis.orderCount} active delivery order(s)</span>
-                <Link href="/orders" className="text-sky-700 dark:text-sky-400 hover:text-sky-900 hover:underline font-semibold inline-flex items-center gap-0.5">
+                <Link href="/orders" className="text-white hover:underline font-bold inline-flex items-center gap-0.5">
                   See Orders <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-emerald-200/90 dark:border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/60 dark:from-slate-900 dark:via-emerald-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-emerald-500/15 hover:border-emerald-400 transition-all">
+          <Card className="border-emerald-400/30 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Money Collected (ক্যাশ ও UPI জমা)</span>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-100">Money Collected (ক্যাশ ও UPI জমা)</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                   <Receipt className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-emerald-950 dark:text-emerald-200">
+                <span className="text-2xl font-black tracking-tight text-white">
                   {formatCurrency(financials.totalCollections)}
                 </span>
               </div>
-              <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80 font-medium">
+              <p className="mt-1 text-[11px] text-emerald-100 font-medium">
                 {formatCurrency(financials.cashCollections)} Cash • {formatCurrency(financials.upiBankCollections)} Online UPI
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-amber-200/90 dark:border-amber-500/30 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60 dark:from-slate-900 dark:via-amber-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-amber-500/15 hover:border-amber-400 transition-all">
+          <Card className="border-amber-400/30 bg-gradient-to-br from-amber-500 via-orange-600 to-rose-600 text-white shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Pending Customer Due (বাকি ধারের টাকা)</span>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/30">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-100">Pending Customer Due (বাকি ধারের টাকা)</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                   <Clock className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-amber-950 dark:text-amber-200">
+                <span className="text-2xl font-black tracking-tight text-white">
                   {formatCurrency(financials.accountsReceivable)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-amber-700/80 dark:text-amber-400/80">
-                <span>Total uncollected money</span>
-                <Link href="/customers" className="text-amber-700 dark:text-amber-400 hover:text-amber-900 hover:underline font-semibold inline-flex items-center gap-0.5">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-amber-100">
+                <span>Total uncollected credit</span>
+                <Link href="/customers" className="text-white hover:underline font-bold inline-flex items-center gap-0.5">
                   See Customers <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-purple-200/90 dark:border-purple-500/30 bg-gradient-to-br from-white via-purple-50/50 to-pink-50/60 dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-purple-500/15 hover:border-purple-400 transition-all">
+          <Card className="border-purple-400/30 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 text-white shadow-lg shadow-purple-600/20 hover:shadow-xl hover:shadow-purple-600/30 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300">Daily Expenses (রোজকার খরচ - তেল, গাড়ি মেরামত)</span>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500 text-white shadow-sm shadow-purple-500/30">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-100">Daily Expenses (রোজকার খরচ)</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                   <FileSpreadsheet className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-purple-950 dark:text-purple-200">
+                <span className="text-2xl font-black tracking-tight text-white">
                   {formatCurrency(financials.operatingExpenses)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-purple-700/80 dark:text-purple-400/80">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-purple-100">
                 <span>Fuel, tea, vehicle repairs & bills</span>
-                <Link href="/expenses" className="text-purple-700 dark:text-purple-400 hover:text-purple-900 hover:underline font-semibold inline-flex items-center gap-0.5">
+                <Link href="/expenses" className="text-white hover:underline font-bold inline-flex items-center gap-0.5">
                   See Expenses <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
