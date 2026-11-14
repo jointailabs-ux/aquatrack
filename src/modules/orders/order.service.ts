@@ -23,6 +23,7 @@ export async function getOrders(params?: {
   staffId?: string;
   customerId?: string;
   orderId?: string;
+  deliveryDate?: string;
 }): Promise<ActionResponse<OrderRecord[]>> {
   try {
     const supabase = await createClient();
@@ -80,6 +81,9 @@ export async function getOrders(params?: {
     }
     if (params?.customerId) {
       query = query.eq("customer_id", params.customerId);
+    }
+    if (params?.deliveryDate) {
+      query = query.eq("delivery_date", params.deliveryDate);
     }
 
     const { data, error } = await query;
@@ -206,7 +210,9 @@ export async function getOrders(params?: {
 /**
  * Mobile Delivery Driver API: Fetch orders assigned to current logged-in delivery staff
  */
-export async function getStaffAssignedDeliveries(): Promise<ActionResponse<OrderRecord[]>> {
+export async function getStaffAssignedDeliveries(
+  dateStr?: string
+): Promise<ActionResponse<OrderRecord[]>> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -215,7 +221,7 @@ export async function getStaffAssignedDeliveries(): Promise<ActionResponse<Order
       return { success: false, error: "Authentication required to view assigned route." };
     }
 
-    return getOrders({ staffId: user.id });
+    return getOrders({ staffId: user.id, deliveryDate: dateStr });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to retrieve driver deliveries.";
     return { success: false, error: message };

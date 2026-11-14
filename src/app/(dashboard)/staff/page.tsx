@@ -13,7 +13,6 @@ import {
   Plus,
   UserPlus,
   Mail,
-  Lock,
   Calendar,
   Droplets,
   RotateCcw,
@@ -38,6 +37,7 @@ import {
   updateStaffPermissions,
   updateStaffSalary,
   toggleStaffStatus,
+  updateStaffPin,
 } from "@/modules/staff/staff.service";
 import { getOrders, executeDeliveryStop, assignOrderStaff } from "@/modules/orders/order.service";
 import { OrderRecord } from "@/modules/orders/order.schema";
@@ -114,14 +114,20 @@ export default function StaffManagementPage() {
   const [newFullName, setNewFullName] = React.useState("");
   const [newEmail, setNewEmail] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
+  const [newPin, setNewPin] = React.useState("123456");
   const [newPhone, setNewPhone] = React.useState("");
   const [newSalary, setNewSalary] = React.useState("18000");
   const [newSalaryType, setNewSalaryType] = React.useState<"MONTHLY" | "FIXED_PERIOD">("MONTHLY");
   const [newCanPos, setNewCanPos] = React.useState(false);
   const [newCanWarehouse, setNewCanWarehouse] = React.useState(false);
   const [newCanCustomers, setNewCanCustomers] = React.useState(false);
-  const [newCanOrders, setNewCanOrders] = React.useState(false);
+  const [newCanOrders, setNewCanOrders] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  // Edit PIN Modal State
+  const [editingPinStaff, setEditingPinStaff] = React.useState<StaffRecord | null>(null);
+  const [editPinValue, setEditPinValue] = React.useState("");
+  const [isUpdatingPin, setIsUpdatingPin] = React.useState(false);
 
   // Load Staff List
   const loadStaff = React.useCallback(async (forceRefresh = false) => {
@@ -349,12 +355,22 @@ export default function StaffManagementPage() {
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!/^\d{6}$/.test(newPin.trim())) {
+      addToast({
+        type: "error",
+        title: "Invalid PIN",
+        message: "Staff login PIN must be exactly 6 numeric digits.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const input: CreateStaffAccountInput = {
       full_name: newFullName.trim(),
-      email: newEmail.trim(),
-      password: newPassword,
+      email: newEmail.trim() || undefined,
+      password: newPassword.trim() || undefined,
+      login_pin: newPin.trim(),
       phone: newPhone.trim(),
       salary_amount: Number(newSalary) || 0,
       salary_type: newSalaryType,
@@ -368,28 +384,65 @@ export default function StaffManagementPage() {
     setIsSubmitting(false);
 
     if (res.success && res.data) {
+      const created = res.data;
+      setStaffList((prev) => [created, ...prev]);
+
       addToast({
         type: "success",
         title: "Staff Account Provisioned",
-        message: `Account created for ${newFullName}. They can now log in.`,
+        message: `Account created for ${newFullName} with 6-digit PIN ${newPin}.`,
       });
       setIsCreateModalOpen(false);
       // Reset form
       setNewFullName("");
       setNewEmail("");
       setNewPassword("");
+      setNewPin("123456");
       setNewPhone("");
       setNewSalary("18000");
       setNewCanPos(false);
       setNewCanWarehouse(false);
       setNewCanCustomers(false);
-      setNewCanOrders(false);
+      setNewCanOrders(true);
       loadStaff(true);
     } else {
       addToast({
         type: "error",
         title: "Failed to Create Staff",
         message: res.error || "An error occurred while provisioning account.",
+      });
+    }
+  };
+
+  const handleUpdatePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPinStaff) return;
+    if (!/^\d{6}$/.test(editPinValue.trim())) {
+      addToast({
+        type: "error",
+        title: "Invalid PIN",
+        message: "PIN must be exactly 6 numeric digits.",
+      });
+      return;
+    }
+    setIsUpdatingPin(true);
+    const res = await updateStaffPin(editingPinStaff.id, editPinValue.trim());
+    setIsUpdatingPin(false);
+    if (res.success) {
+      setStaffList((prev) =>
+        prev.map((s) => (s.id === editingPinStaff.id ? { ...s, login_pin: editPinValue.trim() } : s))
+      );
+      addToast({
+        type: "success",
+        title: "PIN Updated",
+        message: `6-digit login PIN for ${editingPinStaff.full_name} updated successfully.`,
+      });
+      setEditingPinStaff(null);
+    } else {
+      addToast({
+        type: "error",
+        title: "Failed to Update PIN",
+        message: res.error || "Could not update PIN.",
       });
     }
   };
@@ -1024,6 +1077,31 @@ export default function StaffManagementPage() {
                         )}
                       </div>
 
+                      {/* Staff Login PIN Card */}
+                      {!isOwner && (
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                          <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                            <Key className="h-3.5 w-3.5" />
+                            <span>Staff Login PIN:</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-xs sm:text-sm tracking-widest px-2 py-0.5 rounded-lg bg-card border border-border">
+                              {staff.login_pin || "123456"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingPinStaff(staff);
+                                setEditPinValue(staff.login_pin || "123456");
+                              }}
+                              className="text-[11px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 cursor-pointer"
+                            >
+                              Change PIN
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Modular Permissions Matrix */}
                       <div className="space-y-2 pt-2 border-t border-border/60">
                         <div className="flex items-center justify-between text-xs font-semibold text-foreground">
@@ -1436,34 +1514,50 @@ export default function StaffManagementPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Login Email *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                      <Key className="h-3.5 w-3.5 text-amber-500" />
+                      <span>6-Digit Login PIN *</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+                        setNewPin(randomPin);
+                      }}
+                      className="text-[10px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 cursor-pointer"
+                    >
+                      🎲 Generate PIN
+                    </button>
+                  </div>
+                  <Input
+                    placeholder="e.g. 123456"
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    required
+                    maxLength={6}
+                    className="text-xs font-mono font-bold tracking-widest text-center"
+                  />
+                  <span className="text-[10px] text-muted-foreground block">
+                    Staff logs in by selecting their name and this 6-digit PIN.
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">Login Email (Optional)</label>
                   <div className="relative">
                     <Mail className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       type="email"
-                      placeholder="ramesh@aquatrack.com"
+                      placeholder="Leave blank for auto-generated"
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
-                      required
                       className="pl-8 text-xs"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Temporary Password *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      type="password"
-                      placeholder="Min. 8 characters"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      minLength={8}
-                      className="pl-8 text-xs"
-                    />
-                  </div>
+                  <span className="text-[10px] text-muted-foreground block">
+                    Auto-defaults to phone if empty.
+                  </span>
                 </div>
               </div>
 
@@ -1686,6 +1780,82 @@ export default function StaffManagementPage() {
                 Save Changes
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 3: Edit 6-Digit Staff PIN */}
+      {editingPinStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between border-b border-border pb-3">
+              <div>
+                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Key className="h-4 w-4 text-amber-500" />
+                  <span>Update Staff Login PIN</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Set 6-digit login PIN for {editingPinStaff.full_name}
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingPinStaff(null)}
+                className="text-muted-foreground hover:text-foreground text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePin} className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">6-Digit PIN *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+                      setEditPinValue(randomPin);
+                    }}
+                    className="text-[10px] font-bold text-sky-600 hover:text-sky-700 dark:text-sky-400 cursor-pointer"
+                  >
+                    🎲 Generate PIN
+                  </button>
+                </div>
+                <Input
+                  type="text"
+                  maxLength={6}
+                  value={editPinValue}
+                  onChange={(e) => setEditPinValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="e.g. 123456"
+                  required
+                  className="text-center font-mono font-black text-lg tracking-widest h-12"
+                  autoFocus
+                />
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Staff member will enter this 6-digit PIN on the Staff Login tab to sign in.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingPinStaff(null)}
+                  disabled={isUpdatingPin}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isUpdatingPin || editPinValue.length !== 6}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+                >
+                  {isUpdatingPin ? "Updating..." : "Save PIN"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

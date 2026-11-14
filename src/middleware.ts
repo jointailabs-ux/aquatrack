@@ -173,8 +173,12 @@ export async function middleware(request: NextRequest) {
   const isTokenValid = jwt && typeof jwt.exp === "number" && jwt.exp > nowSec;
 
   if (isTokenValid) {
-    // Authenticated user accessing login / register -> redirect to dashboard
+    // Authenticated user accessing login / register -> redirect to appropriate portal
     if (pathname === "/login" || pathname === "/register") {
+      const metaRole = jwt.user_metadata?.role || jwt.app_metadata?.role;
+      if (metaRole === "staff") {
+        return NextResponse.redirect(new URL("/staff-portal", request.url));
+      }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 

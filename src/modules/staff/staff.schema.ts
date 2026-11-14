@@ -21,19 +21,27 @@ export const StaffInputSchema = z.object({
 export type StaffInput = z.infer<typeof StaffInputSchema>;
 
 export const CreateStaffAccountSchema = z.object({
-  email: z.string().email("Valid email address is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().email("Valid email address is required").optional().or(z.literal("")),
+  password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
+  login_pin: z.string().length(6, "PIN must be exactly 6 digits").regex(/^\d{6}$/, "PIN must be 6 numeric digits").default("123456"),
   full_name: z.string().min(2, "Full name must be at least 2 characters").max(150),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(20),
   can_pos: z.boolean().default(false),
   can_warehouse: z.boolean().default(false),
   can_manage_customers: z.boolean().default(false),
-  can_manage_orders: z.boolean().default(false),
+  can_manage_orders: z.boolean().default(true),
   salary_amount: z.number().nonnegative("Salary must be non-negative").default(0),
   salary_type: SalaryTypeEnum.default("MONTHLY"),
 });
 
 export type CreateStaffAccountInput = z.infer<typeof CreateStaffAccountSchema>;
+
+export const StaffPinLoginSchema = z.object({
+  staff_id: z.string().uuid("Please select a valid staff member"),
+  pin: z.string().length(6, "PIN must be exactly 6 digits").regex(/^\d{6}$/, "PIN must be 6 numeric digits"),
+});
+
+export type StaffPinLoginInput = z.infer<typeof StaffPinLoginSchema>;
 
 export const UpdateStaffPermissionsSchema = z.object({
   can_pos: z.boolean(),
@@ -57,6 +65,7 @@ export interface StaffRecord {
   can_manage_orders: boolean;
   salary_amount: number;
   salary_type: "MONTHLY" | "FIXED_PERIOD";
+  login_pin?: string | null;
   created_at: string;
   updated_at: string;
   email?: string;

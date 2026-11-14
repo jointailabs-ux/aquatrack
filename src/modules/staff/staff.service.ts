@@ -26,24 +26,60 @@ export async function createStaffAccount(
     const validated = CreateStaffAccountSchema.parse(input);
     const adminSupabase = createAdminClient();
 
+    // Auto-generate clean internal email if not provided
+    const cleanPhoneDigits = validated.phone.replace(/\D/g, "");
+    const staffEmail = validated.email?.trim() || `staff_${cleanPhoneDigits || Date.now()}@aquatrack.internal`;
+    const staffPassword = validated.password?.trim() || `Staff@${validated.login_pin}#Safe`;
+
+    let newUserId: string;
+
     // 2. Provision Supabase Auth User
     const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-      email: validated.email,
-      password: validated.password,
+      email: staffEmail,
+      password: staffPassword,
       email_confirm: true,
       user_metadata: {
+        role: "staff",
         full_name: validated.full_name,
         phone: validated.phone,
+        login_pin: validated.login_pin,
+        can_pos: validated.can_pos,
+        can_warehouse: validated.can_warehouse,
+        can_manage_customers: validated.can_manage_customers,
+        can_manage_orders: validated.can_manage_orders,
+        can_deliveries: true,
+        salary_amount: validated.salary_amount,
+        salary_type: validated.salary_type,
       },
     });
 
-    if (authError || !authData.user) {
-      return { success: false, error: authError?.message || "Failed to create staff authentication user." };
+    if (authError) {
+      // If user with this email already exists, update their password and metadata
+      const { data: usersList } = await adminSupabase.auth.admin.listUsers();
+      const existingUser = usersList?.users?.find(
+        (u) => u.email?.toLowerCase() === staffEmail.toLowerCase()
+      );
+      if (existingUser) {
+        newUserId = existingUser.id;
+        await adminSupabase.auth.admin.updateUserById(newUserId, {
+          password: staffPassword,
+          user_metadata: {
+            role: "staff",
+            full_name: validated.full_name,
+            phone: validated.phone,
+            login_pin: validated.login_pin,
+          },
+        });
+      } else {
+        return { success: false, error: authError.message || "Failed to create staff authentication user." };
+      }
+    } else if (authData.user) {
+      newUserId = authData.user.id;
+    } else {
+      return { success: false, error: "Failed to create staff authentication user." };
     }
 
-    const newUserId = authData.user.id;
-
-    // 3. Upsert profile with staff role and permissions
+    // 3. Upsert profile with staff role, login_pin, and permissions
     const { data: profileData, error: profileError } = await adminSupabase
       .from("profiles")
       .upsert({
@@ -51,11 +87,13 @@ export async function createStaffAccount(
         full_name: validated.full_name,
         phone: validated.phone,
         role: "staff", // Strictly hardcoded to prevent privilege escalation
+        login_pin: validated.login_pin,
         is_active: true,
         can_pos: validated.can_pos,
         can_warehouse: validated.can_warehouse,
         can_manage_customers: validated.can_manage_customers,
         can_manage_orders: validated.can_manage_orders,
+        can_deliveries: true,
         salary_amount: validated.salary_amount,
         salary_type: validated.salary_type,
         updated_at: new Date().toISOString(),
@@ -71,7 +109,8 @@ export async function createStaffAccount(
       success: true,
       data: {
         ...(profileData as StaffRecord),
-        email: validated.email,
+        email: staffEmail,
+        login_pin: validated.login_pin,
       },
     };
   } catch (err: unknown) {
@@ -232,6 +271,112 @@ export async function toggleStaffStatus(
     return { success: true, data: data as StaffRecord };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to update staff status.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Retrieve active staff list for PIN login screen (No authentication required)
+ */
+export async function getActiveStaffListForLogin(): Promise<
+  ActionResponse<Array<{ id: string; full_name: string; phone: string; avatar_url?: string | null }>>
+> {
+  try {
+    const adminSupabase = createAdminClient();
+    const { data, error } = await adminSupabase
+      .from("profiles")
+      .select("id, full_name, phone, avatar_url")
+      .eq("role", "staff")
+      .eq("is_active", true)
+      .order("full_name", { ascending: true });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to load staff list.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Validate staff 6-digit PIN and return sign-in credentials for client auth
+ */
+export async function authenticateStaffWithPin(
+  staffId: string,
+  pin: string
+): Promise<ActionResponse<{ email: string; password: string; staffName: string }>> {
+  try {
+    const adminSupabase = createAdminClient();
+    const { data: profile, error } = await adminSupabase
+      .from("profiles")
+      .select("id, full_name, phone, role, is_active, login_pin")
+      .eq("id", staffId)
+      .maybeSingle();
+
+    if (error || !profile) {
+      return { success: false, error: "Staff account not found." };
+    }
+
+    if (!profile.is_active) {
+      return { success: false, error: "This staff account has been deactivated." };
+    }
+
+    if (!profile.login_pin || profile.login_pin.trim() !== pin.trim()) {
+      return { success: false, error: "Incorrect 6-digit staff PIN. Please check and try again." };
+    }
+
+    // Retrieve auth email for Supabase signInWithPassword
+    const { data: userData } = await adminSupabase.auth.admin.getUserById(profile.id);
+    const staffEmail = userData?.user?.email || `staff_${profile.phone.replace(/\D/g, "")}@aquatrack.internal`;
+    const staffPassword = `Staff@${profile.login_pin}#Safe`;
+
+    return {
+      success: true,
+      data: {
+        email: staffEmail,
+        password: staffPassword,
+        staffName: profile.full_name,
+      },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Staff authentication failed.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Update 6-digit PIN for a staff member (Owner only)
+ */
+export async function updateStaffPin(
+  staffId: string,
+  newPin: string
+): Promise<ActionResponse<{ success: boolean }>> {
+  try {
+    await requireOwner();
+    if (!/^\d{6}$/.test(newPin)) {
+      return { success: false, error: "PIN must be exactly 6 numeric digits." };
+    }
+    const adminSupabase = createAdminClient();
+    const { error } = await adminSupabase
+      .from("profiles")
+      .update({ login_pin: newPin, updated_at: new Date().toISOString() })
+      .eq("id", staffId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    await adminSupabase.auth.admin.updateUserById(staffId, {
+      password: `Staff@${newPin}#Safe`,
+      user_metadata: { login_pin: newPin },
+    });
+
+    return { success: true, data: { success: true } };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to update staff PIN.";
     return { success: false, error: message };
   }
 }
