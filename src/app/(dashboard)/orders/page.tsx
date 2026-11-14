@@ -577,7 +577,7 @@ export default function OrdersPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-              Orders & Delivery (ऑर्डर और डिलीवरी)
+              Orders & Delivery (অর্ডার ও ডেলিভারি)
             </h1>
             <Badge variant="primary" className="text-xs font-bold">
               Deliveries
@@ -606,7 +606,7 @@ export default function OrdersPage() {
             className="gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold shadow-sm shadow-sky-500/25 active:scale-95 transition-all"
           >
             <Plus className="h-4 w-4" />
-            + New Order (नया ऑर्डर)
+            + New Order (নতুন অর্ডার)
           </Button>
         </div>
       </div>
@@ -615,13 +615,13 @@ export default function OrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pb-1 sm:pb-0">
           {[
-            { id: "ALL", label: "All (सब)" },
-            { id: "PENDING", label: "Pending (बाकी)" },
-            { id: "ASSIGNED", label: "With Driver (चालक)" },
-            { id: "OUT_FOR_DELIVERY", label: "On the Way (रास्ते में)" },
-            { id: "PARTIALLY_DELIVERED", label: "Half Done" },
-            { id: "DELIVERED", label: "Delivered (पहुंच गया)" },
-            { id: "CANCELLED", label: "Cancelled (रद्द)" },
+            { id: "ALL", label: "All (সবগুলো)" },
+            { id: "PENDING", label: "Pending (বাকি আছে)" },
+            { id: "ASSIGNED", label: "With Driver (ড্রাইভারের কাছে)" },
+            { id: "OUT_FOR_DELIVERY", label: "On the Way (পথে আছে)" },
+            { id: "PARTIALLY_DELIVERED", label: "Half Done (অর্ধেক সম্পন্ন)" },
+            { id: "DELIVERED", label: "Delivered (ডেলিভারি সম্পন্ন)" },
+            { id: "CANCELLED", label: "Cancelled (বাতিল)" },
           ].map((st) => (
             <button
               key={st.id}

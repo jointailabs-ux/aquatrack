@@ -294,7 +294,7 @@ export default function SingleWarehouseInventoryPage() {
               Warehouse & Stock Manager
             </h1>
             <Badge variant="success" className="text-[10px] sm:text-xs font-bold py-0.5 px-2 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
-              स्टॉक & गोदाम
+              স্টক ও গুদাম
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -320,7 +320,7 @@ export default function SingleWarehouseInventoryPage() {
             className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold shadow-md shadow-emerald-600/25 text-xs sm:text-sm h-10 px-4 rounded-xl active:scale-95 transition-all"
           >
             <Plus className="h-4 w-4" />
-            <span>+ Add Stock / स्टॉक जोड़ें</span>
+            <span>+ Add Stock / স্টক যোগ করুন</span>
           </Button>
         </div>
       </div>
@@ -1130,7 +1130,7 @@ export default function SingleWarehouseInventoryPage() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base text-foreground leading-tight">
-                    {stockMode === "add" ? "Add Stock / नया माल जोड़ें" : "Deduct / ख़राब माल घटाएं"}
+                    {stockMode === "add" ? "Add Stock / নতুন মাল যোগ করুন" : "Deduct / নষ্ট বা ভাঙা মাল বাদ দিন"}
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     Fast update for bottles and jars in warehouse
@@ -1162,7 +1162,7 @@ export default function SingleWarehouseInventoryPage() {
                 }`}
               >
                 <Plus className="h-4 w-4" />
-                <span>+ Add Stock (माल आया)</span>
+                <span>+ Add Stock (নতুন মাল এলো)</span>
               </button>
               <button
                 type="button"
@@ -1177,14 +1177,14 @@ export default function SingleWarehouseInventoryPage() {
                 }`}
               >
                 <Minus className="h-4 w-4" />
-                <span>- Remove (ख़राब / टूटा)</span>
+                <span>- Remove (নষ্ট / ভাঙা)</span>
               </button>
             </div>
 
             {/* Product Selector Dropdown */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-foreground flex items-center justify-between">
-                <span>Select Item / सामान चुनें *</span>
+                <span>Select Item / মাল বা পণ্য বাছুন *</span>
                 <span className="text-[11px] text-muted-foreground font-normal">
                   {items.length} products available
                 </span>
@@ -1231,7 +1231,7 @@ export default function SingleWarehouseInventoryPage() {
               {/* Quantity Input with Quick Tap Buttons */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground flex items-center justify-between">
-                  <span>Quantity / कितनी संख्या है? *</span>
+                  <span>Quantity / কয়টি সংখ্যা? *</span>
                   {selectedProduct && (
                     <span className="text-[11px] text-muted-foreground font-normal">
                       Unit: {selectedProduct.unit_of_measure}
@@ -1332,7 +1332,7 @@ export default function SingleWarehouseInventoryPage() {
               {/* Quick Reason Chips & Notes */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-foreground flex items-center justify-between">
-                  <span>Reason / वजह (Optional)</span>
+                  <span>Reason / কারণ (ঐচ্ছিক)</span>
                   <span className="text-[11px] text-muted-foreground font-normal">Tap to pick</span>
                 </label>
 
@@ -1340,16 +1340,16 @@ export default function SingleWarehouseInventoryPage() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {(stockMode === "add"
                     ? [
-                        { label: "🏭 Factory Delivery (फैक्ट्री से आया)", val: "Factory Plant Arrival" },
-                        { label: "🔄 Refilled (रिफिल बोतल)", val: "Refilled Bottles" },
-                        { label: "🚛 Route Return (गाड़ी से वापस)", val: "Returned from Delivery Route" },
-                        { label: "🔍 Recount Surplus (गिनती सुधार)", val: "Physical Stock Count Adjustment" },
+                        { label: "🏭 Factory Delivery (ফ্যাক্টরি থেকে এলো)", val: "Factory Plant Arrival" },
+                        { label: "🔄 Refilled (রিফিল বোতল)", val: "Refilled Bottles" },
+                        { label: "🚛 Route Return (গাড়ি থেকে ফেরত)", val: "Returned from Delivery Route" },
+                        { label: "🔍 Recount Surplus (গণনা সংশোধন)", val: "Physical Stock Count Adjustment" },
                       ]
                     : [
-                        { label: "💥 Damaged / Broken (फूट/टूटा)", val: "Broken or Damaged Bottle" },
-                        { label: "💧 Leaking Bottle (लीकेज)", val: "Water Leakage Write-off" },
-                        { label: "🏭 Sent to Factory (प्लांट भेजा)", val: "Returned to Factory for Recycling" },
-                        { label: "🔍 Recount Shortage (गिनती सुधार)", val: "Physical Audit Variance" },
+                        { label: "💥 Damaged / Broken (ভাঙা বা নষ্ট)", val: "Broken or Damaged Bottle" },
+                        { label: "💧 Leaking Bottle (লিক হওয়া বোতল)", val: "Water Leakage Write-off" },
+                        { label: "🏭 Sent to Factory (ফ্যাক্টরিতে পাঠানো)", val: "Returned to Factory for Recycling" },
+                        { label: "🔍 Recount Shortage (গণনায় কম)", val: "Physical Audit Variance" },
                       ]
                   ).map((chip) => (
                     <button
@@ -1415,8 +1415,8 @@ export default function SingleWarehouseInventoryPage() {
                         <span className="flex items-center justify-center gap-1.5">
                           <Check className="h-4 w-4" />
                           {stockMode === "add"
-                            ? `Confirm Add ${isValidQty ? `+${num}` : ""} ${selectedProduct.unit_of_measure} (स्टॉक जोड़ें)`
-                            : `Confirm Deduct ${isValidQty ? `-${num}` : ""} ${selectedProduct.unit_of_measure} (स्टॉक घटाएं)`}
+                            ? `Confirm Add ${isValidQty ? `+${num}` : ""} ${selectedProduct.unit_of_measure} (স্টকে যোগ করুন)`
+                            : `Confirm Deduct ${isValidQty ? `-${num}` : ""} ${selectedProduct.unit_of_measure} (স্টক থেকে কমান)`}
                         </span>
                       )}
                     </Button>

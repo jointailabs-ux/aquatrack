@@ -275,7 +275,7 @@ export default function PosPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-              Shop Counter Sale (दुकान काउंटर बिक्री)
+              Shop Counter Sale (দোকান কাউন্টার বিক্রি)
             </h1>
             <Badge variant="primary" className="text-xs font-bold">
               Instant Sale
@@ -308,10 +308,10 @@ export default function PosPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap pb-1 sm:pb-0">
                   {[
-                    { id: "ALL", label: "All (सब)" },
-                    { id: "WATER_JAR", label: "Water Jars (20L बोतल)" },
-                    { id: "BEVERAGE", label: "Drinks (कोल्ड ड्रिंक्स)" },
-                    { id: "PACKAGED_WATER", label: "Small Bottles (पानी बोतल)" },
+                    { id: "ALL", label: "All (সবগুলো)" },
+                    { id: "WATER_JAR", label: "Water Jars (২০ লিটার জার)" },
+                    { id: "BEVERAGE", label: "Drinks (কোল্ড ড্রিংকস)" },
+                    { id: "PACKAGED_WATER", label: "Small Bottles (ছোট জলের বোতল)" },
                   ].map((cat) => (
                     <button
                       key={cat.id}
@@ -662,7 +662,7 @@ export default function PosPage() {
                 <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2.5 animate-in fade-in-50 duration-200">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-amber-900">
-                      Cash Given by Customer (ग्राहक ने कितने दिए)
+                      Cash Given by Customer (কাস্টমার কত টাকা দিয়েছেন)
                     </span>
                     {Number(tenderedAmount) > finalTotal && (
                       <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">

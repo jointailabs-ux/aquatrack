@@ -499,7 +499,7 @@ export default function CustomersPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-              Customers & Khata Book (ग्राहक खाता)
+              Customers & Khata Book (কাস্টমার ও খাতা)
             </h1>
             <Badge variant="primary" className="text-xs font-bold">
               {totalCount} Customers
@@ -519,7 +519,7 @@ export default function CustomersPage() {
               className="gap-1.5 text-xs font-bold border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 active:scale-95 transition-all"
             >
               <DollarSign className="h-4 w-4 text-emerald-600" />
-              Receive Money (पैसे लें)
+              Receive Money (টাকা জমা নিন)
             </Button>
           )}
 
@@ -529,7 +529,7 @@ export default function CustomersPage() {
             className="gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold shadow-sm shadow-sky-500/25 active:scale-95 transition-all"
           >
             <Plus className="h-4 w-4" />
-            + New Customer (ग्राहक)
+            + New Customer (নতুন কাস্টমার)
           </Button>
         </div>
       </div>
@@ -633,7 +633,7 @@ export default function CustomersPage() {
                   className="rounded border-border text-primary focus:ring-primary h-4 w-4"
                 />
                 <span className={hasBalanceFilter ? "font-bold text-rose-600 dark:text-rose-400" : ""}>
-                  Pending Due Only (बाकी)
+                  Pending Due Only (বাকি টাকা)
                 </span>
               </label>
             </div>
@@ -893,7 +893,7 @@ export default function CustomersPage() {
                         className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold active:scale-95 transition-all shadow-xs"
                       >
                         <DollarSign className="h-3.5 w-3.5" />
-                        Receive Money (पैसे लें)
+                        Receive Money (টাকা জমা নিন)
                       </Button>
 
                       <Button
@@ -1005,7 +1005,7 @@ export default function CustomersPage() {
                     <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-3 space-y-1 shadow-2xs">
                       <span className="text-[10px] uppercase font-bold text-blue-900/80 flex items-center gap-1">
                         <Package className="h-3 w-3 text-blue-600" />
-                        Filled Bottles (भरी)
+                        Filled Bottles (ভরা বোতল)
                       </span>
                       <p className="text-xl font-black text-blue-700">
                         {selectedCustomer.total_full_jars_holding}
@@ -1015,7 +1015,7 @@ export default function CustomersPage() {
                     <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-3 space-y-1 shadow-2xs">
                       <span className="text-[10px] uppercase font-bold text-amber-900/80 flex items-center gap-1">
                         <Package className="h-3 w-3 text-amber-600" />
-                        Empty Bottles (खाली)
+                        Empty Bottles (খালি বোতল)
                       </span>
                       <p className="text-xl font-black text-amber-700">
                         {selectedCustomer.total_empty_jars_holding}
@@ -1025,7 +1025,7 @@ export default function CustomersPage() {
                     <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-3 space-y-1 shadow-2xs">
                       <span className="text-[10px] uppercase font-bold text-rose-900/80 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3 text-rose-600" />
-                        Broken (टूटी बोतल)
+                        Broken (ভাঙা বোতল)
                       </span>
                       <p className="text-xl font-black text-rose-700">
                         {selectedCustomer.total_damaged_jars_holding || 0}
@@ -1035,7 +1035,7 @@ export default function CustomersPage() {
                     <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3 space-y-1 shadow-2xs">
                       <span className="text-[10px] uppercase font-bold text-emerald-900/80 flex items-center gap-1">
                         <DollarSign className="h-3 w-3 text-emerald-600" />
-                        Pending Udhaari (बाकी)
+                        Pending Udhaari (বাকি ধারের টাকা)
                       </span>
                       <p
                         className={`text-xl font-black ${
@@ -1062,7 +1062,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Orders & Deliveries (ऑर्डर)
+                          Orders & Deliveries (অর্ডার ও ডেলিভারি)
                         </button>
                         <button
                           type="button"
@@ -1073,7 +1073,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Payments Received (पैसे जमा)
+                          Payments Received (টাকা জমা)
                         </button>
                         <button
                           type="button"
@@ -1084,7 +1084,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Bills & Invoices (बिल)
+                          Bills & Invoices (বিল ও রসিদ)
                         </button>
                         <button
                           type="button"
@@ -1095,7 +1095,7 @@ export default function CustomersPage() {
                               : "border-transparent text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          Empty Bottles History (बोतलें)
+                          Empty Bottles History (খালি জারের হিসাব)
                         </button>
                       </div>
 

@@ -358,7 +358,7 @@ export default function DashboardPage() {
           {/* Tile 1: Today's Sales */}
           <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-900/90">Today&apos;s Sales (बिक्री)</span>
+              <span className="text-[11px] font-bold text-emerald-900/90">Today&apos;s Sales (আজকের বিক্রি)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
                 <DollarSign className="h-3.5 w-3.5" />
               </div>
@@ -376,7 +376,7 @@ export default function DashboardPage() {
           {/* Tile 2: Orders Count */}
           <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-sky-900/90">Deliveries (डिलीवरी)</span>
+              <span className="text-[11px] font-bold text-sky-900/90">Deliveries (ডেলিভারি)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/25">
                 <Truck className="h-3.5 w-3.5" />
               </div>
@@ -394,7 +394,7 @@ export default function DashboardPage() {
           {/* Tile 3: Outstanding A/R */}
           <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-amber-900/90">Pending Due (उधारी)</span>
+              <span className="text-[11px] font-bold text-amber-900/90">Pending Due (বাকি টাকা)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
                 <Clock className="h-3.5 w-3.5" />
               </div>
@@ -412,7 +412,7 @@ export default function DashboardPage() {
           {/* Tile 4: Available Stock */}
           <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/40 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-indigo-900/90">Stock (गोदाम का माल)</span>
+              <span className="text-[11px] font-bold text-indigo-900/90">Stock (গুদামের মাল)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
                 <PackageCheck className="h-3.5 w-3.5" />
               </div>
@@ -439,7 +439,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-500/5 via-primary/5 to-cyan-500/5 p-3.5 shadow-xs">
           <div className="flex items-center justify-between mb-2.5 px-0.5">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
-              Quick 1-Click Actions (तुरंत काम)
+              Quick 1-Click Actions (ঝটপট কাজ)
             </span>
             <span className="text-[10px] text-sky-600 font-semibold">Fast Shortcuts</span>
           </div>
@@ -500,7 +500,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Truck className="h-4 w-4 text-sky-600" />
-              <span className="text-xs font-bold text-foreground">Today&apos;s Deliveries (आज की डिलीवरी)</span>
+              <span className="text-xs font-bold text-foreground">Today&apos;s Deliveries (আজকের ডেলিভারি)</span>
             </div>
             <Link
               href="/deliveries"
@@ -684,7 +684,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Quick 1-Click Actions (तुरंत काम)
+                Quick 1-Click Actions (ঝটপট কাজ)
               </h3>
             </div>
             <span className="text-[11px] text-muted-foreground font-medium">
@@ -702,7 +702,7 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-sky-950 block group-hover:text-sky-600 transition-colors">
-                  + New Order (ऑर्डर)
+                  + New Order (নতুন অর্ডার)
                 </span>
                 <span className="text-[10px] text-slate-500 truncate block font-medium">
                   Home & Shop Delivery
@@ -719,7 +719,7 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-emerald-950 block group-hover:text-emerald-600 transition-colors">
-                  + Shop Counter (दुकान)
+                  + Shop Counter (দোকান বিক্রি)
                 </span>
                 <span className="text-[10px] text-slate-500 truncate block font-medium">
                   Instant Cash & UPI Sale
@@ -736,7 +736,7 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-indigo-950 block group-hover:text-indigo-600 transition-colors">
-                  + New Customer (ग्राहक)
+                  + New Customer (নতুন কাস্টমার)
                 </span>
                 <span className="text-[10px] text-slate-500 truncate block font-medium">
                   Add Account & Bottles
@@ -753,7 +753,7 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-amber-950 block group-hover:text-amber-600 transition-colors">
-                  + Log Expense (खर्चा)
+                  + Log Expense (খরচ লিখুন)
                 </span>
                 <span className="text-[10px] text-slate-500 truncate block font-medium">
                   Diesel, Tea, Repairs
@@ -851,7 +851,7 @@ export default function DashboardPage() {
           <Card className="border-sky-200/90 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/60 shadow-xs hover:shadow-md hover:shadow-sky-500/15 hover:border-sky-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Total Water Sales (कुल बिक्री)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Total Water Sales (মোট বিক্রি)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/30">
                   <DollarSign className="h-4 w-4" />
                 </div>
@@ -873,7 +873,7 @@ export default function DashboardPage() {
           <Card className="border-emerald-200/90 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/60 shadow-xs hover:shadow-md hover:shadow-emerald-500/15 hover:border-emerald-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Money Collected (कैश & UPI मिला)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Money Collected (ক্যাশ ও UPI জমা)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30">
                   <Receipt className="h-4 w-4" />
                 </div>
@@ -892,7 +892,7 @@ export default function DashboardPage() {
           <Card className="border-amber-200/90 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60 shadow-xs hover:shadow-md hover:shadow-amber-500/15 hover:border-amber-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Pending Customer Due (बाकी उधारी)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Pending Customer Due (বাকি ধারের টাকা)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/30">
                   <Clock className="h-4 w-4" />
                 </div>
@@ -914,7 +914,7 @@ export default function DashboardPage() {
           <Card className="border-purple-200/90 bg-gradient-to-br from-white via-purple-50/50 to-pink-50/60 shadow-xs hover:shadow-md hover:shadow-purple-500/15 hover:border-purple-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Daily Expenses (खर्चा - डीजल, मरम्मत)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Daily Expenses (রোজকার খরচ - তেল, গাড়ি মেরামত)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500 text-white shadow-sm shadow-purple-500/30">
                   <FileSpreadsheet className="h-4 w-4" />
                 </div>
@@ -943,7 +943,7 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500 text-white shadow-xs">
                     <PackageCheck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Total Stock Value (गोदाम का माल)</span>
+                  <span className="text-xs font-bold text-slate-800">Total Stock Value (গুদামের মাল)</span>
                 </div>
                 <Badge variant="outline" className="text-[10px] border-blue-200 bg-blue-50 text-blue-700 font-semibold">
                   Warehouse Stock
@@ -973,7 +973,7 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500 text-white shadow-xs">
                     <Store className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Counter Sales (दुकान की बिक्री)</span>
+                  <span className="text-xs font-bold text-slate-800">Counter Sales (দোকান বিক্রি)</span>
                 </div>
                 <Badge variant="outline" className="text-[10px] border-teal-200 bg-teal-50 text-teal-700 font-semibold">
                   Counter Sales
@@ -1003,7 +1003,7 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-white shadow-xs">
                     <Truck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Tempo Deliveries (गाड़ी डिलीवरी)</span>
+                  <span className="text-xs font-bold text-slate-800">Tempo Deliveries (গাড়ি ডেলিভারি)</span>
                 </div>
                 <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
                   Driver Fleet
@@ -1033,7 +1033,7 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-xs">
                     <Users className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Total Customers (कुल ग्राहक)</span>
+                  <span className="text-xs font-bold text-slate-800">Total Customers (মোট কাস্টমার)</span>
                 </div>
                 <Badge variant="outline" className="text-[10px] border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold">
                   Khata
@@ -1158,7 +1158,7 @@ export default function DashboardPage() {
             <div>
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                Profit & Loss Summary (कमाई और बचत का हिसाब)
+                Profit & Loss Summary (লাভ ও ক্ষতির হিসাব)
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Total Water Sales minus Bottle/Water Cost minus Daily Expenses = Final Pocket Profit.
@@ -1171,7 +1171,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-border">
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-bold">Total Sales (कुल बिक्री)</span>
+                <span className="text-[11px] text-muted-foreground uppercase font-bold">Total Sales (মোট বিক্রি)</span>
                 <div className="text-base font-extrabold text-foreground mt-1">
                   {formatCurrency(financials.salesRevenue)}
                 </div>
@@ -1179,7 +1179,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-bold">Water & Bottle Cost (लागत)</span>
+                <span className="text-[11px] text-muted-foreground uppercase font-bold">Water & Bottle Cost (মালের খরচ / কেনা দাম)</span>
                 <div className="text-base font-extrabold text-foreground mt-1">
                   {formatCurrency(financials.costOfGoodsSold)}
                 </div>
@@ -1197,7 +1197,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-purple-700 uppercase font-bold">Daily Expenses (खर्चा)</span>
+                <span className="text-[11px] text-purple-700 uppercase font-bold">Daily Expenses (রোজকার খরচ)</span>
                 <div className="text-base font-extrabold text-purple-600 mt-1">
                   {formatCurrency(financials.operatingExpenses)}
                 </div>
@@ -1205,7 +1205,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-muted-foreground uppercase font-bold">Pocket Profit (शुद्ध बचत)</span>
+                <span className="text-[11px] text-muted-foreground uppercase font-bold">Pocket Profit (আসল লাভ / সঞ্চয়)</span>
                 <div className={`text-base font-extrabold mt-1 ${financials.netOperatingProfit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                   {formatCurrency(financials.netOperatingProfit)}
                 </div>
@@ -1215,7 +1215,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="px-2 py-1">
-                <span className="text-[11px] text-amber-700 uppercase font-bold">Supplier Due (सप्लायर का बाकी)</span>
+                <span className="text-[11px] text-amber-700 uppercase font-bold">Supplier Due (মহাজনের বাকি)</span>
                 <div className="text-base font-extrabold text-foreground mt-1">
                   {formatCurrency(financials.accountsPayable)}
                 </div>

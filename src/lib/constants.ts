@@ -104,7 +104,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         requiredPermission: "canManageCustomers",
       },
       {
-        title: "Suppliers (विक्रेता)",
+        title: "Suppliers (মহাজন / সাপ্লায়ার)",
         href: "/suppliers",
         icon: Building2,
         isImplemented: true,
@@ -112,7 +112,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner"],
       },
       {
-        title: "Purchases (खरीददारी)",
+        title: "Purchases (মাল কেনা)",
         href: "/purchases",
         icon: ShoppingBag,
         isImplemented: true,
@@ -155,7 +155,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     label: "FINANCE & CONTROLS",
     items: [
       {
-        title: "Customer Rates (रेट)",
+        title: "Customer Rates (দরের তালিকা)",
         href: "/pricing",
         icon: Tag,
         isImplemented: true,
@@ -163,7 +163,7 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         roles: ["owner"],
       },
       {
-        title: "Daily Expenses (खर्चा)",
+        title: "Daily Expenses (রোজকার খরচ)",
         href: "/expenses",
         icon: FileSpreadsheet,
         isImplemented: true,
