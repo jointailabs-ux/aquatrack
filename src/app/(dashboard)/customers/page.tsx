@@ -330,6 +330,43 @@ export default function CustomersPage() {
   // Handle Add Customer
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!addContactName.trim() || addContactName.trim().length < 2) {
+      addToast({
+        type: "error",
+        title: "Name Required",
+        message: "Customer contact name must be at least 2 characters.",
+      });
+      return;
+    }
+
+    if (addCustomerType === "B2B" && !addBusinessName.trim()) {
+      addToast({
+        type: "error",
+        title: "Business Name Required",
+        message: "Company / Business name is required for B2B accounts.",
+      });
+      return;
+    }
+
+    if (addPhone.trim().length < 6) {
+      addToast({
+        type: "error",
+        title: "Invalid Phone Number",
+        message: "Phone number must be at least 6 digits (e.g. 9845011223 or 676878).",
+      });
+      return;
+    }
+
+    if (!addAddress.trim() || addAddress.trim().length < 3) {
+      addToast({
+        type: "error",
+        title: "Address Required",
+        message: "Delivery address must be at least 3 characters.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const input: CustomerInput = {
@@ -404,6 +441,42 @@ export default function CustomersPage() {
   const handleUpdateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer) return;
+
+    if (!editContactName.trim() || editContactName.trim().length < 2) {
+      addToast({
+        type: "error",
+        title: "Name Required",
+        message: "Customer contact name must be at least 2 characters.",
+      });
+      return;
+    }
+
+    if (selectedCustomer.customer_type === "B2B" && !editBusinessName.trim()) {
+      addToast({
+        type: "error",
+        title: "Business Name Required",
+        message: "Company / Business name is required for B2B accounts.",
+      });
+      return;
+    }
+
+    if (editPhone.trim().length < 6) {
+      addToast({
+        type: "error",
+        title: "Invalid Phone Number",
+        message: "Phone number must be at least 6 digits (e.g. 9845011223 or 676878).",
+      });
+      return;
+    }
+
+    if (!editAddress.trim() || editAddress.trim().length < 3) {
+      addToast({
+        type: "error",
+        title: "Address Required",
+        message: "Delivery address must be at least 3 characters.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     const updatePayload: CustomerUpdateInput = {
@@ -1560,9 +1633,12 @@ export default function CustomersPage() {
 
               {addCustomerType === "B2B" && (
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Business / Institution Name *
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">
+                      Business / Institution Name *
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">Required for B2B</span>
+                  </div>
                   <Input
                     placeholder="e.g. Apex Tech Park Pvt Ltd"
                     value={addBusinessName}
@@ -1570,15 +1646,23 @@ export default function CustomersPage() {
                     required
                     className="text-xs"
                   />
+                  {addBusinessName.trim().length === 0 && (
+                    <span className="text-[10px] text-amber-500 font-medium block">
+                      ⚠️ Business name is required for corporate customers
+                    </span>
+                  )}
                 </div>
               )}
 
               {/* Essential Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Contact Person Name *
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">
+                      Contact Person Name *
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">Min. 2 chars</span>
+                  </div>
                   <Input
                     placeholder="e.g. Rajesh Varma"
                     value={addContactName}
@@ -1586,26 +1670,42 @@ export default function CustomersPage() {
                     required
                     className="text-xs"
                   />
+                  {addContactName.trim().length > 0 && addContactName.trim().length < 2 && (
+                    <span className="text-[10px] text-amber-500 font-medium block">
+                      ⚠️ Name must be at least 2 characters
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Phone Number *
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">
+                      Phone Number *
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">Min. 6 digits</span>
+                  </div>
                   <Input
-                    placeholder="e.g. 9845011223"
+                    placeholder="e.g. 9845011223 or 676878"
                     value={addPhone}
                     onChange={(e) => setAddPhone(e.target.value)}
                     required
                     className="text-xs"
                   />
+                  {addPhone.trim().length > 0 && addPhone.trim().length < 6 && (
+                    <span className="text-[10px] text-amber-500 font-medium block">
+                      ⚠️ Needs at least 6 digits ({addPhone.trim().length}/6)
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Delivery Physical Address *
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Delivery Physical Address *
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">Min. 3 chars</span>
+                </div>
                 <Input
                   placeholder="Street address, building, floor, flat/unit #"
                   value={addAddress}
@@ -1613,6 +1713,11 @@ export default function CustomersPage() {
                   required
                   className="text-xs"
                 />
+                {addAddress.trim().length > 0 && addAddress.trim().length < 3 && (
+                  <span className="text-[10px] text-amber-500 font-medium block">
+                    ⚠️ Address must be at least 3 characters
+                  </span>
+                )}
               </div>
 
               {/* Progressive Disclosure: Collapsible Advanced Fields */}

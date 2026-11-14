@@ -101,6 +101,24 @@ export default function StaffPortalPage() {
       return;
     }
 
+    if (emptyCollected < 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Quantity",
+        message: "Collected empty jars count cannot be negative.",
+      });
+      return;
+    }
+
+    if (amountCollected < 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Amount",
+        message: "Payment collection amount cannot be negative.",
+      });
+      return;
+    }
+
     setIsDelivering(true);
     try {
       const res = await executeDeliveryStop({

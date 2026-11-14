@@ -256,6 +256,24 @@ export default function StaffManagementPage() {
       return;
     }
 
+    if (emptyCollected < 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Quantity",
+        message: "Collected empty jars count cannot be negative.",
+      });
+      return;
+    }
+
+    if (amountCollected < 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Amount",
+        message: "Payment collection amount cannot be negative.",
+      });
+      return;
+    }
+
     setIsDelivering(true);
     try {
       // Reassign staff if changed in delivery modal
@@ -1509,7 +1527,10 @@ export default function StaffManagementPage() {
             <form onSubmit={handleCreateStaff} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Full Name *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">Full Name *</label>
+                    <span className="text-[10px] text-muted-foreground">Min. 2 characters</span>
+                  </div>
                   <Input
                     placeholder="e.g. Ramesh Kumar"
                     value={newFullName}
@@ -1517,6 +1538,11 @@ export default function StaffManagementPage() {
                     required
                     className="text-xs"
                   />
+                  {newFullName.trim().length > 0 && newFullName.trim().length < 2 && (
+                    <span className="text-[10px] text-amber-500 font-medium block">
+                      ⚠️ Name must be at least 2 characters
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -1565,9 +1591,15 @@ export default function StaffManagementPage() {
                     maxLength={6}
                     className="text-xs font-mono font-bold tracking-widest text-center"
                   />
-                  <span className="text-[10px] text-muted-foreground block">
-                    Staff logs in by selecting their name and this 6-digit PIN.
-                  </span>
+                  {newPin.trim().length > 0 && newPin.trim().length < 6 ? (
+                    <span className="text-[10px] text-amber-500 font-medium block">
+                      ⚠️ PIN must be exactly 6 digits ({newPin.trim().length}/6)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground block">
+                      Staff logs in by selecting their name and this 6-digit PIN.
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -1582,9 +1614,15 @@ export default function StaffManagementPage() {
                       className="pl-8 text-xs"
                     />
                   </div>
-                  <span className="text-[10px] text-muted-foreground block">
-                    Auto-defaults to phone if empty.
-                  </span>
+                  {newEmail.trim().length > 0 && !newEmail.includes("@") ? (
+                    <span className="text-[10px] text-amber-500 font-medium block">
+                      ⚠️ Please enter a valid email address (e.g. name@domain.com)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground block">
+                      Auto-defaults to phone if empty.
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1858,9 +1896,15 @@ export default function StaffManagementPage() {
                   className="text-center font-mono font-black text-lg tracking-widest h-12"
                   autoFocus
                 />
-                <p className="text-[11px] text-muted-foreground text-center">
-                  Staff member will enter this 6-digit PIN on the Staff Login tab to sign in.
-                </p>
+                {editPinValue.trim().length > 0 && editPinValue.trim().length < 6 ? (
+                  <span className="text-[11px] text-amber-500 font-bold block text-center">
+                    ⚠️ PIN must be exactly 6 digits ({editPinValue.trim().length}/6)
+                  </span>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    Staff member will enter this 6-digit PIN on the Staff Login tab to sign in.
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">

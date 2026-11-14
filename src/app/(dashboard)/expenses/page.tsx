@@ -76,7 +76,23 @@ export default function ExpensesPage() {
   const handleRecordExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = Number(amount);
-    if (!parsedAmount || parsedAmount <= 0) return;
+    if (!parsedAmount || parsedAmount <= 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Amount",
+        message: "Expense amount must be greater than zero.",
+      });
+      return;
+    }
+
+    if (!description.trim() || description.trim().length < 2) {
+      addToast({
+        type: "error",
+        title: "Description Required",
+        message: "Please enter a brief expense description (at least 2 characters).",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     const input: RecordExpenseInput = {

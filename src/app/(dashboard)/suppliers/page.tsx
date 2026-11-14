@@ -95,6 +95,32 @@ export default function SuppliersPage() {
 
   const handleCreateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!name.trim() || name.trim().length < 2) {
+      addToast({
+        type: "error",
+        title: "Name Required",
+        message: "Supplier / Plant name must be at least 2 characters.",
+      });
+      return;
+    }
+    if (!contactPerson.trim() || contactPerson.trim().length < 2) {
+      addToast({
+        type: "error",
+        title: "Contact Person Required",
+        message: "Contact person name must be at least 2 characters.",
+      });
+      return;
+    }
+    if (phone.trim().length < 6) {
+      addToast({
+        type: "error",
+        title: "Invalid Phone Number",
+        message: "Phone number must be at least 6 digits (e.g. 9845011223 or 676878).",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -157,6 +183,32 @@ export default function SuppliersPage() {
   const handleUpdateSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSupplier) return;
+
+    if (!editName.trim() || editName.trim().length < 2) {
+      addToast({
+        type: "error",
+        title: "Name Required",
+        message: "Supplier / Plant name must be at least 2 characters.",
+      });
+      return;
+    }
+    if (!editContactPerson.trim() || editContactPerson.trim().length < 2) {
+      addToast({
+        type: "error",
+        title: "Contact Person Required",
+        message: "Contact person name must be at least 2 characters.",
+      });
+      return;
+    }
+    if (editPhone.trim().length < 6) {
+      addToast({
+        type: "error",
+        title: "Invalid Phone Number",
+        message: "Phone number must be at least 6 digits (e.g. 9845011223 or 676878).",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -420,9 +472,12 @@ export default function SuppliersPage() {
 
           <form onSubmit={handleCreateSupplier} className="space-y-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
-                Supplier / Company Name *
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-foreground">
+                  Supplier / Company Name *
+                </label>
+                <span className="text-[10px] text-muted-foreground">Min. 2 chars</span>
+              </div>
               <Input
                 placeholder="e.g. Ganga Water Bottling & Purifiers"
                 value={name}
@@ -430,13 +485,21 @@ export default function SuppliersPage() {
                 required
                 className="text-xs"
               />
+              {name.trim().length > 0 && name.trim().length < 2 && (
+                <span className="text-[10px] text-amber-500 font-medium block">
+                  ⚠️ Name must be at least 2 characters
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Contact Person *
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Contact Person *
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">Min. 2 chars</span>
+                </div>
                 <Input
                   placeholder="e.g. Ramesh Kumar"
                   value={contactPerson}
@@ -444,19 +507,32 @@ export default function SuppliersPage() {
                   required
                   className="text-xs"
                 />
+                {contactPerson.trim().length > 0 && contactPerson.trim().length < 2 && (
+                  <span className="text-[10px] text-amber-500 font-medium block">
+                    ⚠️ Contact person must be at least 2 characters
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Phone Number *
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Phone Number *
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">Min. 6 digits</span>
+                </div>
                 <Input
-                  placeholder="e.g. +91 98765 43210"
+                  placeholder="e.g. 9876543210 or 676878"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   className="text-xs"
                 />
+                {phone.trim().length > 0 && phone.trim().length < 6 && (
+                  <span className="text-[10px] text-amber-500 font-medium block">
+                    ⚠️ Needs at least 6 digits ({phone.trim().length}/6)
+                  </span>
+                )}
               </div>
             </div>
 
