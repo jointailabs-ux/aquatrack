@@ -33,7 +33,7 @@ export type OrderItem = z.infer<typeof OrderItemSchema>;
 
 export const CreateOrderSchema = z.object({
   customer_id: z.string().uuid("Customer is required"),
-  assigned_staff_id: z.string().uuid().optional().nullable(),
+  assigned_staff_id: z.preprocess((val) => (!val ? null : val), z.string().uuid().nullable().optional()),
   order_date: z.string().default(() => new Date().toISOString().split("T")[0]),
   delivery_date: z.string().min(1, "Delivery date is required"),
   delivery_address: z.string().min(5, "Delivery address required"),

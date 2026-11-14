@@ -197,21 +197,55 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products.length, customers.length]);
 
-  // Apply quick jar bundle preset
+  // Apply quick jar bundle preset (1, 2, 5, 10, 15, 20, 25, 50 jars)
   const applyJarBundle = (targetQty: number) => {
     const jarProd = products.find((p) => p.is_reusable_jar) || products[0];
     if (!jarProd) return;
 
     const price = customerSpecialPrices[jarProd.id] ?? Number(jarProd.default_sale_price);
 
-    setItemRows([
-      {
-        product_id: jarProd.id,
-        quantity: targetQty,
-        unit_price: price,
-        gst_rate: Number(jarProd.gst_rate || 0),
-      },
-    ]);
+    setItemRows((prev) => {
+      const idx = prev.findIndex((r) => r.product_id === jarProd.id);
+      if (idx >= 0) {
+        return prev.map((r, i) => (i === idx ? { ...r, quantity: targetQty, unit_price: price } : r));
+      }
+      return [
+        ...prev,
+        {
+          product_id: jarProd.id,
+          quantity: targetQty,
+          unit_price: price,
+          gst_rate: Number(jarProd.gst_rate || 0),
+        },
+      ];
+    });
+  };
+
+  // Apply quick bottle bundle preset (1, 5, 10, 15, 24, 48 bottles)
+  const applyBottleBundle = (targetQty: number) => {
+    const bottleProd =
+      products.find((p) => !p.is_reusable_jar && (p.category === "PACKAGED_WATER" || p.name.toLowerCase().includes("bottle"))) ||
+      products.find((p) => !p.is_reusable_jar) ||
+      products[0];
+    if (!bottleProd) return;
+
+    const price = customerSpecialPrices[bottleProd.id] ?? Number(bottleProd.default_sale_price);
+
+    setItemRows((prev) => {
+      const idx = prev.findIndex((r) => r.product_id === bottleProd.id);
+      if (idx >= 0) {
+        return prev.map((r, i) => (i === idx ? { ...r, quantity: targetQty, unit_price: price } : r));
+      }
+      return [
+        ...prev,
+        {
+          product_id: bottleProd.id,
+          quantity: targetQty,
+          unit_price: price,
+          gst_rate: Number(bottleProd.gst_rate || 0),
+        },
+      ];
+    });
   };
 
   // Quick-add product chip
@@ -995,27 +1029,38 @@ export default function OrdersPage() {
           <form onSubmit={handleCreateOrder} className="space-y-4">
             {/* Customer Quick Select Chips */}
             {customers.length > 0 && (
-              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/80 space-y-1.5">
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-700/80 space-y-2 text-white shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Sparkles className="h-3 w-3 text-primary" />
+                  <span className="text-[11px] font-extrabold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
                     Frequent Customers (Tap to Select)
                   </span>
-                  <span className="text-[10px] text-muted-foreground">Auto-fills address & contract prices</span>
+                  <span className="text-[10px] text-slate-400">1-Tap loads addresses & contract rates</span>
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {customers.slice(0, 5).map((c) => (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {customers.slice(0, 8).map((c) => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => handleCustomerChange(c.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all active:scale-95 cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all active:scale-95 cursor-pointer shrink-0 text-left ${
                         selectedCustomerId === c.id
-                          ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                          : "bg-background text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
+                          ? "bg-sky-500 text-white border-sky-400 shadow-md ring-2 ring-sky-400/50"
+                          : "bg-slate-800 text-slate-200 border-slate-700 hover:border-sky-500 hover:bg-slate-750"
                       }`}
                     >
-                      {c.contact_name} {c.business_name ? `(${c.business_name})` : ""}
+                      <div className="font-bold flex items-center gap-1">
+                        <span>{c.contact_name}</span>
+                        {c.customer_type === "B2B" && (
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-500/30 text-indigo-300 font-extrabold">B2B</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {c.business_name || c.phone}
+                        {Number(c.current_balance) > 0 ? (
+                          <span className="text-rose-400 font-bold ml-1">• Due ₹{c.current_balance}</span>
+                        ) : null}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1111,41 +1156,93 @@ export default function OrdersPage() {
             </div>
 
             {/* 1-Click Speed Bundles & Quick Products */}
-            <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 space-y-2">
+            <div className="p-3.5 rounded-xl bg-slate-900 border-2 border-indigo-500/40 space-y-3 shadow-sm text-white">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-sky-950 dark:text-sky-200 flex items-center gap-1.5">
-                  <Zap className="h-4 w-4 text-sky-600 dark:text-sky-400 fill-sky-500/30" />
-                  1-Click Speed Bundles (Zero Typing)
+                <span className="text-xs font-extrabold text-white flex items-center gap-1.5">
+                  <Zap className="h-4 w-4 text-amber-400 fill-amber-400" />
+                  1-Tap Speed Ordering (Zero Typing Required)
                 </span>
-                <span className="text-[10px] text-sky-700 dark:text-sky-300">Click to set quantity</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  ⚡ 1-Tap Select
+                </span>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {[5, 10, 25, 50, 100].map((qty) => (
-                  <button
-                    key={qty}
-                    type="button"
-                    onClick={() => applyJarBundle(qty)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-card text-sky-900 dark:text-sky-200 border border-sky-300 dark:border-sky-800 hover:border-primary hover:bg-primary hover:text-white shadow-xs active:scale-95 transition-all cursor-pointer"
-                  >
-                    💧 {qty} Jars
-                  </button>
-                ))}
+
+              {/* Row 1: Water Jars Presets (1, 2, 5, 10, 15, 20, 25, 50 Jars) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-sky-400 uppercase tracking-wide flex items-center gap-1">
+                    💧 20L Water Jars:
+                  </span>
+                  <span className="text-[10px] text-slate-400">Tap to set quantity</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[1, 2, 5, 10, 15, 20, 25, 50].map((qty) => {
+                    const jarProd = products.find((p) => p.is_reusable_jar);
+                    const isSelected = itemRows.some((r) => r.product_id === jarProd?.id && r.quantity === qty);
+                    return (
+                      <button
+                        key={qty}
+                        type="button"
+                        onClick={() => applyJarBundle(qty)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 cursor-pointer border ${
+                          isSelected
+                            ? "bg-sky-500 text-white border-sky-300 shadow-md ring-2 ring-sky-400/60"
+                            : "bg-slate-800 hover:bg-sky-950/80 text-sky-200 border-slate-700 hover:border-sky-400"
+                        }`}
+                      >
+                        💧 {qty} {qty === 1 ? "Jar" : "Jars"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Row 2: Packaged Bottles Presets (1, 5, 10, 15, 24, 48 Bottles) */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1">
+                    🍾 Packaged Bottles:
+                  </span>
+                  <span className="text-[10px] text-slate-400">1, 5, 10, 15, 24, 48 Bottles</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[1, 5, 10, 15, 24, 48].map((qty) => {
+                    const bottleProd =
+                      products.find((p) => !p.is_reusable_jar && (p.category === "PACKAGED_WATER" || p.name.toLowerCase().includes("bottle"))) ||
+                      products.find((p) => !p.is_reusable_jar);
+                    const isSelected = itemRows.some((r) => r.product_id === bottleProd?.id && r.quantity === qty);
+                    return (
+                      <button
+                        key={qty}
+                        type="button"
+                        onClick={() => applyBottleBundle(qty)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 cursor-pointer border ${
+                          isSelected
+                            ? "bg-amber-500 text-white border-amber-300 shadow-md ring-2 ring-amber-400/60"
+                            : "bg-slate-800 hover:bg-amber-950/80 text-amber-200 border-slate-700 hover:border-amber-400"
+                        }`}
+                      >
+                        🍾 {qty} {qty === 1 ? "Bottle" : "Bottles"}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Quick-Add Product Chips */}
-              {products.length > 1 && (
-                <div className="pt-2 border-t border-sky-500/20 flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">
-                    Add Items:
+              {products.length > 2 && (
+                <div className="pt-2 border-t border-slate-800 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">
+                    More Items:
                   </span>
                   {products.map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => handleQuickAddProduct(p)}
-                      className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-card hover:bg-primary hover:text-white text-foreground border border-border transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                      className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-200 border border-slate-700 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-3 w-3 text-indigo-400" />
                       {p.name}
                     </button>
                   ))}
@@ -1230,13 +1327,13 @@ export default function OrdersPage() {
                             </td>
 
                             <td className="p-2 text-center">
-                              <div className="flex flex-col items-center gap-1">
+                              <div className="flex flex-col items-center gap-1.5">
                                 <div className="flex items-center justify-center gap-1">
                                   <button
                                     type="button"
                                     onClick={() => handleRowQuantityChange(idx, Math.max(1, row.quantity - 1))}
                                     disabled={row.quantity <= 1}
-                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-bold text-xs disabled:opacity-30 cursor-pointer"
+                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-sm disabled:opacity-30 cursor-pointer"
                                   >
                                     -
                                   </button>
@@ -1248,26 +1345,30 @@ export default function OrdersPage() {
                                     onChange={(e) =>
                                       handleRowQuantityChange(idx, parseInt(e.target.value, 10))
                                     }
-                                    className="h-7 text-xs text-center w-14 font-bold"
+                                    className="h-7 text-xs text-center w-14 font-black"
                                     required
                                   />
                                   <button
                                     type="button"
                                     onClick={() => handleRowQuantityChange(idx, row.quantity + 1)}
-                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-bold text-xs cursor-pointer"
+                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-sm cursor-pointer"
                                   >
                                     +
                                   </button>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  {[5, 10, 25].map((add) => (
+                                <div className="flex items-center gap-1 flex-wrap justify-center">
+                                  {[1, 5, 10, 15, 20, 25].map((val) => (
                                     <button
-                                      key={add}
+                                      key={val}
                                       type="button"
-                                      onClick={() => handleRowQuantityChange(idx, row.quantity + add)}
-                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted/70 hover:bg-primary hover:text-white text-muted-foreground transition-colors cursor-pointer"
+                                      onClick={() => handleRowQuantityChange(idx, val)}
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
+                                        row.quantity === val
+                                          ? "bg-primary text-primary-foreground shadow-xs ring-1 ring-primary"
+                                          : "bg-muted/70 hover:bg-primary hover:text-white text-muted-foreground"
+                                      }`}
                                     >
-                                      +{add}
+                                      {val}
                                     </button>
                                   ))}
                                 </div>

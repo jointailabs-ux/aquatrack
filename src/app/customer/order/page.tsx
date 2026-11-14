@@ -17,6 +17,11 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/ui/Toast";
+import { createOrder } from "@/modules/orders/order.service";
+import { getCustomers } from "@/modules/customers/customer.service";
+import { getProducts } from "@/modules/products/product.service";
+import { CustomerRecord } from "@/modules/customers/customer.schema";
+import { ProductRecord } from "@/modules/products/product.schema";
 import { formatCurrency } from "@/lib/utils";
 
 const PRICE_PER_JAR = 70; // 20L Purified Drinking Water
@@ -27,13 +32,35 @@ export default function PlaceOrderPage() {
   const router = useRouter();
   const { addToast } = useToast();
 
+  const [customer, setCustomer] = React.useState<CustomerRecord | null>(null);
+  const [products, setProducts] = React.useState<ProductRecord[]>([]);
   const [fullJarsQty, setFullJarsQty] = React.useState(2);
   const [emptyJarsReturn, setEmptyJarsReturn] = React.useState(2);
   const [deliverySlot, setDeliverySlot] = React.useState("morning");
-  const deliveryDate = "Tomorrow, Nov 3";
+  const deliveryDate = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  }, []);
   const [paymentMethod, setPaymentMethod] = React.useState<"cod" | "upi">("cod");
   const [deliveryNotes, setDeliveryNotes] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    async function init() {
+      const [custRes, prodRes] = await Promise.all([
+        getCustomers({ pageSize: 5 }),
+        getProducts({ isActive: true, pageSize: 20 }),
+      ]);
+      if (custRes.success && custRes.data && custRes.data.items.length > 0) {
+        setCustomer(custRes.data.items[0]);
+      }
+      if (prodRes.success && prodRes.data && prodRes.data.items.length > 0) {
+        setProducts(prodRes.data.items);
+      }
+    }
+    init();
+  }, []);
 
   // Financial calculation:
   // If customer orders more full jars than returning empty jars, extra jar deposit applies
@@ -43,19 +70,63 @@ export default function PlaceOrderPage() {
   const extraDeposit = extraJarsNeeded * DEPOSIT_PER_NEW_JAR;
   const orderTotal = waterSubtotal + waterTax + extraDeposit;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (!customer) {
+      addToast({
+        type: "error",
+        title: "Customer Account Required",
+        message: "No active customer account found to place order.",
+      });
+      return;
+    }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setIsSubmitting(true);
+    try {
+      const jarProduct = products.find((p) => p.is_reusable_jar) || products[0];
+      const prodId = jarProduct ? jarProduct.id : "af80a85e-ec3a-42f9-8eb6-609edbb5dc4b";
+      const prodName = jarProduct ? jarProduct.name : "20L Polycarbonate Water Jar Refill";
+
+      const res = await createOrder({
+        customer_id: customer.id,
+        order_date: new Date().toISOString().split("T")[0],
+        delivery_address: customer.address || "Doorstep Delivery Address",
+        delivery_date: deliveryDate,
+        notes: `Slot: ${deliverySlot}. Empty return expected: ${emptyJarsReturn}. ${deliveryNotes}`.trim(),
+        items: [
+          {
+            product_id: prodId,
+            product_name: prodName,
+            quantity: fullJarsQty,
+            unit_price: PRICE_PER_JAR,
+            gst_rate: 5,
+            tax_amount: waterTax,
+            total_amount: waterSubtotal + waterTax,
+            is_reusable_jar: true,
+          },
+        ],
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || "Failed to place order.");
+      }
+
       addToast({
         type: "success",
         title: "Order Placed Successfully!",
-        message: `Your refill request for ${fullJarsQty} jars has been scheduled for ${deliveryDate}.`,
+        message: `Your refill request for ${fullJarsQty} jars has been scheduled for delivery!`,
       });
       router.push("/customer/orders");
-    }, 800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to place refill order.";
+      addToast({
+        type: "error",
+        title: "Order Failed",
+        message: msg,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

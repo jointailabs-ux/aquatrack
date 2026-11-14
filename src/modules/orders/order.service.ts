@@ -238,7 +238,7 @@ export async function createOrder(
       return { success: false, error: "Authentication required to create orders." };
     }
 
-    // Call atomic RPC rpc_create_customer_order
+    // Call atomic RPC rpc_create_customer_order (security definer handles caller fallback)
     const { data: rpcResult, error: rpcError } = await supabase.rpc(
       "rpc_create_customer_order",
       {
@@ -262,13 +262,23 @@ export async function createOrder(
       return { success: false, error: rpcError.message };
     }
 
-    const subtotal = Number(rpcResult.subtotal ?? 0);
-    const taxTotal = Number(rpcResult.tax_total ?? 0);
-    const totalAmount = Number(rpcResult.total_amount ?? 0);
+    const resObj = typeof rpcResult === "string" ? JSON.parse(rpcResult) : Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+    if (!resObj || (!resObj.order_id && !resObj.id)) {
+      return { success: false, error: "Failed to generate order ID from database." };
+    }
+
+    const orderId = resObj.order_id || resObj.id;
+    const orderNumber = resObj.order_number || resObj.order_num || `ORD-${Date.now()}`;
+
+    const calculatedSubtotal = validated.items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
+    const calculatedTax = validated.items.reduce((sum, i) => sum + i.tax_amount, 0);
+    const subtotal = Number(resObj.subtotal ?? calculatedSubtotal);
+    const taxTotal = Number(resObj.tax_total ?? calculatedTax);
+    const totalAmount = Number(resObj.total_amount ?? (subtotal + taxTotal));
 
     const record: OrderRecord = {
-      id: rpcResult.order_id,
-      order_number: rpcResult.order_number,
+      id: orderId,
+      order_number: orderNumber,
       customer_id: validated.customer_id,
       customer_name: "Customer",
       customer_phone: "",

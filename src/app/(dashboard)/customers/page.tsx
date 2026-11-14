@@ -1111,41 +1111,41 @@ export default function CustomersPage() {
 
                     {/* Tab 1: Orders History */}
                     {activeTab === "orders" && (
-                      <div className="rounded-xl border border-border overflow-hidden">
+                      <div className="space-y-3">
                         {isTabLoading ? (
-                          <div className="p-6 text-center text-xs text-muted-foreground">
-                            <RefreshCw className="h-4 w-4 animate-spin mx-auto mb-1 text-primary" />
+                          <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border">
+                            <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
                             Loading customer orders...
                           </div>
                         ) : customerOrders.length === 0 ? (
-                          <div className="p-6 text-center text-xs text-muted-foreground">
-                            No orders recorded for this customer.
+                          <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border space-y-1">
+                            <Package className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1" />
+                            <p className="font-bold text-foreground">No orders recorded yet</p>
+                            <p>Place an order from the Orders page to see delivery records here.</p>
                           </div>
                         ) : (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs">
-                              <thead className="bg-muted/40 text-muted-foreground border-b border-border">
-                                <tr>
-                                  <th className="py-2.5 px-3">Order #</th>
-                                  <th className="py-2.5 px-3">Date</th>
-                                  <th className="py-2.5 px-3 text-right">Amount</th>
-                                  <th className="py-2.5 px-3 text-center">Delivery</th>
-                                  <th className="py-2.5 px-3 text-center">Payment</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-border/60">
-                                {customerOrders.map((o) => (
-                                  <tr key={o.id} className="hover:bg-muted/20">
-                                    <td className="py-2.5 px-3 font-semibold text-foreground">
-                                      {o.order_number}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-muted-foreground">
-                                      {o.order_date}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right font-semibold text-foreground">
-                                      {formatCurrency(o.total_amount)}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center">
+                          <div className="space-y-2.5">
+                            {customerOrders.map((o) => {
+                              const totalUnits = o.items ? o.items.reduce((s, it) => s + it.quantity, 0) : 0;
+                              const jarUnits = o.items ? o.items.filter((it) => it.is_reusable_jar).reduce((s, it) => s + it.quantity, 0) : 0;
+                              const formattedTime = o.created_at
+                                ? new Date(o.created_at).toLocaleString("en-IN", {
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                  })
+                                : o.order_date;
+
+                              return (
+                                <div
+                                  key={o.id}
+                                  className="rounded-xl border border-border/80 bg-muted/15 p-3.5 space-y-2.5 hover:border-primary/40 transition-colors shadow-2xs"
+                                >
+                                  {/* Order Header: Number + Timestamp + Badges */}
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-mono font-black text-xs text-foreground bg-background px-2 py-0.5 rounded-md border border-border">
+                                        {o.order_number}
+                                      </span>
                                       <Badge
                                         variant={
                                           o.status === "DELIVERED"
@@ -1154,12 +1154,10 @@ export default function CustomersPage() {
                                             ? "destructive"
                                             : "outline"
                                         }
-                                        className="text-[9px] py-0"
+                                        className="text-[10px] py-0 font-bold"
                                       >
-                                        {o.status}
+                                        {o.status.replace(/_/g, " ")}
                                       </Badge>
-                                    </td>
-                                    <td className="py-2.5 px-3 text-center">
                                       <Badge
                                         variant={
                                           o.payment_status === "PAID"
@@ -1168,15 +1166,69 @@ export default function CustomersPage() {
                                             ? "secondary"
                                             : "destructive"
                                         }
-                                        className="text-[9px] py-0"
+                                        className="text-[10px] py-0 font-bold"
                                       >
-                                        {o.payment_status}
+                                        {o.payment_status === "PAID" ? "PAID" : "UNPAID / DUE"}
                                       </Badge>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                    </div>
+
+                                    <div className="text-right shrink-0">
+                                      <span className="font-black text-sm text-primary">
+                                        {formatCurrency(o.total_amount)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* "You ordered this thing at that time" Tracking Summary */}
+                                  <div className="text-xs space-y-1">
+                                    <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                                      <span className="font-semibold text-foreground">Ordered:</span>
+                                      <span>{formattedTime}</span>
+                                      <span>•</span>
+                                      <span className="font-semibold text-foreground">Delivery:</span>
+                                      <span>{o.delivery_date}</span>
+                                      {o.assigned_staff_name && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="text-primary font-medium">Driver: {o.assigned_staff_name}</span>
+                                        </>
+                                      )}
+                                    </div>
+
+                                    {/* Items Breakdown */}
+                                    <div className="bg-background/80 rounded-lg p-2 border border-border/60 text-xs">
+                                      <div className="font-bold text-foreground mb-1 flex items-center justify-between">
+                                        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                                          Items Ordered ({totalUnits} total units{jarUnits > 0 ? `, ${jarUnits} jars` : ""}):
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {o.items && o.items.length > 0 ? (
+                                          o.items.map((it, idx) => (
+                                            <span
+                                              key={idx}
+                                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-muted text-foreground border border-border/70"
+                                            >
+                                              {it.is_reusable_jar ? "💧" : "📦"} {it.quantity} × {it.product_name} ({formatCurrency(it.total_amount)})
+                                            </span>
+                                          ))
+                                        ) : (
+                                          <span className="text-muted-foreground text-[11px] italic">
+                                            {totalUnits} items configured
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {o.delivery_address && (
+                                      <p className="text-[11px] text-muted-foreground truncate">
+                                        📍 Address: {o.delivery_address}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
