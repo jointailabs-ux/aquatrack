@@ -1170,68 +1170,183 @@ export default function StaffManagementPage() {
                 </select>
               </div>
 
-              {/* Jars & Empty */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Full Jars Delivered *
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={deliverQty}
-                    onChange={(e) => setDeliverQty(parseInt(e.target.value, 10) || 0)}
-                    className="text-xs font-bold"
-                    required
-                  />
+              {/* Quantity Delivered & Empty Jars Collected with Large Steppers & Quick Chips */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Full Jars Delivered */}
+                <div className="p-3 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border-2 border-sky-200 dark:border-sky-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                      <span className="text-base">💧</span>
+                      <span>Full Jars Delivered *</span>
+                    </label>
+                    <span className="text-[10px] text-sky-700 dark:text-sky-300 font-bold">ভরা জার দিয়েছেন</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-xl p-1 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setDeliverQty(Math.max(0, deliverQty - 1))}
+                      className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <div className="text-center">
+                      <span className="text-lg font-black text-foreground">{deliverQty}</span>
+                      <span className="text-[10px] text-muted-foreground block -mt-1">Full Jars</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeliverQty(deliverQty + 1)}
+                      className="h-9 w-9 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center font-black text-lg shadow-xs active:scale-95 cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                    {[1, 2, 5, 10, 15, 20].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDeliverQty(preset)}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
+                          deliverQty === preset
+                            ? "bg-sky-500 text-white border-sky-400 shadow-xs"
+                            : "bg-card text-foreground border-border hover:bg-muted"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                    {Boolean(orderToDeliver.items && orderToDeliver.items.length > 0) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const totalQ = orderToDeliver.items.reduce((s, it) => s + (it.quantity || 0), 0);
+                          setDeliverQty(totalQ);
+                        }}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 cursor-pointer"
+                      >
+                        Full ({orderToDeliver.items.reduce((s, it) => s + (it.quantity || 0), 0)})
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Empty Jars Collected
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={emptyCollected}
-                    onChange={(e) => setEmptyCollected(parseInt(e.target.value, 10) || 0)}
-                    className="text-xs font-bold"
-                  />
+                {/* Empty Jars Collected */}
+                <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                      <span className="text-base">🔄</span>
+                      <span>Empty Jars Collected</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold">খালি জার ফেরত</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 rounded-xl p-1 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setEmptyCollected(Math.max(0, emptyCollected - 1))}
+                      className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <div className="text-center">
+                      <span className="text-lg font-black text-foreground">{emptyCollected}</span>
+                      <span className="text-[10px] text-muted-foreground block -mt-1">Empty Jars</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEmptyCollected(emptyCollected + 1)}
+                      className="h-9 w-9 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-xs active:scale-95 cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                    {[0, 1, 2, 5, 10, 15].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setEmptyCollected(preset)}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
+                          emptyCollected === preset
+                            ? "bg-emerald-500 text-white border-emerald-400 shadow-xs"
+                            : "bg-card text-foreground border-border hover:bg-muted"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEmptyCollected(deliverQty)}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/20 cursor-pointer"
+                    >
+                      = Same ({deliverQty})
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Payment Mode */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">
-                  Payment Collection (টাকা আদায়)
+              {/* Payment Mode & Amount Collected */}
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  <span>Payment Collection (টাকা আদায়)</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["CASH", "UPI", "CREDIT"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
-                      onClick={() => setPaymentMethod(m)}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
+                      onClick={() => {
+                        setPaymentMethod(m);
+                        if (m === "CASH" || m === "UPI") {
+                          setAmountCollected(orderToDeliver.total_amount);
+                        } else {
+                          setAmountCollected(0);
+                        }
+                      }}
+                      className={`p-2.5 rounded-xl text-xs font-black border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 ${
                         paymentMethod === m
-                          ? "bg-primary text-white border-primary shadow-xs"
+                          ? m === "CASH"
+                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400 shadow-sm"
+                            : m === "UPI"
+                            ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm"
+                            : "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-400 shadow-sm"
                           : "bg-card text-foreground border-border hover:bg-muted"
                       }`}
                     >
-                      {m === "CASH" ? "Cash (নগদ)" : m === "UPI" ? "Online UPI" : "Credit (বাকি)"}
+                      <span className="text-base">{m === "CASH" ? "💵" : m === "UPI" ? "📱" : "⏳"}</span>
+                      <span>{m === "CASH" ? "Cash (নগদ)" : m === "UPI" ? "Online UPI" : "Credit (বাকি)"}</span>
                     </button>
                   ))}
                 </div>
 
                 {paymentMethod !== "CREDIT" && (
-                  <div className="pt-1">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={amountCollected}
-                      onChange={(e) => setAmountCollected(parseFloat(e.target.value) || 0)}
-                      placeholder={`Amount (₹${orderToDeliver.total_amount})`}
-                      className="text-xs font-bold"
-                    />
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-2 text-xs font-bold text-muted-foreground">₹</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={amountCollected}
+                          onChange={(e) => setAmountCollected(parseFloat(e.target.value) || 0)}
+                          placeholder={`Amount (₹${orderToDeliver.total_amount})`}
+                          className="text-sm font-black pl-7"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAmountCollected(orderToDeliver.total_amount)}
+                        className="px-3 py-2 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer active:scale-95"
+                      >
+                        Exact ₹{orderToDeliver.total_amount}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

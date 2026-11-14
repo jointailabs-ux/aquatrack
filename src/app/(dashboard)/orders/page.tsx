@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   Plus,
+  Minus,
   Search,
   ShoppingCart,
   Trash2,
@@ -11,9 +12,15 @@ import {
   Ban,
   Package,
   Zap,
-  Sparkles,
   CheckCircle2,
   UserCheck,
+  Truck,
+  Store,
+  Receipt,
+  Users,
+  MapPin,
+  DollarSign,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -108,6 +115,9 @@ export default function OrdersPage() {
   const [deliveryAddress, setDeliveryAddress] = React.useState("");
   const [orderNotes, setOrderNotes] = React.useState("");
   const [itemRows, setItemRows] = React.useState<OrderItemFormRow[]>([]);
+  const [orderCatalogCategory, setOrderCatalogCategory] = React.useState<string>("ALL");
+  const [orderCatalogSearch, setOrderCatalogSearch] = React.useState<string>("");
+  const [customerSearch, setCustomerSearch] = React.useState<string>("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Cancellation Modal State
@@ -291,54 +301,88 @@ export default function OrdersPage() {
     });
   };
 
-  // Apply quick bottle bundle preset (1, 5, 10, 15, 24, 48 bottles)
-  const applyBottleBundle = (targetQty: number) => {
-    const bottleProd =
-      products.find((p) => !p.is_reusable_jar && (p.category === "PACKAGED_WATER" || p.name.toLowerCase().includes("bottle"))) ||
-      products.find((p) => !p.is_reusable_jar) ||
-      products[0];
-    if (!bottleProd) return;
 
-    const price = customerSpecialPrices[bottleProd.id] ?? Number(bottleProd.default_sale_price);
-
-    setItemRows((prev) => {
-      const idx = prev.findIndex((r) => r.product_id === bottleProd.id);
-      if (idx >= 0) {
-        return prev.map((r, i) => (i === idx ? { ...r, quantity: targetQty, unit_price: price } : r));
-      }
-      return [
-        ...prev,
-        {
-          product_id: bottleProd.id,
-          quantity: targetQty,
-          unit_price: price,
-          gst_rate: Number(bottleProd.gst_rate || 0),
-        },
-      ];
-    });
+  // POS Stepper & Cart helpers
+  const getProductQty = (productId: string): number => {
+    const row = itemRows.find((r) => r.product_id === productId);
+    return row ? row.quantity : 0;
   };
 
-  // Quick-add product chip
-  const handleQuickAddProduct = (prod: ProductRecord) => {
-    const existingIndex = itemRows.findIndex((r) => r.product_id === prod.id);
-    if (existingIndex >= 0) {
-      setItemRows((prev) =>
-        prev.map((r, idx) =>
-          idx === existingIndex ? { ...r, quantity: r.quantity + 1 } : r
-        )
-      );
+  const updateProductQty = (prod: ProductRecord, newQty: number) => {
+    const price = customerSpecialPrices[prod.id] ?? Number(prod.default_sale_price);
+    if (newQty <= 0) {
+      setItemRows((prev) => prev.filter((r) => r.product_id !== prod.id));
     } else {
-      const price = customerSpecialPrices[prod.id] ?? Number(prod.default_sale_price);
-      setItemRows((prev) => [
-        ...prev,
-        {
-          product_id: prod.id,
-          quantity: 1,
-          unit_price: price,
-          gst_rate: Number(prod.gst_rate || 0),
-        },
-      ]);
+      setItemRows((prev) => {
+        const idx = prev.findIndex((r) => r.product_id === prod.id);
+        if (idx >= 0) {
+          return prev.map((r, i) => (i === idx ? { ...r, quantity: newQty, unit_price: price } : r));
+        }
+        return [
+          ...prev,
+          {
+            product_id: prod.id,
+            quantity: newQty,
+            unit_price: price,
+            gst_rate: Number(prod.gst_rate || 0),
+          },
+        ];
+      });
     }
+  };
+
+  const addProductQtyDelta = (prod: ProductRecord, delta: number) => {
+    const current = getProductQty(prod.id);
+    updateProductQty(prod, Math.max(0, current + delta));
+  };
+
+  const selectedCustomer = React.useMemo(
+    () => customers.find((c) => c.id === selectedCustomerId),
+    [customers, selectedCustomerId]
+  );
+
+  const filteredCustomers = React.useMemo(() => {
+    if (!customerSearch.trim()) return customers;
+    const q = customerSearch.toLowerCase().trim();
+    return customers.filter(
+      (c) =>
+        c.contact_name.toLowerCase().includes(q) ||
+        (c.business_name && c.business_name.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.includes(q)) ||
+        (c.address && c.address.toLowerCase().includes(q))
+    );
+  }, [customers, customerSearch]);
+
+  const filteredCatalogProducts = React.useMemo(() => {
+    return products.filter((p) => {
+      const matchesCategory =
+        orderCatalogCategory === "ALL" ||
+        (orderCatalogCategory === "JARS" && p.is_reusable_jar) ||
+        (orderCatalogCategory === "BOTTLES" &&
+          !p.is_reusable_jar &&
+          (p.category === "PACKAGED_WATER" || p.name.toLowerCase().includes("bottle"))) ||
+        (orderCatalogCategory === "DISPENSERS" &&
+          (p.category === "DISPENSER_EQUIPMENT" || p.name.toLowerCase().includes("dispenser"))) ||
+        (orderCatalogCategory === "ACCESSORIES" &&
+          (p.category === "CONSUMABLE" || (!p.is_reusable_jar && p.category !== "PACKAGED_WATER")));
+
+      const q = orderCatalogSearch.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q));
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, orderCatalogCategory, orderCatalogSearch]);
+
+  const getProductEmoji = (p: ProductRecord) => {
+    if (p.is_reusable_jar) return "💧";
+    const name = p.name.toLowerCase();
+    const cat = (p.category || "").toUpperCase();
+    if (cat === "PACKAGED_WATER" || name.includes("bottle")) return "🍾";
+    if (cat === "DISPENSERS" || name.includes("dispenser") || name.includes("tap")) return "🚰";
+    return "📦";
   };
 
   // Instant 1-tap template fill for rapid demo or daily regular orders
@@ -358,92 +402,9 @@ export default function OrdersPage() {
     });
   };
 
-  // Add a new product row
-  const handleAddProductRow = () => {
-    // Find first active product not already selected
-    const selectedIds = new Set(itemRows.map((r) => r.product_id));
-    const availableProd = products.find((p) => !selectedIds.has(p.id)) || products[0];
-
-    if (!availableProd) {
-      addToast({
-        type: "info",
-        title: "No More Products",
-        message: "All active products have already been added to this order.",
-      });
-      return;
-    }
-
-    const price = customerSpecialPrices[availableProd.id] ?? Number(availableProd.default_sale_price);
-
-    setItemRows((prev) => [
-      ...prev,
-      {
-        product_id: availableProd.id,
-        quantity: 1,
-        unit_price: price,
-        gst_rate: Number(availableProd.gst_rate || 0),
-      },
-    ]);
-  };
-
-  // Remove a product row
+  // Remove a product row from cart
   const handleRemoveProductRow = (index: number) => {
-    if (itemRows.length <= 1) {
-      addToast({
-        type: "info",
-        title: "Minimum Product Required",
-        message: "An order must contain at least one product item.",
-      });
-      return;
-    }
     setItemRows((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  // Change product in a row
-  const handleRowProductChange = (index: number, newProductId: string) => {
-    // Check if new product is already in another row
-    const isDuplicate = itemRows.some((row, idx) => idx !== index && row.product_id === newProductId);
-    if (isDuplicate) {
-      addToast({
-        type: "info",
-        title: "Duplicate Product",
-        message: "This product is already added. Please update its quantity instead.",
-      });
-      return;
-    }
-
-    const prod = products.find((p) => p.id === newProductId);
-    if (!prod) return;
-
-    const price = customerSpecialPrices[prod.id] ?? Number(prod.default_sale_price);
-
-    setItemRows((prev) =>
-      prev.map((row, idx) => {
-        if (idx !== index) return row;
-        return {
-          product_id: prod.id,
-          quantity: row.quantity,
-          unit_price: price,
-          gst_rate: Number(prod.gst_rate || 0),
-        };
-      })
-    );
-  };
-
-  // Change quantity in a row
-  const handleRowQuantityChange = (index: number, qty: number) => {
-    const validQty = Math.max(1, Math.floor(qty || 1));
-    setItemRows((prev) =>
-      prev.map((row, idx) => (idx === index ? { ...row, quantity: validQty } : row))
-    );
-  };
-
-  // Change unit price in a row
-  const handleRowPriceChange = (index: number, price: number) => {
-    const validPrice = Math.max(0, price || 0);
-    setItemRows((prev) =>
-      prev.map((row, idx) => (idx === index ? { ...row, unit_price: validPrice } : row))
-    );
   };
 
   // Calculated Order Totals
@@ -1241,530 +1202,630 @@ export default function OrdersPage() {
         </>
       )}
 
-      {/* Multi-Product Create Order Dialog */}
+      {/* Rapid POS-Style Order Creator Modal */}
       <Dialog
         isOpen={isCreateModalOpen}
         onClose={() => !isSubmitting && setIsCreateModalOpen(false)}
-        className="max-w-2xl"
+        className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden"
       >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-primary" />
-              Place Multi-Product Customer Order
-            </h3>
-            <button
-              type="button"
-              onClick={handleInstantSampleFill}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 active:scale-95 transition-all cursor-pointer"
-              title="Prepopulates customer, driver, today's date, and 10 jars instantly"
-            >
-              <Zap className="h-3.5 w-3.5 text-amber-600 fill-amber-500" />
-              <span>⚡ 1-Click Fast Fill</span>
-            </button>
+        <div className="flex flex-col h-full max-h-[92vh]">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-border bg-gradient-to-r from-sky-500/10 via-blue-500/10 to-indigo-500/10 dark:from-sky-950/40 dark:via-blue-950/30 dark:to-indigo-950/40 shrink-0">
+            <div>
+              <h3 className="font-black text-base sm:text-lg text-foreground flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-sky-500" />
+                <span>New Customer Order (নতুন অর্ডার তৈরি করুন)</span>
+              </h3>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
+                POS-Style Rapid Order Creator • Zero Typing Required
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleInstantSampleFill}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500 text-slate-950 hover:bg-amber-400 active:scale-95 transition-all shadow-xs cursor-pointer"
+                title="Prepopulates customer, driver, today's date, and 10 jars instantly"
+              >
+                <Zap className="h-3.5 w-3.5 fill-slate-950" />
+                <span>⚡ 1-Tap Fast Fill</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                disabled={isSubmitting}
+                className="h-8 w-8 rounded-lg bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center border border-border cursor-pointer transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
-          <form onSubmit={handleCreateOrder} className="space-y-4">
-            {/* Customer Quick Select Chips */}
-            {customers.length > 0 && (
-              <div className="p-3 rounded-xl bg-muted/40 dark:bg-slate-900 border border-border dark:border-slate-700/80 space-y-2 text-foreground dark:text-white shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-extrabold text-primary dark:text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                    Frequent Customers (Tap to Select)
-                  </span>
-                  <span className="text-[10px] text-muted-foreground dark:text-slate-400">1-Tap loads addresses & contract rates</span>
-                </div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                  {customers.slice(0, 8).map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => handleCustomerChange(c.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all active:scale-95 cursor-pointer shrink-0 text-left ${
-                        selectedCustomerId === c.id
-                          ? "bg-primary text-primary-foreground border-primary shadow-xs ring-2 ring-primary/40"
-                          : "bg-card text-foreground border-border hover:border-primary/50 hover:bg-primary/5 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
-                      }`}
-                    >
-                      <div className="font-bold flex items-center gap-1">
-                        <span>{c.contact_name}</span>
-                        {c.customer_type === "B2B" && (
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-extrabold border border-indigo-500/30">B2B</span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground dark:text-slate-400">
-                        {c.business_name || c.phone}
-                        {Number(c.current_balance) > 0 ? (
-                          <span className="text-rose-600 dark:text-rose-400 font-bold ml-1">• Due ₹{c.current_balance}</span>
-                        ) : null}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Customer & Route Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Select Customer Account *
+          <form onSubmit={handleCreateOrder} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+            {/* 1. CUSTOMER & DISPATCH ROUTE SECTION */}
+            <div className="p-4 rounded-2xl bg-card border-2 border-border space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-sky-500" />
+                  <span>1. Select Customer (কাস্টমার নির্বাচন করুন) *</span>
                 </label>
-                <select
-                  value={selectedCustomerId}
-                  onChange={(e) => handleCustomerChange(e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
-                >
-                  <option value="">-- Choose Customer Account --</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.contact_name} {c.business_name ? `(${c.business_name})` : ""} — {c.phone}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5 sm:col-span-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <span>Delivery Mode & Staff (ডেলিভারি মাধ্যম ও স্টাফ)</span>
-                  </label>
-                  <label className="inline-flex items-center gap-1.5 cursor-pointer bg-sky-50 dark:bg-sky-950/40 px-2.5 py-1 rounded-lg border border-sky-300 dark:border-sky-500/40">
-                    <input
-                      type="checkbox"
-                      checked={isSelfPickup}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setIsSelfPickup(checked);
-                        if (checked) {
-                          setAssignedStaffId("");
-                          setDeliveryAddress("Store Counter Pickup (গ্রাহক নিজে সংগ্রহ করবেন)");
-                        } else {
-                          const cust = customers.find((c) => c.id === selectedCustomerId);
-                          setDeliveryAddress(cust?.address || "");
-                        }
-                      }}
-                      className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
-                    />
-                    <span className="text-[11px] font-bold text-sky-800 dark:text-sky-300">
-                      🏪 Self-Pickup / Store Counter (গ্রাহক নিজে নিবেন)
-                    </span>
-                  </label>
-                </div>
-
-                {!isSelfPickup ? (
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setAssignedStaffId("")}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
-                        !assignedStaffId
-                          ? "bg-slate-800 text-white border-slate-700 shadow-xs"
-                          : "bg-card hover:bg-muted text-muted-foreground border-border"
-                      }`}
-                    >
-                      -- Unassigned / Assign Later --
-                    </button>
-                    {staffList.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => setAssignedStaffId(s.id)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer active:scale-95 ${
-                          assignedStaffId === s.id
-                            ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm shadow-sky-500/30 scale-102"
-                            : "bg-card hover:bg-sky-50 text-foreground border-border hover:border-sky-300 dark:hover:bg-slate-800"
-                        }`}
-                      >
-                        <UserCheck className="h-3.5 w-3.5" />
-                        <span>{s.full_name}</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-2 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                    <span>Customer will self-collect directly from the godown/store counter. No delivery staff assigned.</span>
-                  </div>
+                {selectedCustomer && (
+                  <button
+                    type="button"
+                    onClick={() => handleCustomerChange("")}
+                    className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 cursor-pointer"
+                  >
+                    Change Customer
+                  </button>
                 )}
               </div>
 
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
+              {selectedCustomer ? (
+                /* Selected Customer Banner */
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-sky-500/10 to-blue-500/10 border-2 border-sky-400/40 dark:border-sky-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-sm text-foreground">{selectedCustomer.contact_name}</span>
+                      {selectedCustomer.customer_type === "B2B" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-extrabold border border-indigo-500/30">
+                          B2B Business
+                        </span>
+                      )}
+                      <span className="text-xs font-mono text-muted-foreground">• {selectedCustomer.phone}</span>
+                    </div>
+                    {selectedCustomer.business_name && (
+                      <div className="text-xs font-semibold text-muted-foreground">{selectedCustomer.business_name}</div>
+                    )}
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3 shrink-0 text-sky-500" />
+                      <span className="truncate max-w-sm">{selectedCustomer.address || "No address on file"}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="p-2 rounded-lg bg-card/80 border border-border text-center min-w-[90px]">
+                      <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Empty Jars</span>
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                        {selectedCustomer.total_empty_jars_holding || 0} jars
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-card/80 border border-border text-center min-w-[90px]">
+                      <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Current Due</span>
+                      <span className={`text-sm font-black ${Number(selectedCustomer.current_balance) > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+                        ₹{selectedCustomer.current_balance || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Customer Picker: Search + Frequent Chips + Dropdown */
+                <div className="space-y-2.5">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Type customer name, phone, or shop name..."
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      className="pl-9 text-xs h-9"
+                    />
+                  </div>
+
+                  {/* Frequent 1-Tap Customer Chips */}
+                  {customers.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                        Tap Frequent Customer (১-ট্যাপে নির্বাচন):
+                      </span>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                        {filteredCustomers.slice(0, 10).map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => handleCustomerChange(c.id)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-muted/60 hover:bg-sky-500 hover:text-white dark:bg-slate-800 dark:hover:bg-sky-600 text-foreground border border-border transition-all shrink-0 active:scale-95 cursor-pointer text-left"
+                          >
+                            <div>{c.contact_name}</div>
+                            <div className="text-[10px] opacity-80 font-normal">
+                              {c.phone} {Number(c.current_balance) > 0 ? `• Due ₹${c.current_balance}` : ""}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dropdown fallback */}
+                  <select
+                    value={selectedCustomerId}
+                    onChange={(e) => handleCustomerChange(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-border bg-background p-2 text-xs text-foreground font-semibold"
+                  >
+                    <option value="">-- Or Choose From Full Customer Directory --</option>
+                    {filteredCustomers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.contact_name} {c.business_name ? `(${c.business_name})` : ""} — {c.phone}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Delivery Mode & Staff Assignment */}
+              <div className="pt-3 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Mode Selector */}
+                <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-semibold text-foreground">
-                    Delivery Target Date *
+                    Delivery Mode (ডেলিভারি মাধ্যম):
                   </label>
-                  <div className="flex items-center gap-1">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setDeliveryDate(new Date().toISOString().split("T")[0])}
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                      onClick={() => {
+                        setIsSelfPickup(false);
+                        if (selectedCustomer) {
+                          setDeliveryAddress(selectedCustomer.address || "");
+                        }
+                      }}
+                      className={`p-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                        !isSelfPickup
+                          ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm"
+                          : "bg-card text-muted-foreground border-border hover:bg-muted"
+                      }`}
                     >
-                      Today
+                      <Truck className="h-4 w-4" />
+                      <span>🚚 Route Delivery (ডেলিভারি)</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + 1);
-                        setDeliveryDate(d.toISOString().split("T")[0]);
+                        setIsSelfPickup(true);
+                        setAssignedStaffId("");
+                        setDeliveryAddress("Store Counter Pickup (গ্রাহক নিজে সংগ্রহ করবেন)");
                       }}
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                      className={`p-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                        isSelfPickup
+                          ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400 shadow-sm"
+                          : "bg-card text-muted-foreground border-border hover:bg-muted"
+                      }`}
                     >
-                      Tomorrow
+                      <Store className="h-4 w-4" />
+                      <span>🏪 Counter Self-Pickup (নিজে নিবেন)</span>
                     </button>
                   </div>
                 </div>
-                <Input
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                  required
-                  className="text-xs"
-                />
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Delivery Address *
-                </label>
-                <Input
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  required
-                  placeholder="Street address, floor, flat/unit #"
-                  className="text-xs"
-                />
+                {!isSelfPickup ? (
+                  <>
+                    {/* Staff Assignment */}
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-xs font-semibold text-foreground">
+                        Assign Staff / Driver (ডেলিভারি স্টাফ):
+                      </label>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setAssignedStaffId("")}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            !assignedStaffId
+                              ? "bg-slate-800 text-white border-slate-700 shadow-xs"
+                              : "bg-card text-muted-foreground border-border hover:bg-muted"
+                          }`}
+                        >
+                          👤 Unassigned / Later (পরে দিবে)
+                        </button>
+                        {staffList.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setAssignedStaffId(s.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer ${
+                              assignedStaffId === s.id
+                                ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm"
+                                : "bg-card text-foreground border-border hover:bg-sky-50 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            <UserCheck className="h-3.5 w-3.5" />
+                            <span>{s.full_name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Delivery Target Date */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-foreground">
+                          Delivery Date (তারিখ) *
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setDeliveryDate(new Date().toISOString().split("T")[0])}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                          >
+                            Today
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              d.setDate(d.getDate() + 1);
+                              setDeliveryDate(d.toISOString().split("T")[0]);
+                            }}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                          >
+                            Tomorrow
+                          </button>
+                        </div>
+                      </div>
+                      <Input
+                        type="date"
+                        value={deliveryDate}
+                        onChange={(e) => setDeliveryDate(e.target.value)}
+                        required
+                        className="text-xs font-semibold"
+                      />
+                    </div>
+
+                    {/* Delivery Address */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground">
+                        Delivery Address (ঠিকানা) *
+                      </label>
+                      <Input
+                        value={deliveryAddress}
+                        onChange={(e) => setDeliveryAddress(e.target.value)}
+                        required
+                        placeholder="Street, floor, unit # or landmark"
+                        className="text-xs"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="sm:col-span-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                    <span>Customer will self-collect directly from the godown/store counter. No staff or delivery vehicle assigned.</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* 1-Click Speed Bundles & Quick Products */}
-            <div className="p-3.5 rounded-xl bg-sky-50/70 dark:bg-slate-900 border-2 border-sky-200 dark:border-indigo-500/40 space-y-3 shadow-xs text-foreground dark:text-white">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-foreground dark:text-white flex items-center gap-1.5">
-                  <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />
-                  1-Tap Speed Ordering (Zero Typing Required)
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
-                  ⚡ 1-Tap Select
-                </span>
-              </div>
-
-              {/* Row 1: Water Jars Presets (1, 2, 5, 10, 15, 20, 25, 50 Jars) */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-sky-800 dark:text-sky-400 uppercase tracking-wide flex items-center gap-1">
-                    💧 20L Water Jars:
-                  </span>
-                  <span className="text-[10px] text-muted-foreground dark:text-slate-400">Tap to set quantity</span>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {[1, 2, 5, 10, 15, 20, 25, 50].map((qty) => {
-                    const jarProd = products.find((p) => p.is_reusable_jar);
-                    const isSelected = itemRows.some((r) => r.product_id === jarProd?.id && r.quantity === qty);
-                    return (
-                      <button
-                        key={qty}
-                        type="button"
-                        onClick={() => applyJarBundle(qty)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 cursor-pointer border ${
-                          isSelected
-                            ? "bg-sky-500 text-white border-sky-400 shadow-sm ring-2 ring-sky-400/50"
-                            : "bg-card hover:bg-sky-50 text-sky-900 border-sky-200 hover:border-sky-400 dark:bg-slate-800 dark:hover:bg-sky-950/80 dark:text-sky-200 dark:border-slate-700"
-                        }`}
-                      >
-                        💧 {qty} {qty === 1 ? "Jar" : "Jars"}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Row 2: Packaged Bottles Presets (1, 5, 10, 15, 24, 48 Bottles) */}
-              <div className="space-y-1.5 pt-2 border-t border-sky-200/60 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
-                    🍾 Packaged Bottles:
-                  </span>
-                  <span className="text-[10px] text-muted-foreground dark:text-slate-400">1, 5, 10, 15, 24, 48 Bottles</span>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {[1, 5, 10, 15, 24, 48].map((qty) => {
-                    const bottleProd =
-                      products.find((p) => !p.is_reusable_jar && (p.category === "PACKAGED_WATER" || p.name.toLowerCase().includes("bottle"))) ||
-                      products.find((p) => !p.is_reusable_jar);
-                    const isSelected = itemRows.some((r) => r.product_id === bottleProd?.id && r.quantity === qty);
-                    return (
-                      <button
-                        key={qty}
-                        type="button"
-                        onClick={() => applyBottleBundle(qty)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 cursor-pointer border ${
-                          isSelected
-                            ? "bg-amber-500 text-white border-amber-400 shadow-sm ring-2 ring-amber-400/50"
-                            : "bg-card hover:bg-amber-50 text-amber-900 border-amber-200 hover:border-amber-400 dark:bg-slate-800 dark:hover:bg-amber-950/80 dark:text-amber-200 dark:border-slate-700"
-                        }`}
-                      >
-                        🍾 {qty} {qty === 1 ? "Bottle" : "Bottles"}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Quick-Add Product Chips */}
-              {products.length > 2 && (
-                <div className="pt-2 border-t border-sky-200/60 dark:border-slate-800 flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-bold text-muted-foreground dark:text-slate-400 uppercase">
-                    More Items:
-                  </span>
-                  {products.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => handleQuickAddProduct(p)}
-                      className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-card hover:bg-primary hover:text-white text-foreground border border-border dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
-                    >
-                      <Plus className="h-3 w-3 text-primary dark:text-indigo-400" />
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Line Items Section */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <div className="flex items-center justify-between">
+            {/* 2. POS PRODUCT CATALOG (Big Visual Cards Grid) */}
+            <div className="p-4 rounded-2xl bg-card border-2 border-border space-y-3.5 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <Package className="h-4 w-4 text-primary" />
-                    Product Line Items ({itemRows.length})
+                  <h4 className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                    <Package className="h-4 w-4 text-sky-500" />
+                    <span>2. Select Products (পণ্য নির্বাচন করুন)</span>
                   </h4>
-                  <p className="text-[11px] text-muted-foreground">
-                    Products and jar quantities for this route delivery.
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Tap product cards or preset buttons to add items instantly
                   </p>
                 </div>
 
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAddProductRow}
-                  className="h-7 text-xs gap-1 border-dashed"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Product
-                </Button>
+                {/* Search in Catalog */}
+                <div className="w-full sm:w-56">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Filter products..."
+                      value={orderCatalogSearch}
+                      onChange={(e) => setOrderCatalogSearch(e.target.value)}
+                      className="pl-8 text-xs h-7.5"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Items Table */}
-              <div className="border border-border rounded-lg overflow-hidden">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-muted/50 text-muted-foreground border-b border-border">
-                    <tr>
-                      <th className="py-2 px-3 font-semibold w-4/12">Product</th>
-                      <th className="py-2 px-3 font-semibold text-center w-3/12">Qty & Quick Add</th>
-                      <th className="py-2 px-3 font-semibold text-right w-2/12">Unit Price</th>
-                      <th className="py-2 px-3 font-semibold text-right w-2/12">Subtotal</th>
-                      <th className="py-2 px-2 text-center w-1/12"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {itemRows.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-4 text-center text-muted-foreground italic">
-                          No products added. Click &quot;Add Product&quot; to begin.
-                        </td>
-                      </tr>
-                    ) : (
-                      itemRows.map((row, idx) => {
-                        const lineSubtotal = row.quantity * row.unit_price;
-                        const lineTax = (lineSubtotal * row.gst_rate) / 100;
-                        const hasSpecialPrice = Boolean(customerSpecialPrices[row.product_id]);
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {[
+                  { id: "ALL", label: "🌟 All Items" },
+                  { id: "JARS", label: "💧 20L Water Jars" },
+                  { id: "BOTTLES", label: "🍾 Packaged Bottles" },
+                  { id: "DISPENSERS", label: "🚰 Dispensers" },
+                  { id: "ACCESSORIES", label: "📦 Accessories" },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setOrderCatalogCategory(cat.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      orderCatalogCategory === cat.id
+                        ? "bg-sky-500 text-white shadow-xs"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
 
-                        return (
-                          <tr key={idx} className="hover:bg-muted/10">
-                            <td className="p-2">
-                              <select
-                                value={row.product_id}
-                                onChange={(e) => handleRowProductChange(idx, e.target.value)}
-                                className="w-full rounded-md border border-border bg-background p-1.5 text-xs text-foreground"
-                              >
-                                {products.map((p) => {
-                                  const isPickedElsewhere = itemRows.some(
-                                    (r, rIdx) => rIdx !== idx && r.product_id === p.id
-                                  );
-                                  return (
-                                    <option key={p.id} value={p.id} disabled={isPickedElsewhere}>
-                                      {p.name} ({p.sku}) {p.is_reusable_jar ? "— [20L Jar]" : ""}
-                                    </option>
-                                  );
-                                })}
-                              </select>
-                              {hasSpecialPrice && (
-                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block mt-0.5">
-                                  ★ Special customer contract price applied
-                                </span>
-                              )}
-                            </td>
+              {/* Product Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {filteredCatalogProducts.map((p) => {
+                  const qty = getProductQty(p.id);
+                  const isSelected = qty > 0;
+                  const specialPrice = customerSpecialPrices[p.id];
+                  const effectivePrice = specialPrice ?? Number(p.default_sale_price);
 
-                            <td className="p-2 text-center">
-                              <div className="flex flex-col items-center gap-1.5">
-                                <div className="flex items-center justify-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRowQuantityChange(idx, Math.max(1, row.quantity - 1))}
-                                    disabled={row.quantity <= 1}
-                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-sm disabled:opacity-30 cursor-pointer"
-                                  >
-                                    -
-                                  </button>
-                                  <Input
-                                    type="number"
-                                    min={1}
-                                    step={1}
-                                    value={row.quantity}
-                                    onChange={(e) =>
-                                      handleRowQuantityChange(idx, parseInt(e.target.value, 10))
-                                    }
-                                    className="h-7 text-xs text-center w-14 font-black"
-                                    required
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRowQuantityChange(idx, row.quantity + 1)}
-                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-sm cursor-pointer"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <div className="flex items-center gap-1 flex-wrap justify-center">
-                                  {[1, 5, 10, 15, 20, 25].map((val) => (
-                                    <button
-                                      key={val}
-                                      type="button"
-                                      onClick={() => handleRowQuantityChange(idx, val)}
-                                      className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
-                                        row.quantity === val
-                                          ? "bg-primary text-primary-foreground shadow-xs ring-1 ring-primary"
-                                          : "bg-muted/70 hover:bg-primary hover:text-white text-muted-foreground"
-                                      }`}
-                                    >
-                                      {val}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            </td>
+                  return (
+                    <div
+                      key={p.id}
+                      className={`p-3.5 rounded-2xl border-2 transition-all flex flex-col justify-between ${
+                        isSelected
+                          ? "bg-sky-500/10 dark:bg-sky-950/30 border-sky-500 shadow-md ring-2 ring-sky-500/20"
+                          : "bg-muted/30 dark:bg-slate-900 border-border hover:border-sky-300 dark:hover:border-slate-700"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{getProductEmoji(p)}</span>
+                            <div>
+                              <div className="font-black text-xs sm:text-sm text-foreground line-clamp-1">{p.name}</div>
+                              <div className="text-[10px] font-mono text-muted-foreground">{p.sku}</div>
+                            </div>
+                          </div>
+                          {p.is_reusable_jar && (
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/30 shrink-0">
+                              20L Jar
+                            </span>
+                          )}
+                        </div>
 
-                            <td className="p-2 text-right">
-                              <Input
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                value={row.unit_price}
-                                onChange={(e) =>
-                                  handleRowPriceChange(idx, parseFloat(e.target.value))
-                                }
-                                className="h-8 text-xs text-right w-20 ml-auto"
-                                required
-                              />
-                              <span className="text-[10px] text-muted-foreground block mt-0.5">
-                                GST: {row.gst_rate}%
-                              </span>
-                            </td>
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="text-lg font-black text-foreground">₹{effectivePrice}</span>
+                          <span className="text-[10px] text-muted-foreground">/ unit</span>
+                          {specialPrice !== undefined && (
+                            <span className="text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                              ★ Contract Rate
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                            <td className="p-2 text-right">
-                              <span className="font-bold text-foreground block">
-                                {formatCurrency(lineSubtotal)}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground block">
-                                +{formatCurrency(lineTax)} tax
-                              </span>
-                            </td>
-
-                            <td className="p-2 text-center">
+                      {/* Stepper or Add Button */}
+                      <div className="mt-3 pt-2 border-t border-border/60">
+                        {isSelected ? (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between bg-card dark:bg-slate-950 border border-border rounded-xl p-1">
                               <button
                                 type="button"
-                                onClick={() => handleRemoveProductRow(idx)}
-                                disabled={itemRows.length <= 1}
-                                className={`p-1 rounded-md transition-colors ${
-                                  itemRows.length <= 1
-                                    ? "text-muted-foreground/30 cursor-not-allowed"
-                                    : "text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                                }`}
-                                title="Remove line item"
+                                onClick={() => addProductQtyDelta(p, -1)}
+                                className="h-8 w-8 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black active:scale-95 cursor-pointer"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Minus className="h-4 w-4" />
                               </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                              <div className="text-center font-black text-sm text-foreground">
+                                {qty} <span className="text-[10px] font-normal text-muted-foreground">units</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => addProductQtyDelta(p, 1)}
+                                className="h-8 w-8 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center font-black shadow-xs active:scale-95 cursor-pointer"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            {/* Fast Presets on Card */}
+                            <div className="flex items-center gap-1 justify-center flex-wrap">
+                              {[1, 5, 10, 20].map((delta) => (
+                                <button
+                                  key={delta}
+                                  type="button"
+                                  onClick={() => addProductQtyDelta(p, delta)}
+                                  className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-muted hover:bg-sky-500 hover:text-white text-muted-foreground transition-all cursor-pointer active:scale-95"
+                                >
+                                  +{delta}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <button
+                              type="button"
+                              onClick={() => addProductQtyDelta(p, 1)}
+                              className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer"
+                            >
+                              <Plus className="h-4 w-4" />
+                              <span>+ Add to Order</span>
+                            </button>
+
+                            {/* Direct Set Presets */}
+                            <div className="flex items-center gap-1 justify-center flex-wrap">
+                              {[1, 5, 10, 20].map((val) => (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  onClick={() => updateProductQty(p, val)}
+                                  className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-muted/80 hover:bg-sky-500 hover:text-white text-muted-foreground transition-all cursor-pointer active:scale-95"
+                                >
+                                  {val}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Order / Delivery Instructions */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
-                Delivery Instructions / Gate Notes
-              </label>
-              <Input
-                placeholder="e.g. Ring bell at 2nd floor, empty jars kept near gate"
-                value={orderNotes}
-                onChange={(e) => setOrderNotes(e.target.value)}
-                className="text-xs"
-              />
+            {/* 3. ORDER CART SUMMARY & LINE ITEMS */}
+            <div className="p-4 rounded-2xl bg-card border-2 border-border space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                  <Receipt className="h-4 w-4 text-emerald-500" />
+                  <span>3. Order Items Cart (নির্বাচিত পণ্যের তালিকা — {itemRows.length})</span>
+                </h4>
+                {itemRows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setItemRows([])}
+                    className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              {itemRows.length === 0 ? (
+                <div className="p-6 rounded-xl border border-dashed border-border text-center text-muted-foreground text-xs italic">
+                  No items in cart yet. Tap on any product card above to add items.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {itemRows.map((row, idx) => {
+                    const prod = products.find((p) => p.id === row.product_id);
+                    const lineSubtotal = row.quantity * row.unit_price;
+                    const lineTax = (lineSubtotal * row.gst_rate) / 100;
+                    const lineTotal = lineSubtotal + lineTax;
+
+                    return (
+                      <div
+                        key={row.product_id}
+                        className="p-3 rounded-xl bg-muted/40 dark:bg-slate-900 border border-border flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-xl shrink-0">{prod ? getProductEmoji(prod) : "📦"}</span>
+                          <div className="min-w-0">
+                            <div className="font-black text-xs sm:text-sm text-foreground truncate">
+                              {prod?.name || "Product"}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                              <span>₹{row.unit_price} / unit</span>
+                              {row.gst_rate > 0 && <span>• GST {row.gst_rate}%</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          {/* Stepper */}
+                          <div className="flex items-center gap-1 bg-card dark:bg-slate-950 border border-border rounded-lg p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (prod) addProductQtyDelta(prod, -1);
+                              }}
+                              className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-black text-xs text-foreground">
+                              {row.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (prod) addProductQtyDelta(prod, 1);
+                              }}
+                              className="h-7 w-7 rounded bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center font-bold text-xs active:scale-95 cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Line Total */}
+                          <div className="text-right min-w-[70px]">
+                            <span className="font-black text-xs sm:text-sm text-foreground block">
+                              ₹{Math.round(lineTotal * 100) / 100}
+                            </span>
+                          </div>
+
+                          {/* Remove */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveProductRow(idx)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Delivery Notes */}
+              <div className="space-y-1.5 pt-2 border-t border-border">
+                <label className="text-xs font-semibold text-foreground">
+                  Gate / Delivery Notes (ঐচ্ছিক মন্তব্য)
+                </label>
+                <Input
+                  placeholder="e.g. Ring bell at 2nd floor, empty jars kept near gate"
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                  className="text-xs"
+                />
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  {[
+                    "Empty jars ready at gate",
+                    "Call before delivery",
+                    "Leave at reception",
+                    "Collect cash on delivery",
+                  ].map((presetNote) => (
+                    <button
+                      key={presetNote}
+                      type="button"
+                      onClick={() => setOrderNotes(presetNote)}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-muted hover:bg-muted/80 text-muted-foreground cursor-pointer"
+                    >
+                      + {presetNote}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Order Totals Summary Card */}
-            <div className="rounded-lg bg-muted/40 border border-border p-3 space-y-1.5">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Total Ordered Units:</span>
-                <span className="font-bold text-foreground">{orderSummary.totalUnits} units</span>
+            {/* 4. BILL SUMMARY CARD */}
+            <div className="rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 text-white p-4 space-y-2 border border-slate-800 shadow-md">
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>Total Items:</span>
+                <span className="font-bold text-white">{orderSummary.totalUnits} units</span>
               </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-xs text-slate-400">
                 <span>Subtotal (Net):</span>
-                <span className="font-medium text-foreground">
-                  {formatCurrency(orderSummary.subtotal)}
-                </span>
+                <span className="font-medium text-white">{formatCurrency(orderSummary.subtotal)}</span>
               </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>GST / Tax Total:</span>
-                <span className="font-medium text-foreground">
-                  {formatCurrency(orderSummary.taxTotal)}
-                </span>
+              <div className="flex justify-between text-xs text-slate-400">
+                <span>GST Tax:</span>
+                <span className="font-medium text-white">{formatCurrency(orderSummary.taxTotal)}</span>
               </div>
-              <div className="flex justify-between text-sm font-extrabold text-foreground pt-1.5 border-t border-border/80">
-                <span>Grand Total (Invoiced):</span>
-                <span className="text-primary">{formatCurrency(orderSummary.totalAmount)}</span>
+              <div className="flex justify-between text-base sm:text-lg font-black text-white pt-2 border-t border-slate-800">
+                <span>Grand Total:</span>
+                <span className="text-emerald-400">{formatCurrency(orderSummary.totalAmount)}</span>
               </div>
             </div>
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+            {/* Modal Bottom Sticky Bar */}
+            <div className="sticky bottom-0 bg-background/95 backdrop-blur-md pt-3 pb-1 border-t border-border flex items-center justify-between gap-3">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCreateModalOpen(false)}
                 disabled={isSubmitting}
+                className="font-bold"
               >
                 Cancel
               </Button>
+
               <Button
                 type="submit"
-                size="sm"
+                size="lg"
                 disabled={isSubmitting || !selectedCustomerId || itemRows.length === 0}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                className="flex-1 sm:flex-initial bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
               >
-                {isSubmitting ? "Dispatching..." : "Confirm & Dispatch Order"}
+                {isSubmitting
+                  ? "Dispatching Order..."
+                  : `🚀 Confirm & Dispatch Order (অর্ডার নিশ্চিত করুন) — ${formatCurrency(orderSummary.totalAmount)}`}
               </Button>
             </div>
           </form>
@@ -1880,68 +1941,183 @@ export default function OrdersPage() {
                 </select>
               </div>
 
-              {/* Quantity Delivered & Empty Jars Collected */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Full Jars Delivered *
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={deliverQty}
-                    onChange={(e) => setDeliverQty(parseInt(e.target.value, 10) || 0)}
-                    className="text-xs font-bold"
-                    required
-                  />
+              {/* Quantity Delivered & Empty Jars Collected with Large Steppers & Quick Chips */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Full Jars Delivered */}
+                <div className="p-3 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border-2 border-sky-200 dark:border-sky-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                      <span className="text-base">💧</span>
+                      <span>Full Jars Delivered *</span>
+                    </label>
+                    <span className="text-[10px] text-sky-700 dark:text-sky-300 font-bold">ভরা জার দিয়েছেন</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-xl p-1 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setDeliverQty(Math.max(0, deliverQty - 1))}
+                      className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <div className="text-center">
+                      <span className="text-lg font-black text-foreground">{deliverQty}</span>
+                      <span className="text-[10px] text-muted-foreground block -mt-1">Full Jars</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeliverQty(deliverQty + 1)}
+                      className="h-9 w-9 rounded-lg bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center font-black text-lg shadow-xs active:scale-95 cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                    {[1, 2, 5, 10, 15, 20].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDeliverQty(preset)}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
+                          deliverQty === preset
+                            ? "bg-sky-500 text-white border-sky-400 shadow-xs"
+                            : "bg-card text-foreground border-border hover:bg-muted"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                    {Boolean(orderToDeliver.items && orderToDeliver.items.length > 0) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const totalQ = orderToDeliver.items.reduce((s, it) => s + (it.quantity || 0), 0);
+                          setDeliverQty(totalQ);
+                        }}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 cursor-pointer"
+                      >
+                        Full ({orderToDeliver.items.reduce((s, it) => s + (it.quantity || 0), 0)})
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Empty Jars Collected
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={emptyCollected}
-                    onChange={(e) => setEmptyCollected(parseInt(e.target.value, 10) || 0)}
-                    className="text-xs font-bold"
-                  />
+                {/* Empty Jars Collected */}
+                <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-foreground flex items-center gap-1.5">
+                      <span className="text-base">🔄</span>
+                      <span>Empty Jars Collected</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold">খালি জার ফেরত</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-card dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 rounded-xl p-1 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setEmptyCollected(Math.max(0, emptyCollected - 1))}
+                      className="h-9 w-9 rounded-lg bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-black text-lg active:scale-95 cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <div className="text-center">
+                      <span className="text-lg font-black text-foreground">{emptyCollected}</span>
+                      <span className="text-[10px] text-muted-foreground block -mt-1">Empty Jars</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEmptyCollected(emptyCollected + 1)}
+                      className="h-9 w-9 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-xs active:scale-95 cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                    {[0, 1, 2, 5, 10, 15].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setEmptyCollected(preset)}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer active:scale-95 ${
+                          emptyCollected === preset
+                            ? "bg-emerald-500 text-white border-emerald-400 shadow-xs"
+                            : "bg-card text-foreground border-border hover:bg-muted"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEmptyCollected(deliverQty)}
+                      className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/20 cursor-pointer"
+                    >
+                      = Same ({deliverQty})
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Payment Mode & Amount Collected */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">
-                  Payment Collection (টাকা আদায়)
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  <span>Payment Collection (টাকা আদায়)</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["CASH", "UPI", "CREDIT"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
-                      onClick={() => setPaymentMethod(m)}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
+                      onClick={() => {
+                        setPaymentMethod(m);
+                        if (m === "CASH" || m === "UPI") {
+                          setAmountCollected(orderToDeliver.total_amount);
+                        } else {
+                          setAmountCollected(0);
+                        }
+                      }}
+                      className={`p-2.5 rounded-xl text-xs font-black border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer active:scale-95 ${
                         paymentMethod === m
-                          ? "bg-primary text-white border-primary shadow-xs"
+                          ? m === "CASH"
+                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400 shadow-sm"
+                            : m === "UPI"
+                            ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm"
+                            : "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-400 shadow-sm"
                           : "bg-card text-foreground border-border hover:bg-muted"
                       }`}
                     >
-                      {m === "CASH" ? "Cash (নগদ)" : m === "UPI" ? "Online UPI" : "Credit (বাকি)"}
+                      <span className="text-base">{m === "CASH" ? "💵" : m === "UPI" ? "📱" : "⏳"}</span>
+                      <span>{m === "CASH" ? "Cash (নগদ)" : m === "UPI" ? "Online UPI" : "Credit (বাকি)"}</span>
                     </button>
                   ))}
                 </div>
 
                 {paymentMethod !== "CREDIT" && (
-                  <div className="pt-1">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={amountCollected}
-                      onChange={(e) => setAmountCollected(parseFloat(e.target.value) || 0)}
-                      placeholder={`Amount (₹${orderToDeliver.total_amount})`}
-                      className="text-xs font-bold"
-                    />
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-2 text-xs font-bold text-muted-foreground">₹</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={amountCollected}
+                          onChange={(e) => setAmountCollected(parseFloat(e.target.value) || 0)}
+                          placeholder={`Amount (₹${orderToDeliver.total_amount})`}
+                          className="text-sm font-black pl-7"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAmountCollected(orderToDeliver.total_amount)}
+                        className="px-3 py-2 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 text-foreground border border-border cursor-pointer active:scale-95"
+                      >
+                        Exact ₹{orderToDeliver.total_amount}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
