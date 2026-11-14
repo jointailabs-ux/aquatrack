@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Truck,
-  Package,
+  Users,
   UserCheck,
   Grid,
 } from "lucide-react";
@@ -39,10 +39,10 @@ const TABS: BottomTabItem[] = [
     icon: Truck,
   },
   {
-    label: "Stock",
-    labelBn: "স্টক",
-    href: "/inventory",
-    icon: Package,
+    label: "Customers",
+    labelBn: "গ্রাহক",
+    href: "/customers",
+    icon: Users,
   },
   {
     label: "Staff",

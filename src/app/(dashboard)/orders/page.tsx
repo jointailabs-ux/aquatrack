@@ -48,6 +48,8 @@ interface OrderItemFormRow {
   gst_rate: number;
 }
 
+const ORDERS_STORAGE_KEY = "aquatrack_orders_cache_v2";
+
 // Module-level client cache for instant zero-latency transitions
 let cachedOrdersState: {
   orders: OrderRecord[];
@@ -56,17 +58,40 @@ let cachedOrdersState: {
   products: ProductRecord[];
 } | null = null;
 
+function getInitialOrdersData() {
+  if (cachedOrdersState && cachedOrdersState.orders.length > 0) {
+    return cachedOrdersState;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(ORDERS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.orders)) {
+          cachedOrdersState = parsed;
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+  return { orders: [], customers: [], staffList: [], products: [] };
+}
+
 export default function OrdersPage() {
   const { addToast } = useToast();
 
+  const initialData = React.useMemo(() => getInitialOrdersData(), []);
+
   // State with instant cache initialization
-  const [orders, setOrders] = React.useState<OrderRecord[]>(() => cachedOrdersState?.orders || []);
-  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => cachedOrdersState?.customers || []);
-  const [staffList, setStaffList] = React.useState<StaffRecord[]>(() => cachedOrdersState?.staffList || []);
-  const [products, setProducts] = React.useState<ProductRecord[]>(() => cachedOrdersState?.products || []);
+  const [orders, setOrders] = React.useState<OrderRecord[]>(() => initialData.orders || []);
+  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => initialData.customers || []);
+  const [staffList, setStaffList] = React.useState<StaffRecord[]>(() => initialData.staffList || []);
+  const [products, setProducts] = React.useState<ProductRecord[]>(() => initialData.products || []);
   const [customerSpecialPrices, setCustomerSpecialPrices] = React.useState<Record<string, number>>({});
 
-  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedOrdersState);
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => initialData.orders.length === 0);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
@@ -129,12 +154,21 @@ export default function OrdersPage() {
       setStaffList(freshStaff);
       setProducts(freshProducts);
 
-      cachedOrdersState = {
+      const freshState = {
         orders: freshOrders,
         customers: freshCustomers,
         staffList: freshStaff,
         products: freshProducts,
       };
+      cachedOrdersState = freshState;
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(freshState));
+        } catch {
+          // Ignore quota errors
+        }
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load dashboard data.";
       setLoadError(msg);
@@ -875,8 +909,8 @@ export default function OrdersPage() {
         />
       ) : (
         <>
-          {/* Mobile Card View (md:hidden) */}
-          <div className="space-y-3 md:hidden">
+          {/* Compact Responsive Card View */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:hidden">
             {filteredOrders.map((o) => {
               const totalItems = o.items ? o.items.reduce((sum, it) => sum + it.quantity, 0) : 0;
               const isDelivered = o.status === "DELIVERED";
@@ -885,83 +919,77 @@ export default function OrdersPage() {
               return (
                 <div
                   key={o.id}
-                  className="rounded-2xl border border-border/80 bg-card p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-3 touch-manipulation"
+                  className="rounded-xl border border-border/80 bg-card p-3 shadow-xs space-y-2.5 touch-manipulation hover:border-primary/40 transition-colors flex flex-col justify-between"
                 >
                   {/* Top Bar: Identifier + Status Badges + Price */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-mono font-bold text-xs text-foreground">
-                        {o.order_number}
-                      </span>
-                      <Badge
-                        variant={
-                          isDelivered
-                            ? "success"
-                            : isCancelled
-                            ? "destructive"
-                            : o.status === "PENDING"
-                            ? "warning"
-                            : "secondary"
-                        }
-                        className="text-[9px] py-0 px-1.5"
-                      >
-                        {o.status.replace(/_/g, " ")}
-                      </Badge>
-                      <Badge
-                        variant={o.payment_status === "PAID" ? "success" : "outline"}
-                        className="text-[9px] py-0 px-1.5"
-                      >
-                        {o.payment_status}
-                      </Badge>
-                    </div>
+                  <div>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="font-mono font-bold text-xs text-foreground">
+                          {o.order_number}
+                        </span>
+                        <Badge
+                          variant={
+                            isDelivered
+                              ? "success"
+                              : isCancelled
+                              ? "destructive"
+                              : o.status === "PENDING"
+                              ? "warning"
+                              : "secondary"
+                          }
+                          className="text-[9px] py-0 px-1"
+                        >
+                          {o.status.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="font-black text-sm text-primary block">
+                      <span className="font-black text-xs text-primary shrink-0">
                         {formatCurrency(o.total_amount)}
                       </span>
                     </div>
-                  </div>
 
-                  {/* Customer & Route */}
-                  <div>
-                    <h4 className="font-bold text-sm text-foreground leading-snug">
-                      {o.customer_name || "Customer"}
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                      {o.delivery_date} • {o.delivery_address}
-                    </p>
+                    {/* Customer & Route */}
+                    <div className="mt-1">
+                      <h4 className="font-bold text-xs text-foreground leading-tight truncate">
+                        {o.customer_name || "Customer"}
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                        {o.delivery_date} • {o.delivery_address || "No address"}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Operational Summary Grid */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
+                  <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/40 text-[11px]">
                     <div>
-                      <span className="text-[10px] text-muted-foreground font-medium block">
-                        Assigned Staff (ডেলিভারি স্টাফ)
+                      <span className="text-[9px] text-muted-foreground font-medium block">
+                        Assigned Staff
                       </span>
                       <button
                         type="button"
                         onClick={() => openReassignModal(o)}
-                        className="font-semibold text-foreground truncate block hover:underline text-left cursor-pointer"
+                        className="font-semibold text-foreground truncate block hover:underline text-left cursor-pointer text-[11px]"
                         title="Click to assign or change staff"
                       >
                         {o.assigned_staff_name ? (
-                          <span className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-300 font-bold">
-                            <UserCheck className="h-3 w-3 shrink-0" />
+                          <span className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-300 font-bold truncate">
+                            <UserCheck className="h-2.5 w-2.5 shrink-0" />
                             {o.assigned_staff_name}
                           </span>
                         ) : (
-                          <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
-                            + Assign Staff
+                          <span className="text-amber-600 dark:text-amber-400 font-bold">
+                            + Assign
                           </span>
                         )}
                       </button>
                     </div>
 
                     <div>
-                      <span className="text-[10px] text-muted-foreground font-medium block">
-                        Products ({totalItems} units)
+                      <span className="text-[9px] text-muted-foreground font-medium block">
+                        Items ({totalItems})
                       </span>
-                      <span className="font-semibold text-foreground truncate block">
+                      <span className="font-semibold text-foreground truncate block text-[11px]" title={o.items?.map((i) => `${i.quantity}× ${i.product_name}`).join(", ")}>
                         {o.items && o.items.length > 0
                           ? o.items.map((i) => `${i.quantity}× ${i.product_name}`).join(", ")
                           : "No items"}
@@ -970,12 +998,12 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Actions Row */}
-                  <div className="pt-2 border-t border-border/50 flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">
-                      Tel: {o.customer_phone || "N/A"}
+                  <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-1">
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {o.customer_phone || "No Phone"}
                     </span>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
                       {canCancelOrder(o.status) && (
                         <Button
                           variant="outline"
@@ -984,9 +1012,9 @@ export default function OrdersPage() {
                             setOrderToCancel(o);
                             setCancelReason("");
                           }}
-                          className="h-7 text-[11px] px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                          className="h-6 text-[10px] px-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
                         >
-                          <Ban className="h-3 w-3 mr-1" />
+                          <Ban className="h-2.5 w-2.5 mr-0.5" />
                           Cancel
                         </Button>
                       )}
@@ -995,15 +1023,15 @@ export default function OrdersPage() {
                           variant="primary"
                           size="sm"
                           onClick={() => openDeliverModal(o)}
-                          className="h-7 text-[11px] px-2.5 font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs"
+                          className="h-6 text-[10px] px-2 font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                          Mark Delivered
+                          <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                          Deliver
                         </Button>
                       ) : o.status === "DELIVERED" ? (
-                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Delivered
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Done
                         </span>
                       ) : null}
                     </div>

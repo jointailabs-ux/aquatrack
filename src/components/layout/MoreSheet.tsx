@@ -49,6 +49,14 @@ interface DestinationItem {
 const DESTINATIONS: DestinationItem[] = [
   // Operations
   {
+    title: "Inventory & Stock",
+    href: "/inventory",
+    description: "Stock levels, quick adjustments & movements",
+    icon: Package,
+    badge: "0ms Stock",
+    category: "operations",
+  },
+  {
     title: "POS Counter",
     href: "/pos",
     description: "Counter sales & instant receipts",

@@ -50,6 +50,8 @@ import {
 import { OrderRecord } from "@/modules/orders/order.schema";
 import { formatCurrency } from "@/lib/utils";
 
+const CUSTOMERS_STORAGE_KEY = "aquatrack_customers_cache_v2";
+
 // Module-level client cache for instant zero-latency customer navigation
 let cachedCustomersState: {
   key: string;
@@ -58,17 +60,39 @@ let cachedCustomersState: {
   totalPages: number;
 } | null = null;
 
+function getInitialCustomersData() {
+  if (cachedCustomersState && cachedCustomersState.items.length > 0) {
+    return cachedCustomersState;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.items) && parsed.items.length > 0) {
+          cachedCustomersState = parsed;
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+  return { key: "", items: [], total: 0, totalPages: 1 };
+}
+
 export default function CustomersPage() {
   const { addToast } = useToast();
+  const initialData = React.useMemo(() => getInitialCustomersData(), []);
 
   // Directory Data with instant cache initialization
   const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => {
-    return cachedCustomersState?.items || [];
+    return initialData.items || [];
   });
   const [selectedCustomer, setSelectedCustomer] = React.useState<CustomerRecord | null>(() => {
-    return cachedCustomersState?.items?.[0] || null;
+    return initialData.items?.[0] || null;
   });
-  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedCustomersState);
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => initialData.items.length === 0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Filters & Pagination
@@ -78,8 +102,8 @@ export default function CustomersPage() {
   const [hasBalanceFilter, setHasBalanceFilter] = React.useState(false);
   const [mobileView, setMobileView] = React.useState<"list" | "detail">("list");
   const [page, setPage] = React.useState(1);
-  const [totalPages, setTotalPages] = React.useState(() => cachedCustomersState?.totalPages || 1);
-  const [totalCount, setTotalCount] = React.useState(() => cachedCustomersState?.total || 0);
+  const [totalPages, setTotalPages] = React.useState(() => initialData.totalPages || 1);
+  const [totalCount, setTotalCount] = React.useState(() => initialData.total || 0);
 
   // Tabs in Details Panel
   const [activeTab, setActiveTab] = React.useState<"orders" | "payments" | "jars" | "invoices">("orders");
@@ -192,12 +216,21 @@ export default function CustomersPage() {
         setTotalPages(res.data.totalPages || 1);
         setTotalCount(res.data.total || 0);
 
-        cachedCustomersState = {
+        const freshState = {
           key: cacheKey,
           items: res.data.items,
           total: res.data.total || 0,
           totalPages: res.data.totalPages || 1,
         };
+        cachedCustomersState = freshState;
+
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(freshState));
+          } catch {
+            // Ignore quota errors
+          }
+        }
 
         // Keep current selected customer or pick first
         if (selectedCustomer) {

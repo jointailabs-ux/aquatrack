@@ -39,20 +39,45 @@ interface SellableItem {
   isReusableJar: boolean;
 }
 
+const POS_STORAGE_KEY = "aquatrack_pos_cache_v2";
+
 // Module-level client cache for instant POS catalog display
 let cachedPosState: {
   catalogItems: SellableItem[];
   customers: CustomerRecord[];
 } | null = null;
 
+function getInitialPosData() {
+  if (cachedPosState && cachedPosState.catalogItems.length > 0) {
+    return cachedPosState;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(POS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.catalogItems) && parsed.catalogItems.length > 0) {
+          cachedPosState = parsed;
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+  return { catalogItems: [], customers: [] };
+}
+
 export default function PosPage() {
   const { addToast } = useToast();
-  const [catalogItems, setCatalogItems] = React.useState<SellableItem[]>(() => cachedPosState?.catalogItems || []);
+  const initialData = React.useMemo(() => getInitialPosData(), []);
+
+  const [catalogItems, setCatalogItems] = React.useState<SellableItem[]>(() => initialData.catalogItems || []);
   const [cart, setCart] = React.useState<PosCartItem[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("ALL");
   const [customerName, setCustomerName] = React.useState("Walk-in Customer");
-  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => cachedPosState?.customers || []);
+  const [customers, setCustomers] = React.useState<CustomerRecord[]>(() => initialData.customers || []);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string>("");
   const [customerSpecialPrices, setCustomerSpecialPrices] = React.useState<Record<string, number>>({});
   const [paymentMode, setPaymentMode] = React.useState<"CASH" | "UPI" | "CARD">("UPI");
@@ -95,10 +120,19 @@ export default function PosPage() {
         setCustomers(freshCustomers);
       }
 
-      cachedPosState = {
+      const freshState = {
         catalogItems: freshItems,
         customers: freshCustomers,
       };
+      cachedPosState = freshState;
+
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(POS_STORAGE_KEY, JSON.stringify(freshState));
+        } catch {
+          // Ignore quota errors
+        }
+      }
     }
     loadCatalog();
   }, []);
@@ -203,12 +237,28 @@ export default function PosPage() {
             return {
               ...item,
               quantity: newQty,
-              total: newQty * item.unit_price,
+              total: Math.round(newQty * item.unit_price * 100) / 100,
             };
           }
           return item;
         })
         .filter(Boolean) as PosCartItem[]
+    );
+  };
+
+  const updateItemPrice = (productId: string, newPrice: number) => {
+    const validPrice = Math.max(0, isNaN(newPrice) ? 0 : newPrice);
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product_id === productId) {
+          return {
+            ...item,
+            unit_price: validPrice,
+            total: Math.round(item.quantity * validPrice * 100) / 100,
+          };
+        }
+        return item;
+      })
     );
   };
 
@@ -527,14 +577,26 @@ export default function PosPage() {
                         <h5 className="text-xs font-bold text-foreground truncate">
                           {item.product_name}
                         </h5>
-                        <p className="text-[11px] text-muted-foreground">
-                          {formatCurrency(item.unit_price)} × {item.quantity}
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-muted-foreground font-semibold">₹</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step="1"
+                            value={item.unit_price}
+                            onChange={(e) => updateItemPrice(item.product_id, parseFloat(e.target.value))}
+                            className="w-16 h-6 px-1.5 py-0.5 text-xs font-black text-foreground bg-background rounded border border-border focus:border-primary focus:outline-hidden"
+                            title="Edit price for this item"
+                          />
+                          <span className="text-[11px] text-muted-foreground">
+                            × {item.quantity} = <strong className="text-foreground">{formatCurrency(item.total)}</strong>
+                          </span>
                           {customerSpecialPrices[item.product_id] !== undefined && (
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold ml-1.5">
-                              (Contract Price)
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                              (Contract)
                             </span>
                           )}
-                        </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
