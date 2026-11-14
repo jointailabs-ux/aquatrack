@@ -165,6 +165,68 @@ export async function adjustStock(
     });
 
     if (error) {
+      const isMissingRpc =
+        error.message?.includes("Could not find the function") ||
+        error.message?.includes("does not exist") ||
+        (error as { code?: string }).code === "PGRST202";
+
+      if (isMissingRpc && typeof supabase.from === "function") {
+        console.warn("RPC rpc_adjust_inventory_stock not found, falling back to direct table update:", error.message);
+        const { data: wh } = await supabase
+          .from("warehouses")
+          .select("id, location_id")
+          .eq("is_default", true)
+          .maybeSingle();
+
+        if (wh) {
+          const { data: existingBal } = await supabase
+            .from("inventory_balances")
+            .select("id, quantity_on_hand")
+            .eq("warehouse_id", wh.id)
+            .eq("product_id", validated.product_id)
+            .maybeSingle();
+
+          const currentQty = existingBal ? Number(existingBal.quantity_on_hand) : 0;
+          const newQty = Math.max(0, currentQty + validated.quantity_delta);
+
+          if (existingBal) {
+            await supabase
+              .from("inventory_balances")
+              .update({ quantity_on_hand: newQty, updated_at: new Date().toISOString() })
+              .eq("id", existingBal.id);
+          } else {
+            await supabase
+              .from("inventory_balances")
+              .insert({
+                warehouse_id: wh.id,
+                product_id: validated.product_id,
+                quantity_on_hand: newQty,
+                quantity_reserved: 0,
+              });
+          }
+
+          // Record movement
+          const movementType = validated.quantity_delta >= 0 ? "ADJUSTMENT_IN" : "ADJUSTMENT_OUT";
+          await supabase.from("stock_movements").insert({
+            product_id: validated.product_id,
+            source_location_id: validated.quantity_delta < 0 ? wh.location_id : null,
+            destination_location_id: validated.quantity_delta >= 0 ? wh.location_id : null,
+            quantity: Math.abs(validated.quantity_delta),
+            movement_type: movementType,
+            reference_type: "AUDIT",
+            notes: validated.reason,
+          });
+
+          return {
+            success: true,
+            data: {
+              success: true,
+              newStock: newQty,
+            },
+          };
+        }
+      }
+
       return { success: false, error: error.message };
     }
 

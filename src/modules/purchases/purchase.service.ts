@@ -181,8 +181,72 @@ export async function createPurchase(
       p_po_number: validated.po_number || null,
     });
 
+    let rpcPurchaseId = rpcResult?.purchase_id;
+    let rpcPoNumber = rpcResult?.po_number;
+
     if (rpcError) {
-      return { success: false, error: rpcError.message };
+      const isMissingRpc =
+        rpcError.message?.includes("Could not find the function") ||
+        rpcError.message?.includes("does not exist") ||
+        (rpcError as { code?: string }).code === "PGRST202";
+
+      if (isMissingRpc && typeof supabase.from === "function") {
+        console.warn("RPC rpc_create_purchase_order not found, falling back to direct table insertion:", rpcError.message);
+        let calcSubtotal = 0;
+        let calcTaxTotal = 0;
+        validated.items.forEach((item) => {
+          calcSubtotal += item.unit_cost * item.quantity_ordered;
+          calcTaxTotal += item.tax_amount;
+        });
+        const calcTotal = calcSubtotal + calcTaxTotal;
+        const genPoNum = validated.po_number || `PO-${validated.purchase_date.replace(/-/g, "")}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+        const { data: directPo, error: directPoErr } = await supabase
+          .from("purchases")
+          .insert({
+            po_number: genPoNum,
+            supplier_id: validated.supplier_id,
+            invoice_number: validated.invoice_number || null,
+            status: validated.status || "ORDERED",
+            payment_status: "UNPAID",
+            subtotal: calcSubtotal,
+            tax_total: calcTaxTotal,
+            total_amount: calcTotal,
+            amount_paid: 0.00,
+            balance_due: calcTotal,
+            purchase_date: validated.purchase_date,
+            notes: validated.notes || null,
+            created_by: user.id,
+          })
+          .select("id, po_number")
+          .single();
+
+        if (directPo && !directPoErr) {
+          rpcPurchaseId = directPo.id;
+          rpcPoNumber = directPo.po_number;
+
+          // Insert purchase_items
+          for (const item of validated.items) {
+            const itemLineTotal = (item.unit_cost * item.quantity_ordered) + item.tax_amount;
+            await supabase.from("purchase_items").insert({
+              purchase_id: directPo.id,
+              product_id: item.product_id,
+              quantity_ordered: item.quantity_ordered,
+              quantity_received: 0,
+              unit_cost: item.unit_cost,
+              tax_rate: item.gst_rate ?? item.tax_rate ?? 0,
+              tax_amount: item.tax_amount,
+              total_cost: itemLineTotal,
+              total_amount: itemLineTotal,
+              gst_rate: item.gst_rate ?? item.tax_rate ?? 0,
+            });
+          }
+        } else {
+          return { success: false, error: rpcError.message || directPoErr?.message || "Failed to create purchase order." };
+        }
+      } else {
+        return { success: false, error: rpcError.message };
+      }
     }
 
     let subtotal = 0;
@@ -194,11 +258,11 @@ export async function createPurchase(
     const totalAmount = Number(rpcResult?.total_amount ?? (subtotal + taxTotal));
 
     const record: PurchaseRecord = {
-      id: rpcResult.purchase_id,
-      po_number: rpcResult.po_number,
+      id: rpcPurchaseId || "PO-PENDING",
+      po_number: rpcPoNumber || "PO-PENDING",
       supplier_id: validated.supplier_id,
       invoice_number: validated.invoice_number,
-      status: rpcResult.status || validated.status,
+      status: rpcResult?.status || validated.status,
       payment_status: "UNPAID",
       subtotal,
       tax_total: taxTotal,

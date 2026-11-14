@@ -121,6 +121,57 @@ export async function createCustomer(
     );
 
     if (rpcError) {
+      const isMissingRpc =
+        rpcError.message?.includes("Could not find the function") ||
+        rpcError.message?.includes("does not exist") ||
+        (rpcError as { code?: string }).code === "PGRST202";
+
+      if (isMissingRpc && typeof supabase.from === "function") {
+        console.warn("RPC rpc_create_customer_with_location not found, falling back to direct table creation:", rpcError.message);
+        // Resilient fallback: direct location and customer insertion
+        const { data: locData, error: locError } = await supabase
+          .from("locations")
+          .insert({
+            name: validated.business_name || validated.contact_name,
+            type: "CUSTOMER",
+            address: validated.address,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+
+        if (!locError && locData) {
+          const { data: custData, error: custError } = await supabase
+            .from("customers")
+            .insert({
+              location_id: locData.id,
+              customer_type: validated.customer_type,
+              business_name: validated.business_name || null,
+              contact_name: validated.contact_name,
+              phone: validated.phone,
+              email: validated.email || null,
+              address: validated.address,
+              delivery_instructions: validated.delivery_instructions || null,
+              gstin: validated.gstin || null,
+              credit_limit: validated.credit_limit,
+              max_jar_limit: validated.max_jar_limit,
+              payment_terms_days: validated.payment_terms_days,
+              notes: validated.notes || null,
+              current_balance: 0.00,
+              total_full_jars_holding: 0,
+              total_empty_jars_holding: 0,
+              total_deposit_held: 0.00,
+              is_active: true,
+            })
+            .select("*")
+            .single();
+
+          if (!custError && custData) {
+            return { success: true, data: custData as CustomerRecord };
+          }
+        }
+      }
+
       return { success: false, error: rpcError.message };
     }
 
@@ -321,13 +372,12 @@ export async function recordDirectCustomerPayment(
     // Role and permission check
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, permissions")
+      .select("role, can_manage_orders")
       .eq("id", user.id)
       .single();
 
     const isOwner = profile?.role === "owner";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const canManageOrders = isOwner || !!(profile?.permissions as any)?.can_manage_orders;
+    const canManageOrders = isOwner || !!profile?.can_manage_orders;
     if (!canManageOrders) {
       return { success: false, error: "Permission denied: only authorized staff can record payments." };
     }

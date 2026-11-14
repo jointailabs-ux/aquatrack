@@ -95,6 +95,49 @@ export async function createSupplier(
     );
 
     if (rpcError) {
+      const isMissingRpc =
+        rpcError.message?.includes("Could not find the function") ||
+        rpcError.message?.includes("does not exist") ||
+        (rpcError as { code?: string }).code === "PGRST202";
+
+      if (isMissingRpc && typeof supabase.from === "function") {
+        console.warn("RPC rpc_create_supplier_with_location not found, falling back to direct table creation:", rpcError.message);
+        const { data: locData, error: locError } = await supabase
+          .from("locations")
+          .insert({
+            name: validated.name,
+            type: "SUPPLIER",
+            address: validated.address || null,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+
+        if (!locError && locData) {
+          const { data: suppData, error: suppError } = await supabase
+            .from("suppliers")
+            .insert({
+              location_id: locData.id,
+              name: validated.name,
+              contact_person: validated.contact_person,
+              phone: validated.phone,
+              email: validated.email || null,
+              address: validated.address || null,
+              gstin: validated.gstin || null,
+              payment_terms_days: validated.payment_terms_days,
+              current_payable: 0.00,
+              jars_in_custody: 0,
+              is_active: true,
+            })
+            .select("*")
+            .single();
+
+          if (!suppError && suppData) {
+            return { success: true, data: suppData as SupplierRecord };
+          }
+        }
+      }
+
       return { success: false, error: rpcError.message };
     }
 

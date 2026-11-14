@@ -110,6 +110,53 @@ export async function recordExpense(
     });
 
     if (error) {
+      const isMissingRpc =
+        error.message?.includes("Could not find the function") ||
+        error.message?.includes("does not exist") ||
+        (error as { code?: string }).code === "PGRST202";
+
+      if (isMissingRpc && typeof supabase.from === "function") {
+        console.warn("RPC rpc_record_expense not found, falling back to direct table insertion:", error.message);
+        const voucherNumber = `EXP-${validated.expense_date.replace(/-/g, "")}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+        const { data: userResp } = await supabase.auth.getUser();
+        const userId = userResp?.user?.id || null;
+
+        const { data: expData, error: expError } = await supabase
+          .from("expenses")
+          .insert({
+            voucher_number: voucherNumber,
+            category: validated.category,
+            amount: validated.amount,
+            payment_method: validated.payment_method,
+            expense_date: validated.expense_date,
+            description: validated.description,
+            vehicle_number: validated.vehicle_number || null,
+            receipt_url: validated.receipt_url || null,
+            created_by: userId,
+          })
+          .select("*")
+          .single();
+
+        if (!expError && expData) {
+          return {
+            success: true,
+            data: {
+              id: expData.id,
+              amount: Number(expData.amount),
+              category: expData.category as ExpenseRecord["category"],
+              expense_date: expData.expense_date,
+              payment_method: expData.payment_method as ExpenseRecord["payment_method"],
+              description: expData.description,
+              vehicle_number: expData.vehicle_number,
+              receipt_url: expData.receipt_url,
+              created_by: expData.created_by,
+              created_at: expData.created_at,
+            },
+          };
+        }
+      }
+
       return { success: false, error: error.message };
     }
 
