@@ -80,6 +80,23 @@ export interface DashboardRecentActivityItem {
   href?: string;
 }
 
+export interface DashboardRunningOrderItem {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
+  deliveryDate: string;
+  status: string;
+  totalAmount: number;
+  paymentStatus: string;
+  assignedStaffName?: string;
+  itemsSummary: string;
+  totalQuantity: number;
+  deliveredQuantity: number;
+  deliveryProgressPct: number;
+}
+
 export interface DashboardSummaryData {
   dateRange: {
     range: DashboardDateRangeType;
@@ -92,6 +109,7 @@ export interface DashboardSummaryData {
   trendChart: DailyChartPoint[];
   alerts: OperationalAlertItem[];
   recentActivity: DashboardRecentActivityItem[];
+  runningOrders?: DashboardRunningOrderItem[];
 }
 
 /**

@@ -66,8 +66,15 @@ export async function getDashboardSummary(
       // 4A. All Active / Pending Orders for operational alerts & dispatch metrics
       supabase
         .from("orders")
-        .select("id, order_number, status, total_amount, delivery_date")
-        .in("status", ["PENDING", "CONFIRMED", "ASSIGNED", "OUT_FOR_DELIVERY"]),
+        .select(`
+          id, order_number, status, total_amount, payment_status, delivery_date, delivery_address,
+          customer:customers(contact_name, business_name, phone),
+          assigned_staff:profiles!orders_assigned_staff_id_fkey(full_name),
+          items:order_items(product_name, quantity, delivered_quantity)
+        `)
+        .in("status", ["PENDING", "CONFIRMED", "ASSIGNED", "OUT_FOR_DELIVERY"])
+        .order("delivery_date", { ascending: true })
+        .limit(10),
 
       // 4B. Orders within the selected period (by delivery_date or created_at)
       supabase
@@ -513,6 +520,56 @@ export async function getDashboardSummary(
       accountsPayable,
     };
 
+    // Process Running / Active Orders with delivery progress
+    interface CustomerJoinData {
+      contact_name?: string;
+      business_name?: string;
+      phone?: string;
+    }
+    interface StaffJoinData {
+      full_name?: string;
+    }
+    interface OrderItemData {
+      product_name?: string;
+      quantity?: number;
+      delivered_quantity?: number;
+    }
+
+    const runningOrders = (allActiveOrders || []).map((ord) => {
+      const cust = ord.customer as unknown as CustomerJoinData;
+      const staff = ord.assigned_staff as unknown as StaffJoinData;
+      const items = (ord.items as unknown as OrderItemData[]) || [];
+
+      const totalQuantity = items.reduce((sum, it) => sum + (it.quantity || 0), 0);
+      const deliveredQuantity = items.reduce((sum, it) => sum + (it.delivered_quantity || 0), 0);
+      const deliveryProgressPct = totalQuantity > 0 ? Math.round((deliveredQuantity / totalQuantity) * 100) : 0;
+
+      const itemsSummary = items.length > 0
+        ? items.map((it) => `${it.quantity}× ${it.product_name || "Jar"}`).join(", ")
+        : "Standard 20L Water Jars";
+
+      const customerName = cust?.business_name
+        ? `${cust.business_name} (${cust.contact_name || ""})`
+        : cust?.contact_name || "Valued Customer";
+
+      return {
+        id: ord.id,
+        orderNumber: ord.order_number,
+        customerName,
+        customerPhone: cust?.phone,
+        deliveryAddress: ord.delivery_address,
+        deliveryDate: ord.delivery_date,
+        status: ord.status,
+        totalAmount: Number(ord.total_amount || 0),
+        paymentStatus: ord.payment_status || "UNPAID",
+        assignedStaffName: staff?.full_name || "Unassigned",
+        itemsSummary,
+        totalQuantity,
+        deliveredQuantity,
+        deliveryProgressPct,
+      };
+    });
+
     return {
       success: true,
       data: {
@@ -527,6 +584,7 @@ export async function getDashboardSummary(
         trendChart,
         alerts,
         recentActivity: topRecentActivity,
+        runningOrders,
       },
     };
   } catch (err: unknown) {

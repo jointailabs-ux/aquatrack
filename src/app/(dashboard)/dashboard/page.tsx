@@ -21,6 +21,8 @@ import {
   ChevronUp,
   PlusCircle,
   UserPlus,
+  Zap,
+  UserCheck,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -499,24 +501,24 @@ export default function DashboardPage() {
         <div className="rounded-2xl border border-border/80 bg-card p-3.5 shadow-xs space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Truck className="h-4 w-4 text-sky-600" />
+              <Truck className="h-4 w-4 text-sky-600 dark:text-sky-400" />
               <span className="text-xs font-bold text-foreground">Today&apos;s Deliveries (আজকের ডেলিভারি)</span>
             </div>
             <Link
-              href="/staff"
-              className="text-[11px] font-semibold text-sky-600 hover:underline inline-flex items-center gap-0.5"
+              href="/orders"
+              className="text-[11px] font-semibold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-0.5"
             >
-              View Staff Deliveries <ArrowRight className="h-3 w-3" />
+              All Orders <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
 
           {/* Progress Bar */}
           <div>
-            <div className="flex justify-between text-[11px] font-semibold text-slate-600 mb-1">
+            <div className="flex justify-between text-[11px] font-semibold text-muted-foreground mb-1">
               <span>{kpis.completedDeliveries} Delivered</span>
               <span>{kpis.awaitingDeliveryCount} Left to Deliver</span>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
                 style={{ width: `${deliveryPct}%` }}
@@ -524,6 +526,83 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Live Running Orders Feed */}
+        {dashboardData?.runningOrders && dashboardData.runningOrders.length > 0 && (
+          <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-br from-white via-sky-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 p-3.5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                  Currently Running Orders ({dashboardData.runningOrders.length})
+                </span>
+              </div>
+              <Link
+                href="/orders"
+                className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-0.5"
+              >
+                Dispatch Center ›
+              </Link>
+            </div>
+
+            <div className="space-y-2">
+              {dashboardData.runningOrders.slice(0, 4).map((ro) => (
+                <div
+                  key={ro.id}
+                  className="rounded-xl border border-border/80 bg-background/80 backdrop-blur-xs p-2.5 space-y-2 shadow-2xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-mono font-bold text-[11px] text-foreground">
+                        {ro.orderNumber}
+                      </span>
+                      <Badge
+                        variant={ro.status === "ASSIGNED" ? "primary" : "warning"}
+                        className="text-[9px] py-0 px-1"
+                      >
+                        {ro.status.replace(/_/g, " ")}
+                      </Badge>
+                    </div>
+                    <span className="text-xs font-black text-foreground">
+                      {formatCurrency(ro.totalAmount)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <h5 className="font-bold text-foreground truncate">{ro.customerName}</h5>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {ro.deliveryAddress || "Standard Route Delivery"}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] text-muted-foreground block">Assigned Staff</span>
+                      <span className="font-bold text-sky-700 dark:text-sky-300 inline-flex items-center gap-0.5 text-[11px]">
+                        <UserCheck className="h-3 w-3" />
+                        {ro.assignedStaffName}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Delivery progress */}
+                  <div className="pt-1.5 border-t border-border/40">
+                    <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground mb-1">
+                      <span className="truncate max-w-[200px]">📦 {ro.itemsSummary}</span>
+                      <span>{ro.deliveredQuantity}/{ro.totalQuantity} Delivered ({ro.deliveryProgressPct}%)</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 rounded-full"
+                        style={{ width: `${Math.max(5, ro.deliveryProgressPct)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* E. Operational Alerts (if any) */}
         {alerts.length > 0 && (
@@ -1081,7 +1160,78 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Running Orders Live Panel in Desktop */}
+          <Card className="border-sky-500/30 bg-gradient-to-br from-card to-sky-500/5 shadow-xs flex flex-col justify-between">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  Currently Running Orders
+                </CardTitle>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Active dispatches & delivery completion status.
+                </p>
+              </div>
+              <Link href="/orders" className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline">
+                View All ›
+              </Link>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2.5 max-h-[290px] overflow-y-auto pr-1">
+              {!dashboardData?.runningOrders || dashboardData.runningOrders.length === 0 ? (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  <Truck className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                  All customer orders have been delivered!
+                </div>
+              ) : (
+                dashboardData.runningOrders.map((ro) => (
+                  <div
+                    key={ro.id}
+                    className="p-2.5 rounded-xl border border-border/80 bg-background/90 space-y-1.5 shadow-2xs hover:border-sky-400/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-1 text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-mono font-bold text-[11px] text-foreground">{ro.orderNumber}</span>
+                        <Badge
+                          variant={ro.status === "ASSIGNED" ? "primary" : "warning"}
+                          className="text-[9px] py-0 px-1"
+                        >
+                          {ro.status.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                      <span className="font-bold text-primary text-xs">{formatCurrency(ro.totalAmount)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-foreground truncate max-w-[150px]">{ro.customerName}</span>
+                      <span className="text-[10px] text-sky-700 dark:text-sky-300 font-bold flex items-center gap-0.5">
+                        <UserCheck className="h-2.5 w-2.5" />
+                        {ro.assignedStaffName}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 pt-1 border-t border-border/30">
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span className="truncate max-w-[170px]">{ro.itemsSummary}</span>
+                        <span className="font-bold text-foreground">
+                          {ro.deliveredQuantity}/{ro.totalQuantity} Delivered ({ro.deliveryProgressPct}%)
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 rounded-full"
+                          style={{ width: `${Math.max(5, ro.deliveryProgressPct)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-3">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">

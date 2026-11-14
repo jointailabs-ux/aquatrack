@@ -213,9 +213,11 @@ describe("Dashboard Module & Section 12 Invariants", () => {
             };
           }
           if (table === "orders") {
-            return {
+            const queryBuilder: any = {
               select: vi.fn().mockReturnThis(),
-              in: vi.fn().mockResolvedValue({
+              in: vi.fn().mockReturnThis(),
+              order: vi.fn().mockReturnThis(),
+              limit: vi.fn().mockResolvedValue({
                 data: [
                   { id: "ord-1", order_number: "ORD-001", status: "PENDING", total_amount: 1500, delivery_date: "2026-11-06" },
                 ],
@@ -239,6 +241,7 @@ describe("Dashboard Module & Section 12 Invariants", () => {
                 error: null,
               }),
             };
+            return queryBuilder;
           }
           if (table === "delivery_stops") {
             return {
