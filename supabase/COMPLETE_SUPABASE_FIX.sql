@@ -446,6 +446,12 @@ END $$;
 -- 5. ATOMIC RPC FUNCTIONS (ALL 17 FUNCTIONS)
 -- ==============================================================================
 
+-- Drop legacy overloaded signatures to prevent PostgREST routing ambiguity
+DROP FUNCTION IF EXISTS public.rpc_complete_pos_sale(jsonb, character varying, numeric, numeric, character varying, text);
+DROP FUNCTION IF EXISTS public.rpc_execute_delivery_stop(uuid, integer, integer, integer, numeric, character varying, text, text);
+DROP FUNCTION IF EXISTS public.rpc_record_jar_movement(uuid, uuid, character varying, character varying, integer, character varying, character varying, uuid, text);
+DROP FUNCTION IF EXISTS public.rpc_record_salary_payment(uuid, character varying, numeric, numeric, numeric, numeric, character varying, date, text);
+
 -- ------------------------------------------------------------------------------
 -- RPC 1: rpc_create_customer_with_location
 -- ------------------------------------------------------------------------------
@@ -2391,24 +2397,6 @@ GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres, anon, authenticated, service_role;
-
-GRANT EXECUTE ON FUNCTION public.rpc_create_customer_with_location TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_create_supplier_with_location TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_create_warehouse_with_location TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_adjust_inventory_stock TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_complete_pos_sale TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_create_customer_order TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_cancel_customer_order TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_execute_delivery_stop TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_record_expense TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_create_purchase_order TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_receive_purchase_order TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_record_supplier_payment TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_record_salary_advance TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_record_salary_payment TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_reverse_financial_entry TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_settle_driver_cash TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.rpc_record_jar_movement TO anon, authenticated, service_role;
 
 -- ==============================================================================
 -- 7. PERMISSIVE ROW LEVEL SECURITY (RLS) POLICIES
