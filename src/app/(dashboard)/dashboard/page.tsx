@@ -503,10 +503,10 @@ export default function DashboardPage() {
               <span className="text-xs font-bold text-foreground">Today&apos;s Deliveries (আজকের ডেলিভারি)</span>
             </div>
             <Link
-              href="/deliveries"
+              href="/staff"
               className="text-[11px] font-semibold text-sky-600 hover:underline inline-flex items-center gap-0.5"
             >
-              View Stops <ArrowRight className="h-3 w-3" />
+              View Staff Deliveries <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
 

@@ -68,3 +68,21 @@ export interface InventoryValuationSummary {
   total_inventory_valuation: number;
   low_stock_items_count: number;
 }
+
+/**
+ * Pure calculation helper to derive valuation summary from stock items
+ */
+export function calculateInventoryValuationFromItems(
+  items: InventoryItemRecord[]
+): InventoryValuationSummary {
+  const totalUnits = items.reduce((sum, item) => sum + item.current_stock, 0);
+  const totalValuation = items.reduce((sum, item) => sum + item.valuation, 0);
+  const lowStockCount = items.filter((item) => item.available_stock <= item.reorder_level).length;
+
+  return {
+    total_distinct_products: items.length,
+    total_units_in_warehouse: totalUnits,
+    total_inventory_valuation: totalValuation,
+    low_stock_items_count: lowStockCount,
+  };
+}

@@ -134,12 +134,12 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     label: "WORKFORCE",
     items: [
       {
-        title: "Staff & Drivers",
+        title: "Staff & Deliveries",
         href: "/staff",
         icon: UserCheck,
         isImplemented: true,
         moduleNumber: 11,
-        roles: ["owner"],
+        roles: ["owner", "staff"],
       },
       {
         title: "Staff Salaries",
@@ -196,8 +196,4 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       },
     ],
   },
-];
-
-export const DRIVER_NAVIGATION = [
-  { title: "Today's Route", href: "/driver", icon: Truck },
 ];

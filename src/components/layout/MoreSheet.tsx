@@ -8,7 +8,6 @@ import {
   Search,
   ShoppingCart,
   RotateCcw,
-  Truck,
   Package,
   Building2,
   ShoppingBag,
@@ -67,22 +66,6 @@ const DESTINATIONS: DestinationItem[] = [
     category: "operations",
   },
   {
-    title: "Delivery Trips",
-    href: "/deliveries",
-    description: "Daily routes & driver stops",
-    icon: Truck,
-    badge: "Fleet",
-    category: "operations",
-  },
-  {
-    title: "Driver App Mode",
-    href: "/driver",
-    description: "Mobile execution shell for drivers",
-    icon: Truck,
-    badge: "Driver",
-    category: "operations",
-  },
-  {
     title: "Central Warehouse",
     href: "/warehouses",
     description: "Depot locations & balances",
@@ -126,11 +109,11 @@ const DESTINATIONS: DestinationItem[] = [
 
   // Workforce
   {
-    title: "Staff Members",
+    title: "Staff & Deliveries",
     href: "/staff",
-    description: "Employees & access permissions",
+    description: "Daily staff delivery tracking, jars & collections",
     icon: UserCheck,
-    ownerOnly: true,
+    badge: "Deliveries",
     category: "workforce",
   },
   {

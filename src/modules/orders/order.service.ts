@@ -307,6 +307,48 @@ export async function createOrder(
 }
 
 /**
+ * Assign or reassign a staff member to an order
+ */
+export async function assignOrderStaff(
+  orderId: string,
+  staffId: string | null
+): Promise<ActionResponse<{ success: boolean }>> {
+  try {
+    const supabase = await createClient();
+    const { error: orderErr } = await supabase
+      .from("orders")
+      .update({
+        assigned_staff_id: staffId,
+        status: staffId ? "ASSIGNED" : "PENDING",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    if (orderErr) {
+      return { success: false, error: orderErr.message };
+    }
+
+    // Also update active delivery stops
+    if (staffId) {
+      await supabase
+        .from("delivery_stops")
+        .update({
+          assigned_staff_id: staffId,
+          status: "ASSIGNED",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("order_id", orderId)
+        .in("status", ["PENDING", "ASSIGNED", "EN_ROUTE"]);
+    }
+
+    return { success: true, data: { success: true } };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to assign staff.";
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Mobile Delivery Driver API: Resolves a stop identifier and loads its authoritative order.
  * Strictly separates delivery stop ID (delivery_stops.id) from order ID (orders.id).
  * Handles both:

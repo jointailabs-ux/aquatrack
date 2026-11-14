@@ -1,11 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
   Plus,
   Search,
-  Truck,
   ShoppingCart,
   Trash2,
   AlertTriangle,
@@ -14,6 +12,8 @@ import {
   Package,
   Zap,
   Sparkles,
+  CheckCircle2,
+  UserCheck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -25,7 +25,13 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useToast } from "@/components/ui/Toast";
-import { getOrders, createOrder, cancelCustomerOrder } from "@/modules/orders/order.service";
+import {
+  getOrders,
+  createOrder,
+  cancelCustomerOrder,
+  executeDeliveryStop,
+  assignOrderStaff,
+} from "@/modules/orders/order.service";
 import { OrderRecord, CreateOrderInput, OrderStatus } from "@/modules/orders/order.schema";
 import { getStaffMembers } from "@/modules/staff/staff.service";
 import { getCustomers, getCustomerSpecialPrices } from "@/modules/customers/customer.service";
@@ -81,6 +87,20 @@ export default function OrdersPage() {
   const [cancelReason, setCancelReason] = React.useState("");
   const [isCancelling, setIsCancelling] = React.useState(false);
 
+  // Direct Delivery Modal State
+  const [orderToDeliver, setOrderToDeliver] = React.useState<OrderRecord | null>(null);
+  const [deliverStaffId, setDeliverStaffId] = React.useState<string>("");
+  const [deliverQty, setDeliverQty] = React.useState<number>(1);
+  const [emptyCollected, setEmptyCollected] = React.useState<number>(0);
+  const [amountCollected, setAmountCollected] = React.useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = React.useState<"CASH" | "UPI" | "CREDIT">("CASH");
+  const [deliveryNotes, setDeliveryNotes] = React.useState<string>("");
+  const [isDelivering, setIsDelivering] = React.useState(false);
+
+  // Quick Staff Reassignment Modal State
+  const [orderToReassign, setOrderToReassign] = React.useState<OrderRecord | null>(null);
+  const [isReassigning, setIsReassigning] = React.useState(false);
+
   // Load initial data
   const loadData = React.useCallback(async () => {
     if (!cachedOrdersState) {
@@ -101,7 +121,7 @@ export default function OrdersPage() {
 
       const freshOrders = ordersRes.data || [];
       const freshCustomers = custRes.success && custRes.data ? custRes.data.items : [];
-      const freshStaff = staffRes.success && staffRes.data ? staffRes.data.filter((s) => s.role === "staff") : [];
+      const freshStaff = staffRes.success && staffRes.data ? staffRes.data.filter((s) => s.is_active !== false) : [];
       const freshProducts = prodRes.success && prodRes.data?.items ? prodRes.data.items.filter((p) => p.is_active) : [];
 
       setOrders(freshOrders);
@@ -575,6 +595,142 @@ export default function OrdersPage() {
     }
   };
 
+  // Direct Delivery Modal Handlers
+  const openDeliverModal = (order: OrderRecord) => {
+    setOrderToDeliver(order);
+    setDeliverStaffId(order.assigned_staff_id || (staffList.length > 0 ? staffList[0].id : ""));
+    const totalUnits = order.items && order.items.length > 0
+      ? order.items.reduce((sum, i) => sum + i.quantity, 0)
+      : 1;
+    setDeliverQty(totalUnits);
+    setEmptyCollected(totalUnits);
+    setAmountCollected(Number(order.total_amount || 0));
+    setPaymentMethod("CASH");
+    setDeliveryNotes("");
+  };
+
+  const handleConfirmDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderToDeliver) return;
+
+    if (deliverQty < 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Quantity",
+        message: "Delivered quantity cannot be negative.",
+      });
+      return;
+    }
+
+    setIsDelivering(true);
+    try {
+      // Reassign staff if changed in delivery modal
+      if (deliverStaffId && deliverStaffId !== orderToDeliver.assigned_staff_id) {
+        await assignOrderStaff(orderToDeliver.id, deliverStaffId);
+      }
+
+      const res = await executeDeliveryStop({
+        order_id: orderToDeliver.id,
+        actual_quantity_delivered: deliverQty,
+        empty_jars_collected: emptyCollected,
+        damaged_jars_collected: 0,
+        amount_collected: paymentMethod === "CREDIT" ? 0 : amountCollected,
+        payment_method: paymentMethod,
+        delivery_notes: deliveryNotes.trim() || undefined,
+      });
+
+      if (!res.success) {
+        throw new Error(res.error || "Failed to mark order as delivered.");
+      }
+
+      // Optimistic local update
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderToDeliver.id
+            ? {
+                ...o,
+                status: "DELIVERED",
+                payment_status: paymentMethod === "CREDIT" ? "PENDING" : amountCollected >= o.total_amount ? "PAID" : "PARTIALLY_PAID",
+                amount_paid: paymentMethod === "CREDIT" ? o.amount_paid : amountCollected,
+                actual_quantity_delivered: deliverQty,
+                empty_jars_collected: emptyCollected,
+                delivered_at: new Date().toISOString(),
+              }
+            : o
+        )
+      );
+
+      addToast({
+        type: "success",
+        title: "Delivery Completed! / ডেলিভারি সম্পন্ন",
+        message: `Order #${orderToDeliver.order_number} marked delivered. Customer jars & dues updated.`,
+      });
+
+      setOrderToDeliver(null);
+      loadData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to record delivery.";
+      addToast({
+        type: "error",
+        title: "Delivery Failed",
+        message: msg,
+      });
+    } finally {
+      setIsDelivering(false);
+    }
+  };
+
+  // Staff Reassignment Handlers
+  const openReassignModal = (order: OrderRecord) => {
+    setOrderToReassign(order);
+  };
+
+  const handleExecuteReassign = async (staffId: string | null) => {
+    if (!orderToReassign) return;
+    setIsReassigning(true);
+    try {
+      const res = await assignOrderStaff(orderToReassign.id, staffId);
+      if (!res.success) {
+        throw new Error(res.error || "Failed to assign staff.");
+      }
+
+      const assignedStaff = staffList.find((s) => s.id === staffId);
+      const staffName = assignedStaff ? assignedStaff.full_name : null;
+
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderToReassign.id
+            ? {
+                ...o,
+                assigned_staff_id: staffId,
+                assigned_staff_name: staffName,
+                status: staffId ? "ASSIGNED" : "PENDING",
+              }
+            : o
+        )
+      );
+
+      addToast({
+        type: "success",
+        title: staffId ? "Staff Assigned" : "Order Unassigned",
+        message: staffId
+          ? `Order #${orderToReassign.order_number} assigned to ${staffName}.`
+          : `Order #${orderToReassign.order_number} returned to unassigned pool.`,
+      });
+
+      setOrderToReassign(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Staff assignment failed.";
+      addToast({
+        type: "error",
+        title: "Assignment Failed",
+        message: msg,
+      });
+    } finally {
+      setIsReassigning(false);
+    }
+  };
+
   // Filtered Orders
   const filteredOrders = React.useMemo(() => {
     return orders.filter((o) => {
@@ -780,20 +936,25 @@ export default function OrdersPage() {
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
                     <div>
                       <span className="text-[10px] text-muted-foreground font-medium block">
-                        Assigned Driver
+                        Assigned Staff (ডেলিভারি স্টাফ)
                       </span>
-                      <span className="font-semibold text-foreground truncate block">
+                      <button
+                        type="button"
+                        onClick={() => openReassignModal(o)}
+                        className="font-semibold text-foreground truncate block hover:underline text-left cursor-pointer"
+                        title="Click to assign or change staff"
+                      >
                         {o.assigned_staff_name ? (
-                          <span className="inline-flex items-center gap-1">
-                            <Truck className="h-3 w-3 text-primary shrink-0" />
+                          <span className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-300 font-bold">
+                            <UserCheck className="h-3 w-3 shrink-0" />
                             {o.assigned_staff_name}
                           </span>
                         ) : (
-                          <span className="text-amber-600 dark:text-amber-400 font-medium">
-                            Unassigned
+                          <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5">
+                            + Assign Staff
                           </span>
                         )}
-                      </span>
+                      </button>
                     </div>
 
                     <div>
@@ -829,15 +990,22 @@ export default function OrdersPage() {
                           Cancel
                         </Button>
                       )}
-                      <Link href="/deliveries">
+                      {o.status !== "DELIVERED" && o.status !== "CANCELLED" ? (
                         <Button
                           variant="primary"
                           size="sm"
-                          className="h-7 text-[11px] px-2.5 font-semibold"
+                          onClick={() => openDeliverModal(o)}
+                          className="h-7 text-[11px] px-2.5 font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs"
                         >
-                          Route Stop
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          Mark Delivered
                         </Button>
-                      </Link>
+                      ) : o.status === "DELIVERED" ? (
+                        <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Delivered
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -885,19 +1053,26 @@ export default function OrdersPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          {o.assigned_staff_name ? (
-                            <span className="font-medium text-foreground flex items-center gap-1.5">
-                              <Truck className="h-3.5 w-3.5 text-primary" />
-                              {o.assigned_staff_name}
-                            </span>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] py-0 text-amber-500 border-amber-500/30"
-                            >
-                              Unassigned
-                            </Badge>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => openReassignModal(o)}
+                            className="text-xs hover:underline flex items-center gap-1.5 cursor-pointer text-left"
+                            title="Click to assign or change staff"
+                          >
+                            {o.assigned_staff_name ? (
+                              <span className="font-bold text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                                <UserCheck className="h-3.5 w-3.5" />
+                                {o.assigned_staff_name}
+                              </span>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] py-0 text-amber-600 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20"
+                              >
+                                + Assign Staff
+                              </Badge>
+                            )}
+                          </button>
                         </td>
                         <td className="py-3 px-4 max-w-xs">
                           <div className="space-y-0.5">
@@ -976,22 +1151,39 @@ export default function OrdersPage() {
                           )}
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
-                          {canCancelOrder(o.status) ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setOrderToCancel(o);
-                                setCancelReason("");
-                              }}
-                              className="h-7 px-2 text-[11px] gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/40"
-                            >
-                              <Ban className="h-3 w-3" />
-                              Cancel
-                            </Button>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">—</span>
-                          )}
+                          <div className="flex items-center justify-end gap-1.5">
+                            {o.status !== "DELIVERED" && o.status !== "CANCELLED" && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => openDeliverModal(o)}
+                                className="h-7 px-2.5 text-[11px] font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs"
+                              >
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Deliver
+                              </Button>
+                            )}
+                            {canCancelOrder(o.status) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setOrderToCancel(o);
+                                  setCancelReason("");
+                                }}
+                                className="h-7 px-2 text-[11px] gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/40"
+                              >
+                                <Ban className="h-3 w-3" />
+                                Cancel
+                              </Button>
+                            )}
+                            {o.status === "DELIVERED" && (
+                              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Done
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1088,22 +1280,39 @@ export default function OrdersPage() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Assign Delivery Staff (Optional)
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                  <span>Assign Delivery Staff (ডেলিভারি স্টাফ নির্বাচন)</span>
+                  <span className="text-[10px] text-muted-foreground">Tap staff name to assign</span>
                 </label>
-                <select
-                  value={assignedStaffId}
-                  onChange={(e) => setAssignedStaffId(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
-                >
-                  <option value="">-- Unassigned (Fleet Pool) --</option>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setAssignedStaffId("")}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+                      !assignedStaffId
+                        ? "bg-slate-800 text-white border-slate-700 shadow-xs"
+                        : "bg-card hover:bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    -- Unassigned --
+                  </button>
                   {staffList.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name}
-                    </option>
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setAssignedStaffId(s.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                        assignedStaffId === s.id
+                          ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm shadow-sky-500/30 scale-102"
+                          : "bg-card hover:bg-sky-50 text-foreground border-border hover:border-sky-300 dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <UserCheck className="h-3.5 w-3.5" />
+                      <span>{s.full_name}</span>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -1537,6 +1746,225 @@ export default function OrdersPage() {
           </div>
         )}
       </ConfirmDialog>
+
+      {/* DIRECT DELIVERY EXECUTION MODAL */}
+      <Dialog
+        isOpen={Boolean(orderToDeliver)}
+        onClose={() => !isDelivering && setOrderToDeliver(null)}
+        className="max-w-md"
+      >
+        {orderToDeliver && (
+          <form onSubmit={handleConfirmDelivery} className="p-4 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div>
+                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  Mark Order Delivered (ডেলিভারি সম্পন্ন)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Order #{orderToDeliver.order_number} • {orderToDeliver.customer_name}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Customer & Address Details */}
+              <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Customer:</span>
+                  <span className="font-bold text-foreground">{orderToDeliver.customer_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Phone:</span>
+                  <span className="font-mono text-foreground">{orderToDeliver.customer_phone || "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Address:</span>
+                  <span className="text-foreground text-right max-w-[200px] truncate">{orderToDeliver.delivery_address}</span>
+                </div>
+              </div>
+
+              {/* Staff Who Delivered */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">
+                  Delivered by Staff *
+                </label>
+                <select
+                  value={deliverStaffId}
+                  onChange={(e) => setDeliverStaffId(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background p-2 text-xs text-foreground font-semibold"
+                  required
+                >
+                  <option value="">-- Choose Staff Member --</option>
+                  {staffList.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quantity Delivered & Empty Jars Collected */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">
+                    Full Jars Delivered *
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={deliverQty}
+                    onChange={(e) => setDeliverQty(parseInt(e.target.value, 10) || 0)}
+                    className="text-xs font-bold"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">
+                    Empty Jars Collected
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={emptyCollected}
+                    onChange={(e) => setEmptyCollected(parseInt(e.target.value, 10) || 0)}
+                    className="text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Payment Mode & Amount Collected */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Payment Collection (টাকা আদায়)
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["CASH", "UPI", "CREDIT"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPaymentMethod(m)}
+                      className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
+                        paymentMethod === m
+                          ? "bg-primary text-white border-primary shadow-xs"
+                          : "bg-card text-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      {m === "CASH" ? "Cash (নগদ)" : m === "UPI" ? "Online UPI" : "Credit (বাকি)"}
+                    </button>
+                  ))}
+                </div>
+
+                {paymentMethod !== "CREDIT" && (
+                  <div className="pt-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={amountCollected}
+                      onChange={(e) => setAmountCollected(parseFloat(e.target.value) || 0)}
+                      placeholder={`Amount (₹${orderToDeliver.total_amount})`}
+                      className="text-xs font-bold"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Delivery Notes */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">
+                  Notes (ঐচ্ছিক মন্তব্য)
+                </label>
+                <Input
+                  value={deliveryNotes}
+                  onChange={(e) => setDeliveryNotes(e.target.value)}
+                  placeholder="e.g. Delivered to reception, empty jar seal checked"
+                  className="text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setOrderToDeliver(null)}
+                disabled={isDelivering}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isDelivering}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold"
+              >
+                {isDelivering ? "Recording..." : "Confirm Delivery (ডেলিভারি কনফার্ম)"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+
+      {/* QUICK REASSIGN STAFF DIALOG */}
+      <Dialog
+        isOpen={Boolean(orderToReassign)}
+        onClose={() => !isReassigning && setOrderToReassign(null)}
+        className="max-w-sm"
+      >
+        {orderToReassign && (
+          <div className="p-4 sm:p-5 space-y-4">
+            <div>
+              <h3 className="text-base font-bold text-foreground">
+                Assign Delivery Staff
+              </h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Order #{orderToReassign.order_number} • {orderToReassign.customer_name}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleExecuteReassign(null)}
+                disabled={isReassigning}
+                className="w-full p-2.5 rounded-xl border border-border bg-card hover:bg-muted text-xs font-bold text-left flex items-center justify-between transition-all cursor-pointer"
+              >
+                <span>-- Unassigned (ফ্লিট পুল) --</span>
+                {!orderToReassign.assigned_staff_id && <CheckCircle2 className="h-4 w-4 text-primary" />}
+              </button>
+
+              {staffList.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleExecuteReassign(s.id)}
+                  disabled={isReassigning}
+                  className="w-full p-2.5 rounded-xl border border-border bg-card hover:bg-muted text-xs font-bold text-left flex items-center justify-between transition-all cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-sky-600" />
+                    {s.full_name}
+                  </span>
+                  {orderToReassign.assigned_staff_id === s.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-border">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOrderToReassign(null)}
+                disabled={isReassigning}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }

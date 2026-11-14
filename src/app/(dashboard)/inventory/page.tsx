@@ -26,7 +26,6 @@ import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import {
   getInventoryStockLevels,
-  getInventoryValuationSummary,
   getStockMovements,
   adjustStock,
 } from "@/modules/inventory/inventory.service";
@@ -35,14 +34,38 @@ import {
   InventoryMovementRecord,
   InventoryValuationSummary,
   StockMovementType,
+  calculateInventoryValuationFromItems,
 } from "@/modules/inventory/inventory.schema";
 import { formatCurrency } from "@/lib/utils";
+
+const STOCK_STORAGE_KEY = "aquatrack_inventory_cache_v2";
 
 // Module-level client cache for instant zero-latency inventory transitions
 let cachedInventoryState: {
   items: InventoryItemRecord[];
   summary: InventoryValuationSummary | null;
 } | null = null;
+
+function getInitialStock(): { items: InventoryItemRecord[]; summary: InventoryValuationSummary | null } {
+  if (cachedInventoryState && cachedInventoryState.items.length > 0) {
+    return cachedInventoryState;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(STOCK_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.items) && parsed.items.length > 0) {
+          cachedInventoryState = parsed;
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+  return { items: [], summary: null };
+}
 
 interface CategoryTabConfig {
   id: string;
@@ -105,9 +128,12 @@ const CATEGORY_TABS: CategoryTabConfig[] = [
 export default function SingleWarehouseInventoryPage() {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = React.useState<"stock" | "history">("stock");
-  const [items, setItems] = React.useState<InventoryItemRecord[]>(() => cachedInventoryState?.items || []);
-  const [summary, setSummary] = React.useState<InventoryValuationSummary | null>(() => cachedInventoryState?.summary || null);
-  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedInventoryState);
+  
+  // Instant persistent hydration from cache (zero white flicker)
+  const initial = React.useMemo(() => getInitialStock(), []);
+  const [items, setItems] = React.useState<InventoryItemRecord[]>(initial.items);
+  const [summary, setSummary] = React.useState<InventoryValuationSummary | null>(initial.summary);
+  const [isLoading, setIsLoading] = React.useState<boolean>(initial.items.length === 0);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState("ALL");
   const [showLowStockOnly, setShowLowStockOnly] = React.useState(false);
@@ -160,26 +186,26 @@ export default function SingleWarehouseInventoryPage() {
 
   const loadData = React.useCallback(async () => {
     try {
-      if (!cachedInventoryState) {
-        setIsLoading(true);
-      }
-      const [itemsRes, summaryRes] = await Promise.all([
-        getInventoryStockLevels(),
-        getInventoryValuationSummary(),
-      ]);
+      // Single server action: fetch stock items and compute summary locally in-memory
+      const itemsRes = await getInventoryStockLevels();
 
       if (itemsRes.success && itemsRes.data) {
-        setItems(itemsRes.data);
-      }
-      if (summaryRes.success && summaryRes.data) {
-        setSummary(summaryRes.data);
-      }
+        const freshItems = itemsRes.data;
+        const freshSummary = calculateInventoryValuationFromItems(freshItems);
+        
+        setItems(freshItems);
+        setSummary(freshSummary);
 
-      if (itemsRes.success && itemsRes.data) {
         cachedInventoryState = {
-          items: itemsRes.data,
-          summary: summaryRes.success ? summaryRes.data : null,
+          items: freshItems,
+          summary: freshSummary,
         };
+
+        try {
+          localStorage.setItem(STOCK_STORAGE_KEY, JSON.stringify(cachedInventoryState));
+        } catch {
+          // Ignore quota errors
+        }
       }
     } catch {
       addToast({

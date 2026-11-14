@@ -8,7 +8,11 @@ import {
   InventoryValuationSummary,
   StockAdjustmentInput,
   StockAdjustmentInputSchema,
+  calculateInventoryValuationFromItems,
 } from "./inventory.schema";
+
+// Server module-level cache for default warehouse ID to eliminate redundant lookups
+let cachedDefaultWarehouseId: string | null = null;
 
 /**
  * Retrieve current warehouse inventory balances across all products
@@ -18,56 +22,128 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
   try {
     const supabase = await createClient();
 
-    // 1. Fetch default central warehouse
-    const { data: defaultWh, error: whError } = await supabase
-      .from("warehouses")
-      .select("id")
-      .eq("is_default", true)
-      .maybeSingle();
+    let warehouseId = cachedDefaultWarehouseId;
 
-    if (whError) {
-      return { success: false, error: whError.message };
-    }
-
-    let warehouseId = defaultWh?.id;
+    // Fetch warehouseId in parallel if not cached
     if (!warehouseId) {
-      const { data: fallbackWh } = await supabase
-        .from("warehouses")
-        .select("id")
-        .limit(1)
-        .maybeSingle();
-      warehouseId = fallbackWh?.id;
+      const [whRes, prodRes] = await Promise.all([
+        supabase
+          .from("warehouses")
+          .select("id")
+          .eq("is_default", true)
+          .maybeSingle(),
+        supabase
+          .from("products")
+          .select("id, sku, name, category, unit_of_measure, cost_price, is_reusable_jar, is_active, reorder_level")
+          .eq("is_active", true)
+          .order("name", { ascending: true }),
+      ]);
+
+      if (whRes.error) {
+        return { success: false, error: whRes.error.message };
+      }
+
+      warehouseId = whRes.data?.id || null;
+      if (!warehouseId) {
+        const { data: fallbackWh } = await supabase
+          .from("warehouses")
+          .select("id")
+          .limit(1)
+          .maybeSingle();
+        warehouseId = fallbackWh?.id || null;
+      }
+
+      if (warehouseId) {
+        cachedDefaultWarehouseId = warehouseId;
+      }
+
+      if (prodRes.error) {
+        return { success: false, error: prodRes.error.message };
+      }
+
+      const products = prodRes.data || [];
+      const balancesMap = new Map<string, { onHand: number; reserved: number; updatedAt: string }>();
+
+      if (warehouseId) {
+        const { data: balances } = await supabase
+          .from("inventory_balances")
+          .select("product_id, quantity_on_hand, quantity_reserved, updated_at")
+          .eq("warehouse_id", warehouseId);
+
+        (balances || []).forEach((b) => {
+          balancesMap.set(b.product_id, {
+            onHand: Number(b.quantity_on_hand || 0),
+            reserved: Number(b.quantity_reserved || 0),
+            updatedAt: b.updated_at,
+          });
+        });
+      }
+
+      const inventoryItems: InventoryItemRecord[] = products.map((p) => {
+        const cost = Number(p.cost_price || 0);
+        const balance = balancesMap.get(p.id);
+        const stock = balance?.onHand ?? 0;
+        const reserved = balance?.reserved ?? 0;
+        const rawAvailable = stock - reserved;
+        const available = Math.max(0, rawAvailable);
+        const overcommitted = Math.max(0, reserved - stock);
+        const pWithReorder = p as { reorder_level?: number | null };
+        const reorderLevel =
+          pWithReorder.reorder_level !== undefined && pWithReorder.reorder_level !== null
+            ? Number(pWithReorder.reorder_level)
+            : 50;
+        const shortage = Math.max(0, reorderLevel - available);
+
+        return {
+          product_id: p.id,
+          sku: p.sku,
+          name: p.name,
+          category: p.category,
+          unit_of_measure: p.unit_of_measure,
+          current_stock: stock,
+          reserved_stock: reserved,
+          available_stock: available,
+          raw_available_stock: rawAvailable,
+          overcommitted_stock: overcommitted,
+          reorder_level: reorderLevel,
+          shortage,
+          cost_price: cost,
+          valuation: stock * cost,
+          is_reusable_jar: p.is_reusable_jar,
+          updated_at: balance?.updatedAt || new Date().toISOString(),
+        };
+      });
+
+      return { success: true, data: inventoryItems };
     }
 
-    // 2. Fetch products list
-    const { data: products, error: prodError } = await supabase
-      .from("products")
-      .select("id, sku, name, category, unit_of_measure, cost_price, is_reusable_jar, is_active, reorder_level")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
-
-    if (prodError) {
-      return { success: false, error: prodError.message };
-    }
-
-    // 3. Fetch existing inventory balances for this warehouse
-    const balancesMap = new Map<string, { onHand: number; reserved: number; updatedAt: string }>();
-    if (warehouseId) {
-      const { data: balances } = await supabase
+    // Fast path: warehouseId already known, fetch products and balances simultaneously
+    const [prodRes, balancesRes] = await Promise.all([
+      supabase
+        .from("products")
+        .select("id, sku, name, category, unit_of_measure, cost_price, is_reusable_jar, is_active, reorder_level")
+        .eq("is_active", true)
+        .order("name", { ascending: true }),
+      supabase
         .from("inventory_balances")
         .select("product_id, quantity_on_hand, quantity_reserved, updated_at")
-        .eq("warehouse_id", warehouseId);
+        .eq("warehouse_id", warehouseId),
+    ]);
 
-      (balances || []).forEach((b) => {
-        balancesMap.set(b.product_id, {
-          onHand: Number(b.quantity_on_hand || 0),
-          reserved: Number(b.quantity_reserved || 0),
-          updatedAt: b.updated_at,
-        });
-      });
+    if (prodRes.error) {
+      return { success: false, error: prodRes.error.message };
     }
 
-    const inventoryItems: InventoryItemRecord[] = (products || []).map((p) => {
+    const balancesMap = new Map<string, { onHand: number; reserved: number; updatedAt: string }>();
+    (balancesRes.data || []).forEach((b) => {
+      balancesMap.set(b.product_id, {
+        onHand: Number(b.quantity_on_hand || 0),
+        reserved: Number(b.quantity_reserved || 0),
+        updatedAt: b.updated_at,
+      });
+    });
+
+    const inventoryItems: InventoryItemRecord[] = (prodRes.data || []).map((p) => {
       const cost = Number(p.cost_price || 0);
       const balance = balancesMap.get(p.id);
       const stock = balance?.onHand ?? 0;
@@ -119,19 +195,9 @@ export async function getInventoryValuationSummary(): Promise<ActionResponse<Inv
       return { success: false, error: stockResponse.error || "Failed to calculate valuation." };
     }
 
-    const items = stockResponse.data;
-    const totalUnits = items.reduce((sum, item) => sum + item.current_stock, 0);
-    const totalValuation = items.reduce((sum, item) => sum + item.valuation, 0);
-    const lowStockCount = items.filter((item) => item.available_stock <= item.reorder_level).length;
-
     return {
       success: true,
-      data: {
-        total_distinct_products: items.length,
-        total_units_in_warehouse: totalUnits,
-        total_inventory_valuation: totalValuation,
-        low_stock_items_count: lowStockCount,
-      },
+      data: calculateInventoryValuationFromItems(stockResponse.data),
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to retrieve inventory valuation.";
