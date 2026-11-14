@@ -121,8 +121,8 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 2. Decommissioned Customer Portal Redirect: Redirect any customer portal URL to /login
-  if (pathname.startsWith("/customer")) {
+  // 2. Decommissioned Customer Portal Redirect: Redirect any customer portal URL to /login (preserve /customers)
+  if (pathname === "/customer" || pathname.startsWith("/customer/")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

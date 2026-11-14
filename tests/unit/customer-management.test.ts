@@ -728,6 +728,23 @@ describe("Customer Management Module", () => {
         }),
       ]);
     });
+
+    it("ensures /customers route is not blocked by decommissioned /customer portal redirect logic", () => {
+      const isDecommissionedCustomerPortal = (pathname: string) => {
+        return pathname === "/customer" || pathname.startsWith("/customer/");
+      };
+
+      // Internal ERP customers directory must NOT be blocked
+      expect(isDecommissionedCustomerPortal("/customers")).toBe(false);
+      expect(isDecommissionedCustomerPortal("/customers?new=true")).toBe(false);
+      expect(isDecommissionedCustomerPortal("/customers/123")).toBe(false);
+
+      // Decommissioned portal routes MUST be redirected
+      expect(isDecommissionedCustomerPortal("/customer")).toBe(true);
+      expect(isDecommissionedCustomerPortal("/customer/order")).toBe(true);
+      expect(isDecommissionedCustomerPortal("/customer/orders")).toBe(true);
+      expect(isDecommissionedCustomerPortal("/customer/profile")).toBe(true);
+    });
   });
 });
 
