@@ -367,62 +367,60 @@ export default function StaffPortalPage() {
             {/* Daily KPI Metric Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* Deliveries Done */}
-              <Card className="border-border shadow-xs bg-card">
-                <CardContent className="p-3.5 space-y-1">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Completed</span>
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-foreground">
-                    {metrics.deliveredCount} <span className="text-xs font-normal text-muted-foreground">/ {metrics.total}</span>
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {metrics.pendingCount} pending deliveries
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="p-4 rounded-2xl border-2 border-emerald-400 dark:border-emerald-500/50 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-500/15 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 shadow-sm space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300">ডেলিভারি সম্পন্ন</span>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-emerald-800 dark:text-emerald-200">
+                  {metrics.deliveredCount} <span className="text-xs font-normal text-emerald-700/80 dark:text-emerald-400">/ {metrics.total}</span>
+                </div>
+                <div className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">
+                  {metrics.pendingCount} টি বাকি আছে
+                </div>
+              </div>
 
               {/* Full Jars Delivered */}
-              <Card className="border-border shadow-xs bg-sky-50/40 dark:bg-sky-950/20 border-sky-200 dark:border-sky-800/60">
-                <CardContent className="p-3.5 space-y-1">
-                  <div className="flex items-center justify-between text-sky-700 dark:text-sky-300">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Full Jars Given</span>
-                    <Droplets className="h-4 w-4" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-sky-950 dark:text-sky-100">
-                    {metrics.fullJars} <span className="text-xs font-normal text-sky-700 dark:text-sky-300">jars</span>
-                  </div>
-                  <div className="text-[10px] text-sky-700 dark:text-sky-400 font-semibold">ভরা জার দিয়েছেন</div>
-                </CardContent>
-              </Card>
+              <div className="p-4 rounded-2xl border-2 border-sky-400 dark:border-sky-500/50 bg-gradient-to-br from-sky-500/15 via-blue-500/10 to-indigo-500/15 dark:from-sky-950/40 dark:via-blue-950/30 dark:to-indigo-950/40 shadow-sm space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-sky-900 dark:text-sky-300">ভরা জার দিয়েছেন</span>
+                  <Droplets className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-sky-800 dark:text-sky-200">
+                  {metrics.fullJars} <span className="text-xs font-normal text-sky-700/80 dark:text-sky-400">jars</span>
+                </div>
+                <div className="text-[10px] text-sky-800 dark:text-sky-300 font-bold">
+                  গ্রাহককে দেওয়া হয়েছে
+                </div>
+              </div>
 
               {/* Empty Jars Collected */}
-              <Card className="border-border shadow-xs bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60">
-                <CardContent className="p-3.5 space-y-1">
-                  <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Empty Returned</span>
-                    <RotateCcw className="h-4 w-4" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-emerald-950 dark:text-emerald-100">
-                    {metrics.emptyJars} <span className="text-xs font-normal text-emerald-700 dark:text-emerald-300">jars</span>
-                  </div>
-                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold">খালি জার ফেরত</div>
-                </CardContent>
-              </Card>
+              <div className="p-4 rounded-2xl border-2 border-amber-400 dark:border-amber-500/50 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 shadow-sm space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">খালি জার ফেরত</span>
+                  <RotateCcw className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-amber-800 dark:text-amber-200">
+                  {metrics.emptyJars} <span className="text-xs font-normal text-amber-700/80 dark:text-amber-400">jars</span>
+                </div>
+                <div className="text-[10px] text-amber-800 dark:text-amber-300 font-bold">
+                  ফেরত নেওয়া বোতল
+                </div>
+              </div>
 
               {/* Total Money Collected */}
-              <Card className="border-border shadow-xs bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60">
-                <CardContent className="p-3.5 space-y-1">
-                  <div className="flex items-center justify-between text-amber-700 dark:text-amber-300">
-                    <span className="text-[10px] font-black uppercase tracking-wider">Collections</span>
-                    <DollarSign className="h-4 w-4" />
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-amber-950 dark:text-amber-100">
-                    {formatCurrency(metrics.collectedAmount)}
-                  </div>
-                  <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">নগদ/ইউপিআই আদায়</div>
-                </CardContent>
-              </Card>
+              <div className="p-4 rounded-2xl border-2 border-purple-400 dark:border-purple-500/50 bg-gradient-to-br from-purple-500/15 via-violet-500/10 to-indigo-500/15 dark:from-purple-950/40 dark:via-violet-950/30 dark:to-indigo-950/40 shadow-sm space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 dark:text-purple-300">মোট টাকা আদায়</span>
+                  <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-purple-800 dark:text-purple-200">
+                  {formatCurrency(metrics.collectedAmount)}
+                </div>
+                <div className="text-[10px] text-purple-800 dark:text-purple-300 font-bold">
+                  নগদ ও ইউপিআই আদায়
+                </div>
+              </div>
             </div>
 
             {/* Deliveries List */}

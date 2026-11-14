@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Zap,
   Droplets,
+  RotateCcw,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -1053,13 +1054,15 @@ export default function CustomersPage() {
 
                 <CardContent className="p-5 pt-0 space-y-4">
                   {/* Address, Phone, Email & Delivery Instructions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs space-y-1.5">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <div className="min-w-0">
-                          <span className="font-semibold text-foreground">Delivery Address:</span>
-                          <p className="text-muted-foreground mt-0.5 break-words">{selectedCustomer.address}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="rounded-2xl border-2 border-border/80 bg-card p-3.5 text-xs space-y-2 shadow-xs">
+                      <div className="flex items-start gap-2.5">
+                        <div className="h-8 w-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                          <MapPin className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-bold text-foreground text-xs uppercase tracking-wide block">ডেলিভারি ঠিকানা (Delivery Address):</span>
+                          <p className="text-foreground/90 font-medium text-xs mt-0.5 break-words">{selectedCustomer.address}</p>
                         </div>
                       </div>
 
@@ -1067,8 +1070,8 @@ export default function CustomersPage() {
                         <div className="flex items-start gap-2 pt-2 border-t border-border/60">
                           <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
                           <div className="min-w-0">
-                            <span className="font-semibold text-foreground">Instructions:</span>
-                            <p className="text-muted-foreground mt-0.5 break-words">
+                            <span className="font-bold text-foreground text-[11px]">Instructions:</span>
+                            <p className="text-muted-foreground text-[11px] mt-0.5 break-words">
                               {selectedCustomer.delivery_instructions}
                             </p>
                           </div>
@@ -1076,15 +1079,17 @@ export default function CustomersPage() {
                       )}
                     </div>
 
-                    <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs space-y-2">
+                    <div className="rounded-2xl border-2 border-border/80 bg-card p-3.5 text-xs space-y-2.5 shadow-xs">
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 text-primary" />
-                          Phone Number:
+                        <span className="text-muted-foreground font-semibold flex items-center gap-1.5">
+                          <div className="h-6 w-6 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                            <Phone className="h-3.5 w-3.5" />
+                          </div>
+                          ফোন নম্বর (Phone):
                         </span>
                         <a
                           href={`tel:${selectedCustomer.phone}`}
-                          className="font-bold text-foreground hover:text-primary transition-colors"
+                          className="font-extrabold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                         >
                           {selectedCustomer.phone}
                         </a>
@@ -1092,7 +1097,7 @@ export default function CustomersPage() {
 
                       {selectedCustomer.email && (
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground flex items-center gap-1.5">
+                          <span className="text-muted-foreground font-semibold flex items-center gap-1.5">
                             <Mail className="h-3.5 w-3.5 text-primary" />
                             Email:
                           </span>
@@ -1105,78 +1110,147 @@ export default function CustomersPage() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between pt-1 border-t border-border/60">
-                        <span className="text-muted-foreground">Max Udhaari Allowed:</span>
-                        <span className="font-bold text-foreground">
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border/60">
+                        <span className="text-muted-foreground font-medium">সর্বোচ্চ ধার (Max Udhaari):</span>
+                        <span className="font-extrabold text-foreground">
                           {formatCurrency(selectedCustomer.credit_limit)}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Max Empty Bottles:</span>
-                        <span className="font-bold text-foreground">
+                        <span className="text-muted-foreground font-medium">সর্বোচ্চ খালি জার (Max Empties):</span>
+                        <span className="font-extrabold text-foreground">
                           {selectedCustomer.max_jar_limit} Bottles
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 5 KPI Summary Cards: Total At House, Full, Empty, Damaged, Outstanding A/R */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    <div className="rounded-xl border border-sky-300/80 bg-sky-50/60 dark:bg-sky-950/30 p-3 space-y-1 shadow-2xs col-span-2 sm:col-span-1">
-                      <span className="text-[10px] uppercase font-bold text-sky-900/80 dark:text-sky-300 flex items-center gap-1">
-                        <Droplets className="h-3 w-3 text-sky-600" />
-                        Total at House (মোট জার)
-                      </span>
-                      <p className="text-xl font-black text-sky-700 dark:text-sky-300">
+                  {/* 5 VIBRANT KPI SUMMARY CARDS (Bright, Colorful, High-Contrast for Any Staff) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-3.5">
+                    {/* 1. Total at House */}
+                    <div className="rounded-2xl border-2 border-cyan-400 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-500/15 via-sky-500/10 to-blue-500/15 dark:from-cyan-950/40 dark:via-sky-950/30 dark:to-blue-950/40 p-3.5 space-y-1 shadow-sm col-span-2 sm:col-span-1 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-cyan-900 dark:text-cyan-300 flex items-center gap-1">
+                          <Droplets className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                          মোট জার (Total)
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-800 dark:text-cyan-200 font-bold">
+                          বাড়িতে
+                        </span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-cyan-700 dark:text-cyan-300">
                         {(selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)}
                       </p>
+                      <span className="text-[10px] text-cyan-800/80 dark:text-cyan-400/80 font-bold block">
+                        Jars at Customer House
+                      </span>
                     </div>
 
-                    <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-blue-900/80 flex items-center gap-1">
-                        <Package className="h-3 w-3 text-blue-600" />
-                        Filled Bottles (ভরা বোতল)
-                      </span>
-                      <p className="text-xl font-black text-blue-700">
+                    {/* 2. Filled Bottles */}
+                    <div className="rounded-2xl border-2 border-blue-400 dark:border-blue-500/50 bg-gradient-to-br from-blue-500/15 via-blue-500/10 to-indigo-500/15 dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-blue-950/40 p-3.5 space-y-1 shadow-sm transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 flex items-center gap-1">
+                          <Package className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                          ভরা বোতল (Full)
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-800 dark:text-blue-200 font-bold">
+                          জল আছে
+                        </span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-300">
                         {selectedCustomer.total_full_jars_holding}
                       </p>
+                      <span className="text-[10px] text-blue-800/80 dark:text-blue-400/80 font-bold block">
+                        Filled Purified Water
+                      </span>
                     </div>
 
-                    <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-amber-900/80 flex items-center gap-1">
-                        <Package className="h-3 w-3 text-amber-600" />
-                        Empty Bottles (খালি বোতল)
-                      </span>
-                      <p className="text-xl font-black text-amber-700">
+                    {/* 3. Empty Bottles */}
+                    <div className="rounded-2xl border-2 border-amber-400 dark:border-amber-500/50 bg-gradient-to-br from-amber-500/15 via-amber-500/10 to-orange-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 p-3.5 space-y-1 shadow-sm transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300 flex items-center gap-1">
+                          <RotateCcw className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          খালি বোতল (Empty)
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 font-bold">
+                          ফেরত নিন
+                        </span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300">
                         {selectedCustomer.total_empty_jars_holding}
                       </p>
+                      <span className="text-[10px] text-amber-800/80 dark:text-amber-400/80 font-bold block">
+                        Empty Jars to Collect
+                      </span>
                     </div>
 
-                    <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-rose-900/80 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3 text-rose-600" />
-                        Broken (ভাঙা বোতল)
-                      </span>
-                      <p className="text-xl font-black text-rose-700">
+                    {/* 4. Broken Bottles */}
+                    <div className="rounded-2xl border-2 border-orange-400 dark:border-orange-500/50 bg-gradient-to-br from-orange-500/15 via-rose-500/10 to-rose-500/15 dark:from-orange-950/40 dark:via-rose-950/30 dark:to-orange-950/40 p-3.5 space-y-1 shadow-sm transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-orange-900 dark:text-orange-300 flex items-center gap-1">
+                          <AlertCircle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+                          ভাঙা (Broken)
+                        </span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-800 dark:text-orange-200 font-bold">
+                          নষ্ট
+                        </span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-orange-700 dark:text-orange-300">
                         {selectedCustomer.total_damaged_jars_holding || 0}
                       </p>
+                      <span className="text-[10px] text-orange-800/80 dark:text-orange-400/80 font-bold block">
+                        Damaged at Customer
+                      </span>
                     </div>
 
-                    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3 space-y-1 shadow-2xs">
-                      <span className="text-[10px] uppercase font-bold text-emerald-900/80 flex items-center gap-1">
-                        <DollarSign className="h-3 w-3 text-emerald-600" />
-                        Pending Udhaari (বাকি ধারের টাকা)
-                      </span>
+                    {/* 5. Pending Udhaari */}
+                    <div
+                      className={`rounded-2xl border-2 p-3.5 space-y-1 shadow-sm col-span-2 sm:col-span-1 transition-all ${
+                        Number(selectedCustomer.current_balance) > 0
+                          ? "border-rose-500 dark:border-rose-500/60 bg-gradient-to-br from-rose-500/20 via-red-500/15 to-rose-500/25 dark:from-rose-950/50 dark:via-red-950/40 dark:to-rose-950/50"
+                          : "border-emerald-400 dark:border-emerald-500/50 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-500/15 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-[10px] sm:text-[11px] font-black uppercase tracking-wider flex items-center gap-1 ${
+                            Number(selectedCustomer.current_balance) > 0
+                              ? "text-rose-900 dark:text-rose-300"
+                              : "text-emerald-900 dark:text-emerald-300"
+                          }`}
+                        >
+                          <DollarSign className="h-3.5 w-3.5" />
+                          বাকি টাকা (Due)
+                        </span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                            Number(selectedCustomer.current_balance) > 0
+                              ? "bg-rose-500/25 text-rose-800 dark:text-rose-200"
+                              : "bg-emerald-500/25 text-emerald-800 dark:text-emerald-200"
+                          }`}
+                        >
+                          {Number(selectedCustomer.current_balance) > 0 ? "পাওনা আছে" : "শোধ"}
+                        </span>
+                      </div>
                       <p
-                        className={`text-xl font-black ${
+                        className={`text-2xl sm:text-3xl font-black ${
                           Number(selectedCustomer.current_balance) > 0
-                            ? "text-rose-600"
-                            : "text-emerald-700"
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-emerald-700 dark:text-emerald-300"
                         }`}
                       >
                         {formatCurrency(selectedCustomer.current_balance)}
                       </p>
+                      <span
+                        className={`text-[10px] font-bold block ${
+                          Number(selectedCustomer.current_balance) > 0
+                            ? "text-rose-700/90 dark:text-rose-400/90"
+                            : "text-emerald-700/90 dark:text-emerald-400/90"
+                        }`}
+                      >
+                        {Number(selectedCustomer.current_balance) > 0 ? "Collect Payment" : "All Dues Cleared"}
+                      </span>
                     </div>
                   </div>
 

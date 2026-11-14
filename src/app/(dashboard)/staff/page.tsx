@@ -673,21 +673,21 @@ export default function StaffManagementPage() {
           {/* Daily Aggregate KPI Strip */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Tile 1: Total Completed Deliveries */}
-            <div className="p-4 rounded-2xl border border-sky-200/80 dark:border-sky-500/30 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/40 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 shadow-xs flex flex-col justify-between">
+            <div className="p-4 rounded-2xl border-2 border-sky-400 dark:border-sky-500/50 bg-gradient-to-br from-sky-500/15 via-blue-500/10 to-indigo-500/15 dark:from-sky-950/40 dark:via-blue-950/30 dark:to-indigo-950/40 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-sky-900/90 dark:text-sky-300">
-                  Deliveries Done (ডেলিভারি সম্পন্ন)
+                <span className="text-xs font-black uppercase tracking-wider text-sky-900 dark:text-sky-300">
+                  ডেলিভারি সম্পন্ন (Done)
                 </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/25">
-                  <Truck className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/30">
+                  <Truck className="h-5 w-5" />
                 </div>
               </div>
-              <div className="mt-2">
-                <span className="text-2xl font-black text-sky-950 dark:text-sky-200 block">
+              <div className="mt-2.5">
+                <span className="text-2xl sm:text-3xl font-black text-sky-800 dark:text-sky-200 block">
                   {dailyDeliveredOrders.length}{" "}
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">/ {dailyTotalOrders} Orders</span>
+                  <span className="text-xs font-bold text-sky-700/80 dark:text-sky-400">/ {dailyTotalOrders} Orders</span>
                 </span>
-                <span className="text-[11px] text-sky-700/80 dark:text-sky-400 font-semibold">
+                <span className="text-[11px] text-sky-800 dark:text-sky-300 font-bold block mt-0.5">
                   {dailyTotalOrders > 0
                     ? `${Math.round((dailyDeliveredOrders.length / dailyTotalOrders) * 100)}% route completed`
                     : "No orders scheduled"}
@@ -696,63 +696,63 @@ export default function StaffManagementPage() {
             </div>
 
             {/* Tile 2: Full Jars Dropped */}
-            <div className="p-4 rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-slate-900 dark:via-emerald-950/20 dark:to-slate-900 shadow-xs flex flex-col justify-between">
+            <div className="p-4 rounded-2xl border-2 border-emerald-400 dark:border-emerald-500/50 bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-500/15 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-900/90 dark:text-emerald-300">
-                  Full Jars Delivered (ভরা জার দেওয়া হয়েছে)
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                  ভরা জার দেওয়া হয়েছে (Full)
                 </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/25">
-                  <Droplets className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/30">
+                  <Droplets className="h-5 w-5" />
                 </div>
               </div>
-              <div className="mt-2">
-                <span className="text-2xl font-black text-emerald-950 dark:text-emerald-200 block">
+              <div className="mt-2.5">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-800 dark:text-emerald-200 block">
                   {dailyTotalJarsDelivered}{" "}
-                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Jars</span>
+                  <span className="text-xs font-bold text-emerald-700/80 dark:text-emerald-400">Jars</span>
                 </span>
-                <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400 font-semibold">
+                <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold block mt-0.5">
                   Customer custody added
                 </span>
               </div>
             </div>
 
             {/* Tile 3: Empty Jars Collected */}
-            <div className="p-4 rounded-2xl border border-amber-200/80 dark:border-amber-500/30 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 dark:from-slate-900 dark:via-amber-950/20 dark:to-slate-900 shadow-xs flex flex-col justify-between">
+            <div className="p-4 rounded-2xl border-2 border-amber-400 dark:border-amber-500/50 bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-900/90 dark:text-amber-300">
-                  Empty Jars Returned (খালি জার ফেরত এসেছে)
+                <span className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                  খালি জার ফেরত (Empties)
                 </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/25">
-                  <RotateCcw className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/30">
+                  <RotateCcw className="h-5 w-5" />
                 </div>
               </div>
-              <div className="mt-2">
-                <span className="text-2xl font-black text-amber-950 dark:text-amber-200 block">
+              <div className="mt-2.5">
+                <span className="text-2xl sm:text-3xl font-black text-amber-800 dark:text-amber-200 block">
                   {dailyTotalEmptyCollected}{" "}
-                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Empties</span>
+                  <span className="text-xs font-bold text-amber-700/80 dark:text-amber-400">Empties</span>
                 </span>
-                <span className="text-[11px] text-amber-700/80 dark:text-amber-400 font-semibold">
+                <span className="text-[11px] text-amber-800 dark:text-amber-300 font-bold block mt-0.5">
                   Collected for washing
                 </span>
               </div>
             </div>
 
             {/* Tile 4: Total Payment Collected */}
-            <div className="p-4 rounded-2xl border border-indigo-200/80 dark:border-indigo-500/30 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/40 dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-900 shadow-xs flex flex-col justify-between">
+            <div className="p-4 rounded-2xl border-2 border-purple-400 dark:border-purple-500/50 bg-gradient-to-br from-purple-500/15 via-violet-500/10 to-indigo-500/15 dark:from-purple-950/40 dark:via-violet-950/30 dark:to-indigo-950/40 shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-indigo-900/90 dark:text-indigo-300">
-                  Cash & UPI Collected (মোট টাকা আদায়)
+                <span className="text-xs font-black uppercase tracking-wider text-purple-900 dark:text-purple-300">
+                  মোট টাকা আদায় (Cash & UPI)
                 </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-sm shadow-indigo-500/25">
-                  <DollarSign className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500 text-white shadow-md shadow-purple-500/30">
+                  <DollarSign className="h-5 w-5" />
                 </div>
               </div>
-              <div className="mt-2">
-                <span className="text-2xl font-black text-indigo-950 dark:text-indigo-200 block">
+              <div className="mt-2.5">
+                <span className="text-2xl sm:text-3xl font-black text-purple-800 dark:text-purple-200 block">
                   {formatCurrency(dailyTotalCashCollected)}
                 </span>
-                <span className="text-[11px] text-indigo-700/80 dark:text-indigo-400 font-semibold">
-                  Driver evening cash settlement
+                <span className="text-[11px] text-purple-800 dark:text-purple-300 font-bold block mt-0.5">
+                  Driver settlement balance
                 </span>
               </div>
             </div>
@@ -869,30 +869,30 @@ export default function StaffManagementPage() {
 
                       {/* Staff Performance Tally Badges */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                        <div className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-slate-800 border border-sky-200 dark:border-slate-700 text-center min-w-[70px]">
-                          <span className="text-[9px] uppercase font-bold text-sky-800 dark:text-sky-400 block">Deliveries</span>
-                          <span className="text-xs sm:text-sm font-black text-sky-950 dark:text-white">
+                        <div className="px-3.5 py-2 rounded-2xl bg-sky-500/15 dark:bg-sky-950/50 border-2 border-sky-400 dark:border-sky-500/50 text-center min-w-[78px] shadow-2xs">
+                          <span className="text-[9px] uppercase font-black tracking-wider text-sky-800 dark:text-sky-300 block">ডেলিভারি</span>
+                          <span className="text-xs sm:text-sm font-black text-sky-900 dark:text-sky-200">
                             {deliveredCount} / {staffOrders.length}
                           </span>
                         </div>
 
-                        <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 text-center min-w-[70px]">
-                          <span className="text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-400 block">Jars Dropped</span>
-                          <span className="text-xs sm:text-sm font-black text-emerald-950 dark:text-white">
+                        <div className="px-3.5 py-2 rounded-2xl bg-emerald-500/15 dark:bg-emerald-950/50 border-2 border-emerald-400 dark:border-emerald-500/50 text-center min-w-[78px] shadow-2xs">
+                          <span className="text-[9px] uppercase font-black tracking-wider text-emerald-800 dark:text-emerald-300 block">ভরা জার</span>
+                          <span className="text-xs sm:text-sm font-black text-emerald-900 dark:text-emerald-200">
                             {totalJars} 💧
                           </span>
                         </div>
 
-                        <div className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-slate-800 border border-amber-200 dark:border-slate-700 text-center min-w-[70px]">
-                          <span className="text-[9px] uppercase font-bold text-amber-800 dark:text-amber-400 block">Empties</span>
-                          <span className="text-xs sm:text-sm font-black text-amber-950 dark:text-white">
+                        <div className="px-3.5 py-2 rounded-2xl bg-amber-500/15 dark:bg-amber-950/50 border-2 border-amber-400 dark:border-amber-500/50 text-center min-w-[78px] shadow-2xs">
+                          <span className="text-[9px] uppercase font-black tracking-wider text-amber-800 dark:text-amber-300 block">খালি জার</span>
+                          <span className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-200">
                             {totalEmpties} 🔄
                           </span>
                         </div>
 
-                        <div className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-slate-800 border border-indigo-200 dark:border-slate-700 text-center min-w-[85px]">
-                          <span className="text-[9px] uppercase font-bold text-indigo-800 dark:text-indigo-400 block">Collected</span>
-                          <span className="text-xs sm:text-sm font-black text-indigo-950 dark:text-white">
+                        <div className="px-3.5 py-2 rounded-2xl bg-purple-500/15 dark:bg-purple-950/50 border-2 border-purple-400 dark:border-purple-500/50 text-center min-w-[90px] shadow-2xs">
+                          <span className="text-[9px] uppercase font-black tracking-wider text-purple-800 dark:text-purple-300 block">মোট টাকা</span>
+                          <span className="text-xs sm:text-sm font-black text-purple-900 dark:text-purple-200">
                             {formatCurrency(totalCollected)}
                           </span>
                         </div>
@@ -900,33 +900,33 @@ export default function StaffManagementPage() {
                         <button
                           type="button"
                           onClick={() => toggleStaffExpand(staff.id)}
-                          className="h-9 w-9 flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 text-foreground cursor-pointer transition-colors active:scale-95"
+                          className="h-10 w-10 flex items-center justify-center rounded-2xl bg-muted hover:bg-muted/80 text-foreground cursor-pointer transition-colors active:scale-95 border border-border"
                           title={isExpanded ? "Collapse stops" : "Expand stops"}
                         >
-                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                         </button>
                       </div>
                     </div>
 
                     {/* Expandable Stops Ledger for this Staff */}
                     {isExpanded && (
-                      <div className="p-4 sm:p-5 bg-muted/20 space-y-3 animate-in fade-in-50 duration-150">
+                      <div className="p-4 sm:p-5 bg-muted/30 space-y-3.5 animate-in fade-in-50 duration-150">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 text-primary" />
-                            Stops Delivered Today by {staff.full_name} ({staffOrders.length} Stops)
+                          <span className="text-xs sm:text-sm font-extrabold text-foreground flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            {staff.full_name}-এর আজকের ডেলিভারি স্টপ ({staffOrders.length} Stops)
                           </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            {deliveredCount} Delivered • {staffOrders.length - deliveredCount} Pending
-                          </span>
+                          <Badge variant="outline" className="text-xs font-bold font-mono">
+                            {deliveredCount} সম্পন্ন • {staffOrders.length - deliveredCount} বাকি
+                          </Badge>
                         </div>
 
                         {staffOrders.length === 0 ? (
-                          <div className="p-6 text-center rounded-xl bg-card border border-border text-xs text-muted-foreground">
-                            No delivery orders assigned to {staff.full_name} on {selectedDate}.
+                          <div className="p-8 text-center rounded-2xl bg-card border-2 border-dashed border-border text-xs text-muted-foreground">
+                            {selectedDate}-এ {staff.full_name}-কে কোন ডেলিভারি অর্ডার দেওয়া হয়নি।
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                             {staffOrders.map((order, stopIdx) => {
                               const isDelivered = order.status === "DELIVERED";
                               const orderJars = order.items.reduce((sum, i) => sum + i.quantity, 0);
@@ -934,76 +934,94 @@ export default function StaffManagementPage() {
                               return (
                                 <div
                                   key={order.id}
-                                  className={`p-3.5 rounded-xl border transition-all text-xs space-y-2 ${
+                                  className={`p-4 rounded-3xl border-2 transition-all space-y-3 shadow-xs ${
                                     isDelivered
-                                      ? "bg-card border-border hover:border-emerald-500/50"
-                                      : "bg-amber-50/40 dark:bg-slate-900 border-amber-300 dark:border-amber-500/30 shadow-xs"
+                                      ? "bg-card border-emerald-400/80 dark:border-emerald-500/50 hover:border-emerald-500"
+                                      : "bg-card border-amber-400 dark:border-amber-500/60 hover:border-amber-500 shadow-md"
                                   }`}
                                 >
+                                  {/* Stop Header */}
                                   <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-[10px]">
+                                    <div className="flex items-center gap-2">
+                                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-black text-xs">
                                         {stopIdx + 1}
                                       </span>
-                                      <span className="font-mono font-bold text-foreground">
+                                      <span className="font-mono font-black text-xs text-foreground">
                                         #{order.order_number}
                                       </span>
                                     </div>
 
                                     <Badge
-                                      variant={isDelivered ? "success" : "outline"}
-                                      className="text-[9px] font-bold"
+                                      variant={isDelivered ? "success" : "warning"}
+                                      className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5"
                                     >
-                                      {isDelivered ? "Delivered" : "Pending Delivery"}
+                                      {isDelivered ? "ডেলিভারি সম্পন্ন ✓" : "বাকি আছে (Pending)"}
                                     </Badge>
                                   </div>
 
-                                  {/* Customer Info */}
-                                  <div>
-                                    <h4 className="font-bold text-sm text-foreground leading-snug">
+                                  {/* Customer Info Card */}
+                                  <div className="space-y-1">
+                                    <h4 className="font-black text-base text-foreground leading-snug">
                                       {order.customer_name}
                                     </h4>
-                                    <p className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                                      <span className="truncate max-w-[200px]">{order.delivery_address}</span>
-                                      {order.customer_phone && (
-                                        <a href={`tel:${order.customer_phone}`} className="text-primary hover:underline font-mono">
-                                          {order.customer_phone}
-                                        </a>
-                                      )}
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                      <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                                      <span className="line-clamp-1">{order.delivery_address}</span>
                                     </p>
+                                    {order.customer_phone && (
+                                      <div className="pt-1">
+                                        <a
+                                          href={`tel:${order.customer_phone}`}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-bold hover:underline"
+                                        >
+                                          <Phone className="h-3 w-3" />
+                                          কল করুন: {order.customer_phone}
+                                        </a>
+                                      </div>
+                                    )}
                                   </div>
 
-                                  {/* Order Items & Tally */}
-                                  <div className="grid grid-cols-3 gap-1.5 p-2 rounded-lg bg-muted/40 text-[11px] text-muted-foreground border border-border/50">
-                                    <div>
-                                      <span className="text-[9px] block">Order Jars:</span>
-                                      <span className="font-bold text-foreground">{orderJars} Jars</span>
-                                    </div>
-                                    <div>
-                                      <span className="text-[9px] block">Empty Returned:</span>
-                                      <span className="font-bold text-amber-600 dark:text-amber-400">
-                                        {order.empty_jars_collected ?? 0} Empties
+                                  {/* Order Items & Tally 3-Grid */}
+                                  <div className="grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-muted/40 border border-border/60 text-center">
+                                    <div className="p-1 rounded-xl bg-blue-500/10">
+                                      <span className="text-[9px] uppercase font-bold text-blue-800 dark:text-blue-300 block">ভরা জার</span>
+                                      <span className="text-xs sm:text-sm font-black text-blue-700 dark:text-blue-300">
+                                        {orderJars} 💧
                                       </span>
                                     </div>
-                                    <div className="text-right">
-                                      <span className="text-[9px] block">Total Amount:</span>
-                                      <span className="font-extrabold text-foreground">
+                                    <div className="p-1 rounded-xl bg-amber-500/10">
+                                      <span className="text-[9px] uppercase font-bold text-amber-800 dark:text-amber-300 block">খালি জার</span>
+                                      <span className="text-xs sm:text-sm font-black text-amber-700 dark:text-amber-300">
+                                        {order.empty_jars_collected ?? 0} 🔄
+                                      </span>
+                                    </div>
+                                    <div className="p-1 rounded-xl bg-emerald-500/10">
+                                      <span className="text-[9px] uppercase font-bold text-emerald-800 dark:text-emerald-300 block">টাকা</span>
+                                      <span className="text-xs sm:text-sm font-black text-emerald-700 dark:text-emerald-300">
                                         {formatCurrency(order.total_amount)}
                                       </span>
                                     </div>
                                   </div>
 
                                   {/* Action button if pending */}
-                                  {!isDelivered && (
-                                    <div className="pt-1 flex justify-end">
+                                  {!isDelivered ? (
+                                    <div className="pt-1">
                                       <Button
                                         size="sm"
                                         onClick={() => openDeliverModal(order, staff.id)}
-                                        className="h-7 text-[11px] px-3 font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs"
+                                        className="w-full h-9 text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl shadow-md active:scale-95"
                                       >
-                                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                        Mark Delivered (ডেলিভারি কনফার্ম)
+                                        <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                                        ডেলিভারি কনফার্ম করুন (Mark Delivered)
                                       </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="pt-1 flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                                      <span className="flex items-center gap-1">
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        ডেলিভারি দেওয়া হয়েছে
+                                      </span>
+                                      <span>আদায়: {formatCurrency(order.amount_paid || 0)}</span>
                                     </div>
                                   )}
                                 </div>
