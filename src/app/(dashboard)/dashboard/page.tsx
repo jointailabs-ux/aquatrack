@@ -356,9 +356,9 @@ export default function DashboardPage() {
         {/* B. Business Overview: Compact 2 × 2 Metric Grid */}
         <div className="grid grid-cols-2 gap-2.5">
           {/* Tile 1: Today's Sales */}
-          <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-emerald-200/80 dark:border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/40 dark:from-slate-900 dark:via-emerald-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-emerald-900/90">Today&apos;s Sales (আজকের বিক্রি)</span>
+              <span className="text-[11px] font-bold text-emerald-900/90 dark:text-emerald-300">Today&apos;s Sales (আজকের বিক্রি)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
                 <DollarSign className="h-3.5 w-3.5" />
               </div>
@@ -367,16 +367,16 @@ export default function DashboardPage() {
               <span className="text-xl font-black text-emerald-950 dark:text-emerald-300 tracking-tight block">
                 {formatCurrency(kpis.orderRevenue + kpis.posSalesTotal)}
               </span>
-              <span className="text-[10px] text-emerald-700/80 font-semibold">
+              <span className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 font-semibold">
                 {kpis.orderCount + kpis.posSalesCount} sales recorded
               </span>
             </div>
           </div>
 
           {/* Tile 2: Orders Count */}
-          <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/40 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-sky-200/80 dark:border-sky-500/30 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/40 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-sky-900/90">Deliveries (ডেলিভারি)</span>
+              <span className="text-[11px] font-bold text-sky-900/90 dark:text-sky-300">Deliveries (ডেলিভারি)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/25">
                 <Truck className="h-3.5 w-3.5" />
               </div>
@@ -385,16 +385,16 @@ export default function DashboardPage() {
               <span className="text-xl font-black text-sky-950 dark:text-sky-300 tracking-tight block">
                 {kpis.orderCount}
               </span>
-              <span className="text-[10px] text-sky-700/80 font-semibold">
+              <span className="text-[10px] text-sky-700/80 dark:text-sky-400/80 font-semibold">
                 {kpis.pendingOrdersCount} pending dispatch
               </span>
             </div>
           </div>
 
           {/* Tile 3: Outstanding A/R */}
-          <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-amber-200/80 dark:border-amber-500/30 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/40 dark:from-slate-900 dark:via-amber-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-amber-900/90">Pending Due (বাকি টাকা)</span>
+              <span className="text-[11px] font-bold text-amber-900/90 dark:text-amber-300">Pending Due (বাকি টাকা)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
                 <Clock className="h-3.5 w-3.5" />
               </div>
@@ -403,16 +403,16 @@ export default function DashboardPage() {
               <span className="text-xl font-black text-amber-950 dark:text-amber-300 tracking-tight block">
                 {formatCurrency(financials.accountsReceivable)}
               </span>
-              <span className="text-[10px] text-amber-700/80 font-semibold">
+              <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 font-semibold">
                 Money to collect
               </span>
             </div>
           </div>
 
           {/* Tile 4: Available Stock */}
-          <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/40 p-3.5 shadow-xs flex flex-col justify-between">
+          <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-500/30 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/40 dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-900 p-3.5 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-indigo-900/90">Stock (গুদামের মাল)</span>
+              <span className="text-[11px] font-bold text-indigo-900/90 dark:text-indigo-300">Stock (গুদামের মাল)</span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
                 <PackageCheck className="h-3.5 w-3.5" />
               </div>
@@ -420,9 +420,9 @@ export default function DashboardPage() {
             <div className="mt-1.5">
               <span className="text-xl font-black text-indigo-950 dark:text-indigo-300 tracking-tight block">
                 {kpis.inventoryStockSummary.totalUnits}{" "}
-                <span className="text-xs font-semibold text-indigo-700">jars</span>
+                <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400">jars</span>
               </span>
-              <span className="text-[10px] text-indigo-700/80 font-semibold">
+              <span className="text-[10px] text-indigo-700/80 dark:text-indigo-400/80 font-semibold">
                 {kpis.inventoryStockSummary.lowStockCount > 0 ? (
                   <span className="text-destructive font-semibold">
                     {kpis.inventoryStockSummary.lowStockCount} low stock!
@@ -695,16 +695,16 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Link
               href="/orders?new=true"
-              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-sky-50 via-white to-blue-50/70 border border-sky-200/80 hover:border-sky-500 hover:shadow-md hover:shadow-sky-500/15 transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-sky-50 via-white to-blue-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 border border-sky-200/80 dark:border-sky-500/30 hover:border-sky-500 hover:shadow-md hover:shadow-sky-500/15 transition-all active:scale-95 group"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/30 group-hover:bg-sky-600 transition-colors">
                 <Truck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-sky-950 block group-hover:text-sky-600 transition-colors">
+                <span className="text-xs font-bold text-sky-950 dark:text-sky-300 block group-hover:text-sky-600 transition-colors">
                   + New Order (নতুন অর্ডার)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block font-medium">
                   Home & Shop Delivery
                 </span>
               </div>
@@ -712,16 +712,16 @@ export default function DashboardPage() {
 
             <Link
               href="/pos"
-              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-emerald-50 via-white to-teal-50/70 border border-emerald-200/80 hover:border-emerald-500 hover:shadow-md hover:shadow-emerald-500/15 transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-emerald-50 via-white to-teal-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/30 border border-emerald-200/80 dark:border-emerald-500/30 hover:border-emerald-500 hover:shadow-md hover:shadow-emerald-500/15 transition-all active:scale-95 group"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30 group-hover:bg-emerald-600 transition-colors">
                 <Store className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-emerald-950 block group-hover:text-emerald-600 transition-colors">
+                <span className="text-xs font-bold text-emerald-950 dark:text-emerald-300 block group-hover:text-emerald-600 transition-colors">
                   + Shop Counter (দোকান বিক্রি)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block font-medium">
                   Instant Cash & UPI Sale
                 </span>
               </div>
@@ -729,16 +729,16 @@ export default function DashboardPage() {
 
             <Link
               href="/customers?new=true"
-              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/70 border border-indigo-200/80 hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-500/15 transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30 border border-indigo-200/80 dark:border-indigo-500/30 hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-500/15 transition-all active:scale-95 group"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-sm shadow-indigo-500/30 group-hover:bg-indigo-600 transition-colors">
                 <UserPlus className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-indigo-950 block group-hover:text-indigo-600 transition-colors">
+                <span className="text-xs font-bold text-indigo-950 dark:text-indigo-300 block group-hover:text-indigo-600 transition-colors">
                   + New Customer (নতুন কাস্টমার)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block font-medium">
                   Add Account & Bottles
                 </span>
               </div>
@@ -746,16 +746,16 @@ export default function DashboardPage() {
 
             <Link
               href="/expenses?new=true"
-              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-amber-50 via-white to-orange-50/70 border border-amber-200/80 hover:border-amber-500 hover:shadow-md hover:shadow-amber-500/15 transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-amber-50 via-white to-orange-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 border border-amber-200/80 dark:border-amber-500/30 hover:border-amber-500 hover:shadow-md hover:shadow-amber-500/15 transition-all active:scale-95 group"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/30 group-hover:bg-amber-600 transition-colors">
                 <FileSpreadsheet className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-amber-950 block group-hover:text-amber-600 transition-colors">
+                <span className="text-xs font-bold text-amber-950 dark:text-amber-300 block group-hover:text-amber-600 transition-colors">
                   + Log Expense (খরচ লিখুন)
                 </span>
-                <span className="text-[10px] text-slate-500 truncate block font-medium">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block font-medium">
                   Diesel, Tea, Repairs
                 </span>
               </div>
@@ -848,85 +848,85 @@ export default function DashboardPage() {
 
         {/* Top Metric Cards: 4 Primary Financial Velocity Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-sky-200/90 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/60 shadow-xs hover:shadow-md hover:shadow-sky-500/15 hover:border-sky-400 transition-all">
+          <Card className="border-sky-200/90 dark:border-sky-500/30 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/60 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-sky-500/15 hover:border-sky-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Total Water Sales (মোট বিক্রি)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">Total Water Sales (মোট বিক্রি)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/30">
                   <DollarSign className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-sky-950">
+                <span className="text-2xl font-black tracking-tight text-sky-950 dark:text-sky-200">
                   {formatCurrency(kpis.orderRevenue)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-sky-700/80">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-sky-700/80 dark:text-sky-400/80">
                 <span>{kpis.orderCount} active delivery order(s)</span>
-                <Link href="/orders" className="text-sky-700 hover:text-sky-900 hover:underline font-semibold inline-flex items-center gap-0.5">
+                <Link href="/orders" className="text-sky-700 dark:text-sky-400 hover:text-sky-900 hover:underline font-semibold inline-flex items-center gap-0.5">
                   See Orders <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-emerald-200/90 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/60 shadow-xs hover:shadow-md hover:shadow-emerald-500/15 hover:border-emerald-400 transition-all">
+          <Card className="border-emerald-200/90 dark:border-emerald-500/30 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/60 dark:from-slate-900 dark:via-emerald-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-emerald-500/15 hover:border-emerald-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Money Collected (ক্যাশ ও UPI জমা)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Money Collected (ক্যাশ ও UPI জমা)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30">
                   <Receipt className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-emerald-950">
+                <span className="text-2xl font-black tracking-tight text-emerald-950 dark:text-emerald-200">
                   {formatCurrency(financials.totalCollections)}
                 </span>
               </div>
-              <p className="mt-1 text-[11px] text-emerald-700/80 font-medium">
+              <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80 font-medium">
                 {formatCurrency(financials.cashCollections)} Cash • {formatCurrency(financials.upiBankCollections)} Online UPI
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-amber-200/90 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60 shadow-xs hover:shadow-md hover:shadow-amber-500/15 hover:border-amber-400 transition-all">
+          <Card className="border-amber-200/90 dark:border-amber-500/30 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60 dark:from-slate-900 dark:via-amber-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-amber-500/15 hover:border-amber-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Pending Customer Due (বাকি ধারের টাকা)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Pending Customer Due (বাকি ধারের টাকা)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/30">
                   <Clock className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-amber-950">
+                <span className="text-2xl font-black tracking-tight text-amber-950 dark:text-amber-200">
                   {formatCurrency(financials.accountsReceivable)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-amber-700/80">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-amber-700/80 dark:text-amber-400/80">
                 <span>Total uncollected money</span>
-                <Link href="/customers" className="text-amber-700 hover:text-amber-900 hover:underline font-semibold inline-flex items-center gap-0.5">
+                <Link href="/customers" className="text-amber-700 dark:text-amber-400 hover:text-amber-900 hover:underline font-semibold inline-flex items-center gap-0.5">
                   See Customers <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-purple-200/90 bg-gradient-to-br from-white via-purple-50/50 to-pink-50/60 shadow-xs hover:shadow-md hover:shadow-purple-500/15 hover:border-purple-400 transition-all">
+          <Card className="border-purple-200/90 dark:border-purple-500/30 bg-gradient-to-br from-white via-purple-50/50 to-pink-50/60 dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900 shadow-xs hover:shadow-md hover:shadow-purple-500/15 hover:border-purple-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Daily Expenses (রোজকার খরচ - তেল, গাড়ি মেরামত)</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300">Daily Expenses (রোজকার খরচ - তেল, গাড়ি মেরামত)</span>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500 text-white shadow-sm shadow-purple-500/30">
                   <FileSpreadsheet className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-black tracking-tight text-purple-950">
+                <span className="text-2xl font-black tracking-tight text-purple-950 dark:text-purple-200">
                   {formatCurrency(financials.operatingExpenses)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-purple-700/80">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-purple-700/80 dark:text-purple-400/80">
                 <span>Fuel, tea, vehicle repairs & bills</span>
-                <Link href="/expenses" className="text-purple-700 hover:text-purple-900 hover:underline font-semibold inline-flex items-center gap-0.5">
+                <Link href="/expenses" className="text-purple-700 dark:text-purple-400 hover:text-purple-900 hover:underline font-semibold inline-flex items-center gap-0.5">
                   See Expenses <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -936,120 +936,120 @@ export default function DashboardPage() {
 
         {/* Secondary Row: Inventory, POS, Delivery, and Dispatch Queue Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-blue-200/80 bg-gradient-to-br from-white to-blue-50/40 shadow-xs hover:border-blue-300 transition-all">
+          <Card className="border-blue-200/80 dark:border-blue-500/30 bg-gradient-to-br from-white to-blue-50/40 dark:from-slate-900 dark:to-blue-950/20 shadow-xs hover:border-blue-300 dark:hover:border-blue-500/50 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500 text-white shadow-xs">
                     <PackageCheck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Total Stock Value (গুদামের মাল)</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Total Stock Value (গুদামের মাল)</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-blue-200 bg-blue-50 text-blue-700 font-semibold">
+                <Badge variant="outline" className="text-[10px] border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold">
                   Warehouse Stock
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-slate-900">
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(kpis.inventoryStockSummary.totalValuation)}
                 </span>
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   {kpis.inventoryStockSummary.totalUnits} Jars Available
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between items-center">
                 <span>{kpis.inventoryStockSummary.totalProducts} active product SKUs</span>
-                <Link href="/inventory" className="text-blue-600 hover:underline font-semibold">
+                <Link href="/inventory" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
                   Open Stock
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-teal-200/80 bg-gradient-to-br from-white to-teal-50/40 shadow-xs hover:border-teal-300 transition-all">
+          <Card className="border-teal-200/80 dark:border-teal-500/30 bg-gradient-to-br from-white to-teal-50/40 dark:from-slate-900 dark:to-teal-950/20 shadow-xs hover:border-teal-300 dark:hover:border-teal-500/50 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500 text-white shadow-xs">
                     <Store className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Counter Sales (দোকান বিক্রি)</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Counter Sales (দোকান বিক্রি)</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-teal-200 bg-teal-50 text-teal-700 font-semibold">
+                <Badge variant="outline" className="text-[10px] border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 font-semibold">
                   Counter Sales
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-slate-900">
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
                   {formatCurrency(kpis.posSalesTotal)}
                 </span>
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   {kpis.posSalesCount} Counter Bills
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between items-center">
                 <span>Instant Cash & UPI</span>
-                <Link href="/pos" className="text-teal-600 hover:underline font-semibold">
+                <Link href="/pos" className="text-teal-600 dark:text-teal-400 hover:underline font-semibold">
                   Open Counter
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-emerald-200/80 bg-gradient-to-br from-white to-emerald-50/40 shadow-xs hover:border-emerald-300 transition-all">
+          <Card className="border-emerald-200/80 dark:border-emerald-500/30 bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-900 dark:to-emerald-950/20 shadow-xs hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-white shadow-xs">
                     <Truck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Tempo Deliveries (গাড়ি ডেলিভারি)</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Tempo Deliveries (গাড়ি ডেলিভারি)</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
+                <Badge variant="outline" className="text-[10px] border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold">
                   Driver Fleet
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-emerald-950">
+                <span className="text-xl font-bold text-emerald-950 dark:text-emerald-300">
                   {kpis.completedDeliveries} Delivered
                 </span>
-                <span className="text-xs font-semibold text-amber-700">
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
                   {kpis.awaitingDeliveryCount} Left
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between items-center">
                 <span>Trip & Stop tracking</span>
-                <Link href="/orders" className="text-emerald-600 hover:underline font-semibold">
+                <Link href="/orders" className="text-emerald-600 dark:text-emerald-400 hover:underline font-semibold">
                   Delivery List
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-indigo-200/80 bg-gradient-to-br from-white to-indigo-50/40 shadow-xs hover:border-indigo-300 transition-all">
+          <Card className="border-indigo-200/80 dark:border-indigo-500/30 bg-gradient-to-br from-white to-indigo-50/40 dark:from-slate-900 dark:to-indigo-950/20 shadow-xs hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-xs">
                     <Users className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Total Customers (মোট কাস্টমার)</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Total Customers (মোট কাস্টমার)</span>
                 </div>
-                <Badge variant="outline" className="text-[10px] border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold">
+                <Badge variant="outline" className="text-[10px] border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold">
                   Khata
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-slate-900">
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
                   {kpis.activeCustomersCount} Active
                 </span>
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
                   {kpis.pendingOrdersCount} Waiting Today
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between items-center">
                 <span>Full khata directory</span>
-                <Link href="/customers" className="text-indigo-600 hover:underline font-semibold">
+                <Link href="/customers" className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">
                   Open Customers
                 </Link>
               </div>

@@ -7,6 +7,7 @@ import { Droplets, Menu, ShoppingCart, Truck, UserPlus } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { NotificationsDropdown } from "@/components/layout/NotificationsDropdown";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Badge } from "@/components/ui/Badge";
 import { NAVIGATION_GROUPS } from "@/lib/constants";
 import { useAppSession } from "@/components/providers/AppSessionProvider";
@@ -108,6 +109,8 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
         </Badge>
 
         <NotificationsDropdown />
+
+        <ThemeToggle />
 
         <div className="h-4 w-px bg-border mx-0.5 hidden xs:block" />
 

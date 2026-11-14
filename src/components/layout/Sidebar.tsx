@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NAVIGATION_GROUPS } from "@/lib/constants";
 import { Droplets, ChevronLeft, ChevronRight, Lock } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAppSession } from "@/components/providers/AppSessionProvider";
 
 export interface SidebarProps {
@@ -141,15 +141,22 @@ export function Sidebar({
         ))}
       </div>
 
-      {/* Footer Info */}
-      {!isCollapsed && (
-        <div className="p-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between bg-slate-950/60">
-          <span>AquaTrack ERP</span>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-emerald-400 border-emerald-500/40 bg-emerald-500/10">
-            v1.0 Live ERP
-          </Badge>
-        </div>
-      )}
+      {/* Footer Info & Theme Toggle */}
+      <div className="p-2.5 border-t border-slate-800/80 bg-slate-950/60 flex items-center justify-between">
+        {!isCollapsed ? (
+          <>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold text-slate-300">AquaTrack ERP</span>
+              <span className="text-[9px] text-emerald-400 font-semibold">● v1.0 Live</span>
+            </div>
+            <ThemeToggle variant="pill" className="h-7 px-2 text-[11px] bg-slate-900 border-slate-700 text-slate-200" />
+          </>
+        ) : (
+          <div className="w-full flex justify-center">
+            <ThemeToggle className="h-8 w-8 bg-slate-900 border-slate-700 text-slate-200" />
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

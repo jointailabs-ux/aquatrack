@@ -12,12 +12,14 @@ import {
   Image as ImageIcon,
   Loader2,
   AlertTriangle,
+  Sun,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
   getBusinessSettings,
   updateBusinessSettings,
@@ -383,6 +385,29 @@ export default function BusinessSettingsPage() {
         {/* Right 4 Cols: Single Depot Status & Security Architecture */}
         <div className="lg:col-span-4 space-y-4">
           {/* Logo & Branding Management */}
+          {/* Theme & Appearance */}
+          <Card className="border-border shadow-xs bg-card">
+            <CardHeader className="p-4 pb-2 border-b border-border">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Sun className="h-4 w-4 text-amber-500" />
+                Theme & Interface Appearance (থিম নির্বাচন)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Switch between Light, Dark, or System mode.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="p-4 space-y-3 text-xs">
+              <div className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-muted/20">
+                <span className="text-muted-foreground font-medium">Color Mode:</span>
+                <ThemeToggle variant="segmented" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                In Dark Mode, high-contrast luminous accents reduce eye strain in warehouse depots. In Light Mode, clean pastel cards ensure maximum daytime clarity.
+              </p>
+            </CardContent>
+          </Card>
+
           <Card className="border-border shadow-xs bg-card">
             <CardHeader className="p-4 pb-2 border-b border-border">
               <CardTitle className="text-sm font-bold flex items-center gap-2">

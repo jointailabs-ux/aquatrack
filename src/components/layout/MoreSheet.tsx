@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/Toast";
 import { useAppSession } from "@/components/providers/AppSessionProvider";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface MoreSheetProps {
   isOpen: boolean;
@@ -440,25 +441,32 @@ export function MoreSheet({ isOpen, onClose }: MoreSheetProps) {
           )}
         </div>
 
-        {/* Footer with Sign Out */}
-        <div className="p-3 border-t border-border bg-muted/20 flex items-center justify-between">
-          <Link
-            href="/settings"
-            onClick={onClose}
-            className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground py-1 px-2 rounded-lg"
-          >
-            <Settings className="h-4 w-4" />
-            <span>Settings</span>
-          </Link>
+        {/* Theme Switcher & Footer */}
+        <div className="p-3 border-t border-border bg-card/60 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground">App Appearance:</span>
+            <ThemeToggle variant="segmented" />
+          </div>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 py-1.5 px-3 rounded-lg transition-colors touch-manipulation cursor-pointer"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Sign Out</span>
-          </button>
+          <div className="flex items-center justify-between pt-1 border-t border-border/50">
+            <Link
+              href="/settings"
+              onClick={onClose}
+              className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground py-1 px-2 rounded-lg"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 py-1.5 px-3 rounded-lg transition-colors touch-manipulation cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
