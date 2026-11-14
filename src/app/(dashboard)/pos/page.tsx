@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Percent,
   Printer,
+  Zap,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -151,7 +153,7 @@ export default function PosPage() {
     }
   };
 
-  const addToCart = (product: SellableItem) => {
+  const addToCartWithQty = (product: SellableItem, addQty = 1) => {
     const specPrice = customerSpecialPrices[product.id];
     const effectivePrice = specPrice !== undefined ? specPrice : product.price;
 
@@ -163,8 +165,8 @@ export default function PosPage() {
             ? {
                 ...i,
                 unit_price: effectivePrice,
-                quantity: i.quantity + 1,
-                total: (i.quantity + 1) * effectivePrice,
+                quantity: i.quantity + addQty,
+                total: (i.quantity + addQty) * effectivePrice,
               }
             : i
         );
@@ -177,16 +179,20 @@ export default function PosPage() {
         product_sku: product.sku,
         product_name: product.name,
         unit_price: effectivePrice,
-        quantity: 1,
+        quantity: addQty,
         discount_percent: 0,
         discount_amount: 0,
         gst_rate: product.gstRate,
         tax_amount: taxAmount,
-        total: effectivePrice,
+        total: effectivePrice * addQty,
         is_reusable_jar: product.isReusableJar,
       };
       return [...prev, newItem];
     });
+  };
+
+  const addToCart = (product: SellableItem) => {
+    addToCartWithQty(product, 1);
   };
 
   const updateQuantity = (productId: string, delta: number) => {
@@ -372,8 +378,40 @@ export default function PosPage() {
                             </span>
                           )}
                         </div>
-                        <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          <Plus className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCartWithQty(p, 1);
+                            }}
+                            className="h-6 px-2 rounded-md bg-primary/10 text-primary hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer active:scale-95"
+                            title="Add 1"
+                          >
+                            +1
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCartWithQty(p, 5);
+                            }}
+                            className="h-6 px-2 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer active:scale-95"
+                            title="Add 5"
+                          >
+                            +5
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCartWithQty(p, 10);
+                            }}
+                            className="h-6 px-2 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer active:scale-95"
+                            title="Add 10"
+                          >
+                            +10
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -418,6 +456,36 @@ export default function PosPage() {
                     </span>
                   )}
                 </div>
+
+                {/* Quick Customer Chips */}
+                <div className="flex items-center gap-1 flex-wrap pb-1">
+                  <button
+                    type="button"
+                    onClick={() => handleCustomerChange("")}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
+                      !selectedCustomerId
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+                    }`}
+                  >
+                    Walk-in
+                  </button>
+                  {customers.slice(0, 3).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleCustomerChange(c.id)}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${
+                        selectedCustomerId === c.id
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted text-foreground border-border hover:bg-muted/80"
+                      }`}
+                    >
+                      {c.contact_name}
+                    </button>
+                  ))}
+                </div>
+
                 <select
                   value={selectedCustomerId}
                   onChange={(e) => handleCustomerChange(e.target.value)}
@@ -585,6 +653,55 @@ export default function PosPage() {
                   })}
                 </div>
               </div>
+
+              {/* Cash Fast Tender Preset Chips */}
+              {paymentMode === "CASH" && cart.length > 0 && (
+                <div className="p-2.5 rounded-xl bg-muted/40 border border-border space-y-2 animate-in fade-in-50 duration-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      Cash Tendered
+                    </span>
+                    {Number(tenderedAmount) > finalTotal && (
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                        Change: {formatCurrency(Number(tenderedAmount) - finalTotal)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setTenderedAmount(String(finalTotal))}
+                      className="px-2 py-1 rounded text-xs font-bold bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors cursor-pointer"
+                    >
+                      Exact ({formatCurrency(finalTotal)})
+                    </button>
+                    {[50, 100, 200, 500, 1000, 2000].map((amt) => {
+                      if (amt >= finalTotal) {
+                        return (
+                          <button
+                            key={amt}
+                            type="button"
+                            onClick={() => setTenderedAmount(String(amt))}
+                            className="px-2 py-1 rounded text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors cursor-pointer"
+                          >
+                            ₹{amt}
+                          </button>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <Input
+                    type="number"
+                    placeholder={`Tendered (Defaults to ${formatCurrency(finalTotal)})`}
+                    value={tenderedAmount}
+                    onChange={(e) => setTenderedAmount(e.target.value)}
+                    className="text-xs h-8"
+                  />
+                </div>
+              )}
 
               {/* Complete Order Button */}
               <Button

@@ -44,7 +44,7 @@ export function Sidebar({
               />
             </div>
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 via-sky-500 to-cyan-400 text-white shadow-md shadow-sky-500/20">
               <Droplets className="h-5 w-5" />
             </div>
           )}
@@ -119,8 +119,8 @@ export function Sidebar({
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors select-none",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-xs font-semibold"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm font-semibold"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                       isCollapsed && "justify-center px-0"
                     )}
                   >

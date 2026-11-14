@@ -679,6 +679,91 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Quick Speed Launcher Bar */}
+        <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-500/5 via-primary/5 to-cyan-500/5 p-4 shadow-xs">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                Fast Operations Launchpad
+              </h3>
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Instant 1-Click Form Openers
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Link
+              href="/orders?new=true"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-primary/50 hover:shadow-md transition-all active:scale-95 group"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-foreground block group-hover:text-primary transition-colors">
+                  + New Order
+                </span>
+                <span className="text-[10px] text-muted-foreground truncate block">
+                  Route Delivery Order
+                </span>
+              </div>
+            </Link>
+
+            <Link
+              href="/pos"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-emerald-500/50 hover:shadow-md transition-all active:scale-95 group"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <Store className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-foreground block group-hover:text-emerald-600 transition-colors">
+                  + POS Counter
+                </span>
+                <span className="text-[10px] text-muted-foreground truncate block">
+                  Walk-in Quick Sale
+                </span>
+              </div>
+            </Link>
+
+            <Link
+              href="/customers?new=true"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-sky-500/50 hover:shadow-md transition-all active:scale-95 group"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-foreground block group-hover:text-sky-600 transition-colors">
+                  + Add Customer
+                </span>
+                <span className="text-[10px] text-muted-foreground truncate block">
+                  30-Second Express Add
+                </span>
+              </div>
+            </Link>
+
+            <Link
+              href="/expenses?new=true"
+              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-purple-500/50 hover:shadow-md transition-all active:scale-95 group"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                <FileSpreadsheet className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-foreground block group-hover:text-purple-600 transition-colors">
+                  + Log Expense
+                </span>
+                <span className="text-[10px] text-muted-foreground truncate block">
+                  Fuel, Repairs & Supplies
+                </span>
+              </div>
+            </Link>
+          </div>
+        </div>
+
         {/* Date Filter Bar */}
         <div className="rounded-xl border border-border bg-card p-3 sm:p-4 space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

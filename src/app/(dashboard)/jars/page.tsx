@@ -1099,16 +1099,34 @@ export default function JarCustodyTrackingPage() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Batch Quantity (Jars)
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Batch Quantity (Jars) *
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {[10, 25, 50, 100, 200].map((qty) => (
+                      <button
+                        key={qty}
+                        type="button"
+                        onClick={() => setMoveQuantity(qty)}
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                          moveQuantity === qty
+                            ? "bg-primary text-white"
+                            : "bg-muted hover:bg-muted/80 text-foreground"
+                        }`}
+                      >
+                        {qty}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <Input
                   type="number"
                   value={moveQuantity}
                   onChange={(e) => setMoveQuantity(Number(e.target.value))}
                   min={1}
-                  className="text-xs"
+                  className="text-xs font-bold"
                 />
               </div>
             </div>

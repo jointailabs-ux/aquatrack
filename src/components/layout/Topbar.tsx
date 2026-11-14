@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Droplets, Menu } from "lucide-react";
+import { Search, Droplets, Menu, Plus, ShoppingCart, Truck, UserPlus, FileText } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { NotificationsDropdown } from "@/components/layout/NotificationsDropdown";
@@ -73,21 +73,29 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
         </div>
       </div>
 
-      {/* Middle: Quick Search (Desktop) */}
-      <div className="hidden lg:flex items-center max-w-sm w-full mx-4">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search orders, customers, jars..."
-            className="h-8 w-full rounded-lg border border-input bg-muted/30 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-hidden focus:ring-1 focus:ring-ring"
-            disabled
-            title="Search will connect to database indexing in Phase 4"
-          />
-          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 hidden xl:inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px] text-muted-foreground">
-            ⌘K
-          </kbd>
-        </div>
+      {/* Middle: Fast Action Speed Bar */}
+      <div className="hidden md:flex items-center gap-2 mx-4">
+        <Link
+          href="/orders?new=true"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-150 shadow-xs hover:shadow-sm active:scale-95 border border-primary/20"
+        >
+          <Truck className="h-3.5 w-3.5" />
+          <span>+ Fast Order</span>
+        </Link>
+        <Link
+          href="/pos"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all duration-150 shadow-xs hover:shadow-sm active:scale-95 border border-emerald-500/20"
+        >
+          <ShoppingCart className="h-3.5 w-3.5" />
+          <span>+ POS Sale</span>
+        </Link>
+        <Link
+          href="/customers?new=true"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-600 hover:text-white transition-all duration-150 shadow-xs hover:shadow-sm active:scale-95 border border-sky-500/20"
+        >
+          <UserPlus className="h-3.5 w-3.5" />
+          <span>+ Add Customer</span>
+        </Link>
       </div>
 
       {/* Right: Status badge, Notifications & User menu */}

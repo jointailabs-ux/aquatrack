@@ -17,7 +17,11 @@ import {
   Edit3,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ShieldCheck,
+  Zap,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -105,6 +109,45 @@ export default function CustomersPage() {
   const [addMaxJarLimit, setAddMaxJarLimit] = React.useState("5");
   const [addPaymentTerms, setAddPaymentTerms] = React.useState("15");
   const [addNotes, setAddNotes] = React.useState("");
+  const [showAddAdvanced, setShowAddAdvanced] = React.useState(false);
+
+  // Check URL query parameter to auto-open add customer modal
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "true") {
+        setIsAddModalOpen(true);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+  }, []);
+
+  const applyQuickCustomerTemplate = (type: "B2C" | "B2B") => {
+    if (type === "B2C") {
+      setAddCustomerType("B2C");
+      setAddContactName("Sunita Rao");
+      setAddPhone("9845" + Math.floor(100000 + Math.random() * 900000));
+      setAddAddress("Flat 302, Lake View Apts, 2nd Cross, Indira Nagar");
+      setAddMaxJarLimit("5");
+      setAddCreditLimit("1000");
+      setAddPaymentTerms("0");
+    } else {
+      setAddCustomerType("B2B");
+      setAddBusinessName("Apex Technologies Corp");
+      setAddContactName("Manoj Sharma");
+      setAddPhone("9880" + Math.floor(100000 + Math.random() * 900000));
+      setAddAddress("Tower B, 4th Floor, Global IT Village");
+      setAddGstin("29ABCDE1234F1Z5");
+      setAddMaxJarLimit("30");
+      setAddCreditLimit("15000");
+      setAddPaymentTerms("30");
+    }
+    addToast({
+      type: "success",
+      title: "Fast Template Loaded",
+      message: `${type === "B2C" ? "Residential" : "Corporate"} profile prefilled in 1 click!`,
+    });
+  };
 
   // Edit Customer Form States
   const [editContactName, setEditContactName] = React.useState("");
@@ -1343,14 +1386,41 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between border-b border-border pb-3">
               <h3 className="font-bold text-base text-foreground flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
-                Register Internal Customer Account
+                Register Customer Account
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground text-sm font-bold"
+                className="text-muted-foreground hover:text-foreground text-sm font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>
+            </div>
+
+            {/* Speed Presets Bar */}
+            <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-sky-950 dark:text-sky-200 flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-sky-600 fill-sky-500/30" />
+                  1-Click Fast Fill Templates
+                </span>
+                <span className="text-[10px] text-sky-700 dark:text-sky-300">Prefills standard limits & info</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => applyQuickCustomerTemplate("B2C")}
+                  className="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold bg-card text-sky-900 dark:text-sky-200 border border-sky-300 dark:border-sky-800 hover:bg-primary hover:text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                >
+                  🏠 Quick Home B2C
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyQuickCustomerTemplate("B2B")}
+                  className="flex-1 py-1.5 px-2 rounded-lg text-xs font-bold bg-card text-sky-900 dark:text-sky-200 border border-sky-300 dark:border-sky-800 hover:bg-primary hover:text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                >
+                  🏢 Quick Corporate B2B
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleCreateCustomer} className="space-y-4">
@@ -1358,8 +1428,13 @@ export default function CustomersPage() {
               <div className="flex rounded-xl bg-muted p-1 border border-border">
                 <button
                   type="button"
-                  onClick={() => setAddCustomerType("B2C")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  onClick={() => {
+                    setAddCustomerType("B2C");
+                    setAddMaxJarLimit("5");
+                    setAddCreditLimit("1000");
+                    setAddPaymentTerms("0");
+                  }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                     addCustomerType === "B2C"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -1369,8 +1444,13 @@ export default function CustomersPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAddCustomerType("B2B")}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  onClick={() => {
+                    setAddCustomerType("B2B");
+                    setAddMaxJarLimit("25");
+                    setAddCreditLimit("10000");
+                    setAddPaymentTerms("30");
+                  }}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                     addCustomerType === "B2B"
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
@@ -1381,34 +1461,21 @@ export default function CustomersPage() {
               </div>
 
               {addCustomerType === "B2B" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">
-                      Business / Institution Name *
-                    </label>
-                    <Input
-                      placeholder="e.g. Apex Tech Park Pvt Ltd"
-                      value={addBusinessName}
-                      onChange={(e) => setAddBusinessName(e.target.value)}
-                      required
-                      className="text-xs"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-foreground">
-                      GSTIN (Optional)
-                    </label>
-                    <Input
-                      placeholder="e.g. 29AABCU9603R1ZX"
-                      value={addGstin}
-                      onChange={(e) => setAddGstin(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-foreground">
+                    Business / Institution Name *
+                  </label>
+                  <Input
+                    placeholder="e.g. Apex Tech Park Pvt Ltd"
+                    value={addBusinessName}
+                    onChange={(e) => setAddBusinessName(e.target.value)}
+                    required
+                    className="text-xs"
+                  />
                 </div>
               )}
 
+              {/* Essential Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-foreground">
@@ -1439,23 +1506,10 @@ export default function CustomersPage() {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground">
-                  Email Address (Optional)
-                </label>
-                <Input
-                  type="email"
-                  placeholder="e.g. admin@example.com"
-                  value={addEmail}
-                  onChange={(e) => setAddEmail(e.target.value)}
-                  className="text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
                   Delivery Physical Address *
                 </label>
                 <Input
-                  placeholder="Street address, building, floor, landmark"
+                  placeholder="Street address, building, floor, flat/unit #"
                   value={addAddress}
                   onChange={(e) => setAddAddress(e.target.value)}
                   required
@@ -1463,70 +1517,119 @@ export default function CustomersPage() {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Delivery Instructions (Optional)
-                </label>
-                <Input
-                  placeholder="e.g. Security check at gate 2, call before arrival"
-                  value={addDeliveryInstructions}
-                  onChange={(e) => setAddDeliveryInstructions(e.target.value)}
-                  className="text-xs"
-                />
-              </div>
+              {/* Progressive Disclosure: Collapsible Advanced Fields */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAddAdvanced((prev) => !prev)}
+                  className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1.5 py-1 cursor-pointer select-none"
+                >
+                  {showAddAdvanced ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                  {showAddAdvanced ? "Hide Extra Details" : "+ More Options (GST, Jar & Credit Limits, Email)"}
+                </button>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Max Jar Limit
-                  </label>
-                  <Input
-                    type="number"
-                    value={addMaxJarLimit}
-                    onChange={(e) => setAddMaxJarLimit(e.target.value)}
-                    min={1}
-                    className="text-xs"
-                  />
-                </div>
+                {showAddAdvanced && (
+                  <div className="mt-2.5 p-3 rounded-xl bg-muted/30 border border-border space-y-3 animate-in fade-in-50 duration-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">
+                          Email Address (Optional)
+                        </label>
+                        <Input
+                          type="email"
+                          placeholder="e.g. admin@example.com"
+                          value={addEmail}
+                          onChange={(e) => setAddEmail(e.target.value)}
+                          className="text-xs"
+                        />
+                      </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Credit Limit (₹)
-                  </label>
-                  <Input
-                    type="number"
-                    value={addCreditLimit}
-                    onChange={(e) => setAddCreditLimit(e.target.value)}
-                    min={0}
-                    className="text-xs"
-                  />
-                </div>
+                      {addCustomerType === "B2B" && (
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-foreground">
+                            GSTIN (Optional)
+                          </label>
+                          <Input
+                            placeholder="e.g. 29AABCU9603R1ZX"
+                            value={addGstin}
+                            onChange={(e) => setAddGstin(e.target.value)}
+                            className="text-xs"
+                          />
+                        </div>
+                      )}
+                    </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Payment Terms
-                  </label>
-                  <Input
-                    type="number"
-                    value={addPaymentTerms}
-                    onChange={(e) => setAddPaymentTerms(e.target.value)}
-                    min={0}
-                    placeholder="Days"
-                    className="text-xs"
-                  />
-                </div>
-              </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground">
+                        Delivery Instructions (Optional)
+                      </label>
+                      <Input
+                        placeholder="e.g. Security check at gate 2, call before arrival"
+                        value={addDeliveryInstructions}
+                        onChange={(e) => setAddDeliveryInstructions(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Internal Notes (Optional)
-                </label>
-                <Input
-                  placeholder="e.g. Preferred delivery schedule"
-                  value={addNotes}
-                  onChange={(e) => setAddNotes(e.target.value)}
-                  className="text-xs"
-                />
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">
+                          Max Jar Limit
+                        </label>
+                        <Input
+                          type="number"
+                          value={addMaxJarLimit}
+                          onChange={(e) => setAddMaxJarLimit(e.target.value)}
+                          min={1}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">
+                          Credit Limit (₹)
+                        </label>
+                        <Input
+                          type="number"
+                          value={addCreditLimit}
+                          onChange={(e) => setAddCreditLimit(e.target.value)}
+                          min={0}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">
+                          Payment Terms
+                        </label>
+                        <Input
+                          type="number"
+                          value={addPaymentTerms}
+                          onChange={(e) => setAddPaymentTerms(e.target.value)}
+                          min={0}
+                          placeholder="Days"
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-foreground">
+                        Internal Notes (Optional)
+                      </label>
+                      <Input
+                        placeholder="e.g. Preferred delivery schedule"
+                        value={addNotes}
+                        onChange={(e) => setAddNotes(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
@@ -1542,7 +1645,7 @@ export default function CustomersPage() {
                   type="submit"
                   size="sm"
                   disabled={isSubmitting}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-4"
                 >
                   {isSubmitting ? "Registering..." : "Save Customer"}
                 </Button>

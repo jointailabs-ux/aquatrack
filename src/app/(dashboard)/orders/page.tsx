@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   Plus,
+  Minus,
   Search,
   Truck,
   ShoppingCart,
@@ -12,6 +13,9 @@ import {
   RefreshCw,
   Ban,
   Package,
+  Zap,
+  Sparkles,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -181,6 +185,75 @@ export default function OrdersPage() {
     }
 
     setIsCreateModalOpen(true);
+  };
+
+  // Check URL query parameter to auto-open create modal if navigated from Quick Action
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "true") {
+        openCreateModal();
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products.length, customers.length]);
+
+  // Apply quick jar bundle preset
+  const applyJarBundle = (targetQty: number) => {
+    const jarProd = products.find((p) => p.is_reusable_jar) || products[0];
+    if (!jarProd) return;
+
+    const price = customerSpecialPrices[jarProd.id] ?? Number(jarProd.default_sale_price);
+
+    setItemRows([
+      {
+        product_id: jarProd.id,
+        quantity: targetQty,
+        unit_price: price,
+        gst_rate: Number(jarProd.gst_rate || 0),
+      },
+    ]);
+  };
+
+  // Quick-add product chip
+  const handleQuickAddProduct = (prod: ProductRecord) => {
+    const existingIndex = itemRows.findIndex((r) => r.product_id === prod.id);
+    if (existingIndex >= 0) {
+      setItemRows((prev) =>
+        prev.map((r, idx) =>
+          idx === existingIndex ? { ...r, quantity: r.quantity + 1 } : r
+        )
+      );
+    } else {
+      const price = customerSpecialPrices[prod.id] ?? Number(prod.default_sale_price);
+      setItemRows((prev) => [
+        ...prev,
+        {
+          product_id: prod.id,
+          quantity: 1,
+          unit_price: price,
+          gst_rate: Number(prod.gst_rate || 0),
+        },
+      ]);
+    }
+  };
+
+  // Instant 1-tap template fill for rapid demo or daily regular orders
+  const handleInstantSampleFill = () => {
+    if (customers.length > 0) {
+      handleCustomerChange(customers[0].id);
+    }
+    if (staffList.length > 0) {
+      setAssignedStaffId(staffList[0].id);
+    }
+    setDeliveryDate(new Date().toISOString().split("T")[0]);
+    applyJarBundle(10);
+    addToast({
+      type: "success",
+      title: "Fast Template Applied",
+      message: "Customer, driver, today's date, and 10 jars prefilled!",
+    });
   };
 
   // Add a new product row
@@ -910,9 +983,47 @@ export default function OrdersPage() {
               <ShoppingCart className="h-5 w-5 text-primary" />
               Place Multi-Product Customer Order
             </h3>
+            <button
+              type="button"
+              onClick={handleInstantSampleFill}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 active:scale-95 transition-all cursor-pointer"
+              title="Prepopulates customer, driver, today's date, and 10 jars instantly"
+            >
+              <Zap className="h-3.5 w-3.5 text-amber-600 fill-amber-500" />
+              <span>⚡ 1-Click Fast Fill</span>
+            </button>
           </div>
 
           <form onSubmit={handleCreateOrder} className="space-y-4">
+            {/* Customer Quick Select Chips */}
+            {customers.length > 0 && (
+              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/80 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 text-primary" />
+                    Frequent Customers (Tap to Select)
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Auto-fills address & contract prices</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {customers.slice(0, 5).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleCustomerChange(c.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all active:scale-95 cursor-pointer ${
+                        selectedCustomerId === c.id
+                          ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                          : "bg-background text-foreground border-border hover:border-primary/50 hover:bg-primary/5"
+                      }`}
+                    >
+                      {c.contact_name} {c.business_name ? `(${c.business_name})` : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Customer & Route Details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -953,9 +1064,31 @@ export default function OrdersPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Delivery Target Date *
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground">
+                    Delivery Target Date *
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryDate(new Date().toISOString().split("T")[0])}
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + 1);
+                        setDeliveryDate(d.toISOString().split("T")[0]);
+                      }}
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                    >
+                      Tomorrow
+                    </button>
+                  </div>
+                </div>
                 <Input
                   type="date"
                   value={deliveryDate}
@@ -979,6 +1112,49 @@ export default function OrdersPage() {
               </div>
             </div>
 
+            {/* 1-Click Speed Bundles & Quick Products */}
+            <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-sky-950 dark:text-sky-200 flex items-center gap-1.5">
+                  <Zap className="h-4 w-4 text-sky-600 dark:text-sky-400 fill-sky-500/30" />
+                  1-Click Speed Bundles (Zero Typing)
+                </span>
+                <span className="text-[10px] text-sky-700 dark:text-sky-300">Click to set quantity</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {[5, 10, 25, 50, 100].map((qty) => (
+                  <button
+                    key={qty}
+                    type="button"
+                    onClick={() => applyJarBundle(qty)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-card text-sky-900 dark:text-sky-200 border border-sky-300 dark:border-sky-800 hover:border-primary hover:bg-primary hover:text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    💧 {qty} Jars
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick-Add Product Chips */}
+              {products.length > 1 && (
+                <div className="pt-2 border-t border-sky-500/20 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase">
+                    Add Items:
+                  </span>
+                  {products.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleQuickAddProduct(p)}
+                      className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-card hover:bg-primary hover:text-white text-foreground border border-border transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="h-3 w-3" />
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Line Items Section */}
             <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex items-center justify-between">
@@ -988,7 +1164,7 @@ export default function OrdersPage() {
                     Product Line Items ({itemRows.length})
                   </h4>
                   <p className="text-[11px] text-muted-foreground">
-                    Add products, jars, or accessories for this route delivery.
+                    Products and jar quantities for this route delivery.
                   </p>
                 </div>
 
@@ -1009,10 +1185,10 @@ export default function OrdersPage() {
                 <table className="w-full text-xs text-left">
                   <thead className="bg-muted/50 text-muted-foreground border-b border-border">
                     <tr>
-                      <th className="py-2 px-3 font-semibold w-5/12">Product</th>
-                      <th className="py-2 px-3 font-semibold text-center w-2/12">Qty</th>
+                      <th className="py-2 px-3 font-semibold w-4/12">Product</th>
+                      <th className="py-2 px-3 font-semibold text-center w-3/12">Qty & Quick Add</th>
                       <th className="py-2 px-3 font-semibold text-right w-2/12">Unit Price</th>
-                      <th className="py-2 px-3 font-semibold text-right w-2/12">Line Subtotal</th>
+                      <th className="py-2 px-3 font-semibold text-right w-2/12">Subtotal</th>
                       <th className="py-2 px-2 text-center w-1/12"></th>
                     </tr>
                   </thead>
@@ -1038,7 +1214,6 @@ export default function OrdersPage() {
                                 className="w-full rounded-md border border-border bg-background p-1.5 text-xs text-foreground"
                               >
                                 {products.map((p) => {
-                                  // Disable if product is already picked in another row
                                   const isPickedElsewhere = itemRows.some(
                                     (r, rIdx) => rIdx !== idx && r.product_id === p.id
                                   );
@@ -1057,17 +1232,48 @@ export default function OrdersPage() {
                             </td>
 
                             <td className="p-2 text-center">
-                              <Input
-                                type="number"
-                                min={1}
-                                step={1}
-                                value={row.quantity}
-                                onChange={(e) =>
-                                  handleRowQuantityChange(idx, parseInt(e.target.value, 10))
-                                }
-                                className="h-8 text-xs text-center w-20 mx-auto"
-                                required
-                              />
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRowQuantityChange(idx, Math.max(1, row.quantity - 1))}
+                                    disabled={row.quantity <= 1}
+                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-bold text-xs disabled:opacity-30 cursor-pointer"
+                                  >
+                                    -
+                                  </button>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    step={1}
+                                    value={row.quantity}
+                                    onChange={(e) =>
+                                      handleRowQuantityChange(idx, parseInt(e.target.value, 10))
+                                    }
+                                    className="h-7 text-xs text-center w-14 font-bold"
+                                    required
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRowQuantityChange(idx, row.quantity + 1)}
+                                    className="h-7 w-7 rounded bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center font-bold text-xs cursor-pointer"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {[5, 10, 25].map((add) => (
+                                    <button
+                                      key={add}
+                                      type="button"
+                                      onClick={() => handleRowQuantityChange(idx, row.quantity + add)}
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-muted/70 hover:bg-primary hover:text-white text-muted-foreground transition-colors cursor-pointer"
+                                    >
+                                      +{add}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                             </td>
 
                             <td className="p-2 text-right">
@@ -1079,7 +1285,7 @@ export default function OrdersPage() {
                                 onChange={(e) =>
                                   handleRowPriceChange(idx, parseFloat(e.target.value))
                                 }
-                                className="h-8 text-xs text-right w-24 ml-auto"
+                                className="h-8 text-xs text-right w-20 ml-auto"
                                 required
                               />
                               <span className="text-[10px] text-muted-foreground block mt-0.5">

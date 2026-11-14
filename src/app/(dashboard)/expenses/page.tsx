@@ -7,6 +7,7 @@ import {
   Truck,
   Building,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -56,7 +57,21 @@ export default function ExpensesPage() {
       }
     }
     load();
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "true") {
+        setIsAddModalOpen(true);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
   }, []);
+
+  const handleSelectQuickCategory = (cat: ExpenseCategory, defaultDesc: string, defaultAmt: string) => {
+    setCategory(cat);
+    setDescription(defaultDesc);
+    if (!amount) setAmount(defaultAmt);
+  };
 
   const handleRecordExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -354,6 +369,31 @@ export default function ExpensesPage() {
               </button>
             </div>
 
+            {/* Quick Category Speed Presets */}
+            <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 space-y-1.5">
+              <span className="text-xs font-bold text-sky-950 dark:text-sky-200 flex items-center gap-1">
+                <Zap className="h-3.5 w-3.5 text-sky-600 fill-sky-500/30" />
+                Quick Expense Presets (1-Tap Fill):
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { cat: "FUEL" as ExpenseCategory, label: "⛽ Diesel Fuel", desc: "Vehicle Fuel (Diesel) for Route Delivery", amt: "1500" },
+                  { cat: "VEHICLE_MAINTENANCE" as ExpenseCategory, label: "🔧 Maintenance", desc: "Vehicle Service / Tire Pressure Check", amt: "600" },
+                  { cat: "PACKAGING" as ExpenseCategory, label: "📦 Caps & Seals", desc: "20L Jar Caps & Shrink Sleeves Batch", amt: "850" },
+                  { cat: "ELECTRICITY" as ExpenseCategory, label: "⚡ Power", desc: "Depot Electricity & RO Plant Power", amt: "2500" },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => handleSelectQuickCategory(preset.cat, preset.desc, preset.amt)}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-card text-sky-900 dark:text-sky-200 border border-sky-300 dark:border-sky-800 hover:bg-primary hover:text-white transition-all cursor-pointer shadow-xs active:scale-95"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <form onSubmit={handleRecordExpense} className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
@@ -391,7 +431,21 @@ export default function ExpensesPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Amount (₹) *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">Amount (₹) *</label>
+                    <div className="flex items-center gap-1">
+                      {[100, 500, 1000].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setAmount(String(val))}
+                          className="text-[9px] font-bold px-1 rounded bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                        >
+                          +{val}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <Input
                     type="number"
                     value={amount}
@@ -403,7 +457,18 @@ export default function ExpensesPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Date *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">Date *</label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setExpenseDate(new Date().toISOString().split("T")[0])}
+                        className="text-[9px] font-bold px-1 rounded bg-muted hover:bg-muted/80 text-foreground cursor-pointer"
+                      >
+                        Today
+                      </button>
+                    </div>
+                  </div>
                   <Input
                     type="date"
                     value={expenseDate}
