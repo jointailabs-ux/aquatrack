@@ -202,6 +202,14 @@ const CATEGORY_LABELS = {
   system: "Settings & System",
 };
 
+const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
+  operations: { bg: "bg-sky-500/10", text: "text-sky-600" },
+  procurement: { bg: "bg-emerald-500/10", text: "text-emerald-600" },
+  workforce: { bg: "bg-purple-500/10", text: "text-purple-600" },
+  finance: { bg: "bg-amber-500/10", text: "text-amber-600" },
+  system: { bg: "bg-cyan-500/10", text: "text-cyan-700" },
+};
+
 export function MoreSheet({ isOpen, onClose }: MoreSheetProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -398,7 +406,7 @@ export function MoreSheet({ isOpen, onClose }: MoreSheetProps) {
                               "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
                               isActive
                                 ? "bg-primary text-primary-foreground shadow-xs"
-                                : "bg-muted text-muted-foreground"
+                                : `${CATEGORY_COLORS[item.category]?.bg || "bg-muted"} ${CATEGORY_COLORS[item.category]?.text || "text-muted-foreground"}`
                             )}
                           >
                             <Icon className="h-4.5 w-4.5" />
@@ -407,7 +415,11 @@ export function MoreSheet({ isOpen, onClose }: MoreSheetProps) {
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-semibold truncate">{item.title}</span>
                               {item.badge && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded-sm bg-muted text-muted-foreground font-medium">
+                                <span className={cn(
+                                  "text-[9px] px-1.5 py-0.5 rounded-sm font-semibold",
+                                  CATEGORY_COLORS[item.category]?.bg || "bg-muted",
+                                  CATEGORY_COLORS[item.category]?.text || "text-muted-foreground"
+                                )}>
                                   {item.badge}
                                 </span>
                               )}

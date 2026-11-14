@@ -48,7 +48,7 @@ export default function DashboardLayout({
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <Topbar onOpenMobileNav={handleOpenMore} />
 
-          <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 bg-muted/10 pb-20 md:pb-8 safe-area-bottom">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 ambient-mesh pb-20 md:pb-8 safe-area-bottom">
             <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
               {children}
             </div>

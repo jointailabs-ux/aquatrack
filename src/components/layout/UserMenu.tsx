@@ -69,7 +69,7 @@ export function UserMenu({
         aria-haspopup="true"
         aria-label="User account menu"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs border border-primary/20 shrink-0">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white font-bold text-xs shadow-xs shrink-0">
           {userData.name
             .split(" ")
             .map((n) => n[0])

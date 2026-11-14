@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Droplets, Menu, Plus, ShoppingCart, Truck, UserPlus, FileText } from "lucide-react";
+import { Droplets, Menu, ShoppingCart, Truck, UserPlus } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { NotificationsDropdown } from "@/components/layout/NotificationsDropdown";
@@ -74,24 +74,24 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
       </div>
 
       {/* Middle: Fast Action Speed Bar */}
-      <div className="hidden md:flex items-center gap-2 mx-4">
+      <div className="hidden md:flex items-center gap-2.5 mx-4">
         <Link
           href="/orders?new=true"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-150 shadow-xs hover:shadow-sm active:scale-95 border border-primary/20"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:from-sky-600 hover:to-blue-700 transition-all duration-150 shadow-sm shadow-sky-500/25 active:scale-95"
         >
           <Truck className="h-3.5 w-3.5" />
           <span>+ Fast Order</span>
         </Link>
         <Link
           href="/pos"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all duration-150 shadow-xs hover:shadow-sm active:scale-95 border border-emerald-500/20"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 transition-all duration-150 shadow-sm shadow-emerald-500/25 active:scale-95"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
           <span>+ POS Sale</span>
         </Link>
         <Link
           href="/customers?new=true"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-600 hover:text-white transition-all duration-150 shadow-xs hover:shadow-sm active:scale-95 border border-sky-500/20"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 transition-all duration-150 shadow-sm shadow-indigo-500/25 active:scale-95"
         >
           <UserPlus className="h-3.5 w-3.5" />
           <span>+ Add Customer</span>

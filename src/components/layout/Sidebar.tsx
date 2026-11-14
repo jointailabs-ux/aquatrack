@@ -26,16 +26,16 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "relative flex flex-col border-r border-border bg-card transition-all duration-200 z-30 select-none",
+        "relative flex flex-col border-r border-slate-800 bg-slate-900 text-slate-100 transition-all duration-200 z-30 select-none shadow-xl",
         isCollapsed ? "w-16" : "w-64",
         className
       )}
     >
       {/* Brand Header */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-border/80">
+      <div className="flex h-16 items-center justify-between px-4 border-b border-slate-800/80">
         <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
           {logoUrl ? (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/30 border border-border p-1 shadow-xs overflow-hidden">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800 border border-slate-700 p-1 shadow-xs overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoUrl}
@@ -44,16 +44,16 @@ export function Sidebar({
               />
             </div>
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 via-sky-500 to-cyan-400 text-white shadow-md shadow-sky-500/20">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 via-sky-400 to-cyan-300 text-slate-950 shadow-md shadow-sky-500/30">
               <Droplets className="h-5 w-5" />
             </div>
           )}
           {!isCollapsed && (
             <div className="flex flex-col truncate">
-              <span className="font-bold text-sm tracking-tight text-foreground truncate">
-                AquaTrack <span className="text-primary font-normal">ERP</span>
+              <span className="font-extrabold text-sm tracking-tight text-white truncate">
+                AquaTrack <span className="text-sky-400 font-bold">ERP</span>
               </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium truncate">
+              <span className="text-[10px] text-sky-300/70 uppercase tracking-widest font-semibold truncate">
                 Distribution Hub
               </span>
             </div>
@@ -65,7 +65,7 @@ export function Sidebar({
       <button
         onClick={onToggleCollapse}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="absolute -right-3 top-20 z-40 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs hover:bg-accent hover:text-foreground transition-colors"
+        className="absolute -right-3 top-20 z-40 hidden md:flex h-6 w-6 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-300 shadow-md hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
       >
         {isCollapsed ? (
           <ChevronRight className="h-3.5 w-3.5" />
@@ -79,7 +79,7 @@ export function Sidebar({
         {NAVIGATION_GROUPS.map((group) => (
           <div key={group.label} className="space-y-1">
             {!isCollapsed && (
-              <h4 className="px-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-2">
+              <h4 className="px-3 text-[11px] font-extrabold uppercase tracking-wider text-sky-400/90 mb-2">
                 {group.label}
               </h4>
             )}
@@ -96,15 +96,15 @@ export function Sidebar({
                       key={item.title}
                       title={`${item.title} (Available in Phase ${item.moduleNumber > 10 ? '4-9' : '4'})`}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground/50 cursor-not-allowed select-none group",
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 cursor-not-allowed select-none group",
                         isCollapsed && "justify-center px-0"
                       )}
                     >
-                      <Icon className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+                      <Icon className="h-4 w-4 shrink-0 text-slate-600" />
                       {!isCollapsed && (
                         <div className="flex items-center justify-between flex-1 truncate">
                           <span className="truncate">{item.title}</span>
-                          <Lock className="h-3 w-3 text-muted-foreground/30 ml-2 shrink-0" />
+                          <Lock className="h-3 w-3 text-slate-600 ml-2 shrink-0" />
                         </div>
                       )}
                     </div>
@@ -117,17 +117,17 @@ export function Sidebar({
                     href={item.href}
                     title={isCollapsed ? item.title : undefined}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors select-none",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all select-none cursor-pointer",
                       isActive
-                        ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm font-semibold"
-                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                        ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/25 font-bold"
+                        : "text-slate-300 hover:bg-slate-800/80 hover:text-white",
                       isCollapsed && "justify-center px-0"
                     )}
                   >
                     <Icon
                       className={cn(
                         "h-4 w-4 shrink-0",
-                        isActive ? "text-primary-foreground" : "text-muted-foreground"
+                        isActive ? "text-white" : "text-slate-400"
                       )}
                     />
                     {!isCollapsed && (
@@ -143,9 +143,9 @@ export function Sidebar({
 
       {/* Footer Info */}
       {!isCollapsed && (
-        <div className="p-3 border-t border-border/80 text-[11px] text-muted-foreground flex items-center justify-between bg-muted/20">
+        <div className="p-3 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between bg-slate-950/60">
           <span>AquaTrack ERP</span>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-emerald-400 border-emerald-500/40 bg-emerald-500/10">
             v1.0 Live ERP
           </Badge>
         </div>

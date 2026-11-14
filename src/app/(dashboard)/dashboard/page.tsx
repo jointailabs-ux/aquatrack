@@ -357,73 +357,73 @@ export default function DashboardPage() {
         {/* B. Business Overview: Compact 2 × 2 Metric Grid */}
         <div className="grid grid-cols-2 gap-2.5">
           {/* Tile 1: Today's Sales */}
-          <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/30 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-muted-foreground">Sales Revenue</span>
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span className="text-[11px] font-bold text-emerald-900/80">Sales Revenue</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
                 <DollarSign className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-foreground tracking-tight block">
+              <span className="text-lg font-black text-emerald-950 dark:text-emerald-300 tracking-tight block">
                 {formatCurrency(kpis.orderRevenue + kpis.posSalesTotal)}
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium">
+              <span className="text-[10px] text-emerald-700/80 font-semibold">
                 {kpis.orderCount + kpis.posSalesCount} sales recorded
               </span>
             </div>
           </div>
 
           {/* Tile 2: Orders Count */}
-          <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div className="rounded-2xl border border-sky-200/80 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/30 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-muted-foreground">Route Orders</span>
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600">
+              <span className="text-[11px] font-bold text-sky-900/80">Route Orders</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/25">
                 <Truck className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-foreground tracking-tight block">
+              <span className="text-lg font-black text-sky-950 dark:text-sky-300 tracking-tight block">
                 {kpis.orderCount}
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium">
+              <span className="text-[10px] text-sky-700/80 font-semibold">
                 {kpis.pendingOrdersCount} pending dispatch
               </span>
             </div>
           </div>
 
           {/* Tile 3: Outstanding A/R */}
-          <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/30 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-muted-foreground">Customer A/R</span>
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+              <span className="text-[11px] font-bold text-amber-900/80">Customer A/R</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
                 <Clock className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-amber-600 dark:text-amber-400 tracking-tight block">
+              <span className="text-lg font-black text-amber-950 dark:text-amber-300 tracking-tight block">
                 {formatCurrency(financials.accountsReceivable)}
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium">
+              <span className="text-[10px] text-amber-700/80 font-semibold">
                 Pending collection
               </span>
             </div>
           </div>
 
           {/* Tile 4: Available Stock */}
-          <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/30 p-3 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-muted-foreground">Available Stock</span>
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+              <span className="text-[11px] font-bold text-indigo-900/80">Available Stock</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
                 <PackageCheck className="h-3.5 w-3.5" />
               </div>
             </div>
             <div className="mt-1.5">
-              <span className="text-lg font-black text-foreground tracking-tight block">
+              <span className="text-lg font-black text-indigo-950 dark:text-indigo-300 tracking-tight block">
                 {kpis.inventoryStockSummary.totalUnits}{" "}
-                <span className="text-xs font-semibold text-muted-foreground">units</span>
+                <span className="text-xs font-semibold text-indigo-700">units</span>
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium">
+              <span className="text-[10px] text-indigo-700/80 font-semibold">
                 {kpis.inventoryStockSummary.lowStockCount > 0 ? (
                   <span className="text-destructive font-semibold">
                     {kpis.inventoryStockSummary.lowStockCount} below reorder
@@ -696,16 +696,16 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Link
               href="/orders?new=true"
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-primary/50 hover:shadow-md transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-sky-50 via-white to-blue-50/70 border border-sky-200/80 hover:border-sky-500 hover:shadow-md hover:shadow-sky-500/15 transition-all active:scale-95 group"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/30 group-hover:bg-sky-600 transition-colors">
                 <Truck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-foreground block group-hover:text-primary transition-colors">
+                <span className="text-xs font-bold text-sky-950 block group-hover:text-sky-600 transition-colors">
                   + New Order
                 </span>
-                <span className="text-[10px] text-muted-foreground truncate block">
+                <span className="text-[10px] text-slate-500 truncate block">
                   Route Delivery Order
                 </span>
               </div>
@@ -713,16 +713,16 @@ export default function DashboardPage() {
 
             <Link
               href="/pos"
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-emerald-500/50 hover:shadow-md transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-emerald-50 via-white to-teal-50/70 border border-emerald-200/80 hover:border-emerald-500 hover:shadow-md hover:shadow-emerald-500/15 transition-all active:scale-95 group"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30 group-hover:bg-emerald-600 transition-colors">
                 <Store className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-foreground block group-hover:text-emerald-600 transition-colors">
+                <span className="text-xs font-bold text-emerald-950 block group-hover:text-emerald-600 transition-colors">
                   + POS Counter
                 </span>
-                <span className="text-[10px] text-muted-foreground truncate block">
+                <span className="text-[10px] text-slate-500 truncate block">
                   Walk-in Quick Sale
                 </span>
               </div>
@@ -730,16 +730,16 @@ export default function DashboardPage() {
 
             <Link
               href="/customers?new=true"
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-sky-500/50 hover:shadow-md transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/70 border border-indigo-200/80 hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-500/15 transition-all active:scale-95 group"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-white shadow-sm shadow-indigo-500/30 group-hover:bg-indigo-600 transition-colors">
                 <UserPlus className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-foreground block group-hover:text-sky-600 transition-colors">
+                <span className="text-xs font-bold text-indigo-950 block group-hover:text-indigo-600 transition-colors">
                   + Add Customer
                 </span>
-                <span className="text-[10px] text-muted-foreground truncate block">
+                <span className="text-[10px] text-slate-500 truncate block">
                   30-Second Express Add
                 </span>
               </div>
@@ -747,16 +747,16 @@ export default function DashboardPage() {
 
             <Link
               href="/expenses?new=true"
-              className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border/80 hover:border-purple-500/50 hover:shadow-md transition-all active:scale-95 group"
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-amber-50 via-white to-orange-50/70 border border-amber-200/80 hover:border-amber-500 hover:shadow-md hover:shadow-amber-500/15 transition-all active:scale-95 group"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/30 group-hover:bg-amber-600 transition-colors">
                 <FileSpreadsheet className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-foreground block group-hover:text-purple-600 transition-colors">
+                <span className="text-xs font-bold text-amber-950 block group-hover:text-amber-600 transition-colors">
                   + Log Expense
                 </span>
-                <span className="text-[10px] text-muted-foreground truncate block">
+                <span className="text-[10px] text-slate-500 truncate block">
                   Fuel, Repairs & Supplies
                 </span>
               </div>
@@ -849,85 +849,85 @@ export default function DashboardPage() {
 
         {/* Top Metric Cards: 4 Primary Financial Velocity Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="border-sky-200/90 bg-gradient-to-br from-white via-sky-50/50 to-blue-50/60 shadow-xs hover:shadow-md hover:shadow-sky-500/15 hover:border-sky-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Orders & Sales (Period)</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-800">Orders & Sales (Period)</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500 text-white shadow-sm shadow-sky-500/30">
                   <DollarSign className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-foreground">
+                <span className="text-2xl font-black tracking-tight text-sky-950">
                   {formatCurrency(kpis.orderRevenue)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-sky-700/80">
                 <span>{kpis.orderCount} active order(s)</span>
-                <Link href="/orders" className="text-primary hover:underline font-medium inline-flex items-center gap-0.5">
+                <Link href="/orders" className="text-sky-700 hover:text-sky-900 hover:underline font-semibold inline-flex items-center gap-0.5">
                   Orders <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="border-emerald-200/90 bg-gradient-to-br from-white via-emerald-50/50 to-teal-50/60 shadow-xs hover:shadow-md hover:shadow-emerald-500/15 hover:border-emerald-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Collections (Cash & UPI)</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Collections (Cash & UPI)</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30">
                   <Receipt className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-foreground">
+                <span className="text-2xl font-black tracking-tight text-emerald-950">
                   {formatCurrency(financials.totalCollections)}
                 </span>
               </div>
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-[11px] text-emerald-700/80">
                 {formatCurrency(financials.cashCollections)} Cash • {formatCurrency(financials.upiBankCollections)} UPI/Bank
               </p>
             </CardContent>
           </Card>
 
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="border-amber-200/90 bg-gradient-to-br from-white via-amber-50/50 to-orange-50/60 shadow-xs hover:shadow-md hover:shadow-amber-500/15 hover:border-amber-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Customer Receivables (A/R)</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Customer Receivables (A/R)</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm shadow-amber-500/30">
                   <Clock className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-foreground">
+                <span className="text-2xl font-black tracking-tight text-amber-950">
                   {formatCurrency(financials.accountsReceivable)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-amber-700/80">
                 <span>Cumulative across accounts</span>
-                <Link href="/customers" className="text-amber-600 hover:underline font-medium inline-flex items-center gap-0.5">
+                <Link href="/customers" className="text-amber-700 hover:text-amber-900 hover:underline font-semibold inline-flex items-center gap-0.5">
                   Customers <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:border-primary/40 transition-colors">
+          <Card className="border-purple-200/90 bg-gradient-to-br from-white via-purple-50/50 to-pink-50/60 shadow-xs hover:shadow-md hover:shadow-purple-500/15 hover:border-purple-400 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Period Operating Expenses</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Period Operating Expenses</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500 text-white shadow-sm shadow-purple-500/30">
                   <FileSpreadsheet className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-foreground">
+                <span className="text-2xl font-black tracking-tight text-purple-950">
                   {formatCurrency(financials.operatingExpenses)}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-purple-700/80">
                 <span>Fuel, repairs & supplies</span>
-                <Link href="/expenses" className="text-purple-600 hover:underline font-medium inline-flex items-center gap-0.5">
+                <Link href="/expenses" className="text-purple-700 hover:text-purple-900 hover:underline font-semibold inline-flex items-center gap-0.5">
                   Expenses <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -937,120 +937,120 @@ export default function DashboardPage() {
 
         {/* Secondary Row: Inventory, POS, Delivery, and Dispatch Queue Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-border">
+          <Card className="border-blue-200/80 bg-gradient-to-br from-white to-blue-50/40 shadow-xs hover:border-blue-300 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10 text-blue-600">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500 text-white shadow-xs">
                     <PackageCheck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground">Inventory Valuation</span>
+                  <span className="text-xs font-bold text-slate-800">Inventory Valuation</span>
                 </div>
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-[10px] border-blue-200 bg-blue-50 text-blue-700">
                   Warehouse Stock
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-foreground">
+                <span className="text-xl font-bold text-slate-900">
                   {formatCurrency(kpis.inventoryStockSummary.totalValuation)}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-slate-500">
                   {kpis.inventoryStockSummary.totalUnits} Units
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-muted-foreground flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
                 <span>{kpis.inventoryStockSummary.totalProducts} active products</span>
-                <Link href="/inventory" className="text-primary hover:underline font-medium">
+                <Link href="/inventory" className="text-blue-600 hover:underline font-medium">
                   Stock List
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border">
+          <Card className="border-teal-200/80 bg-gradient-to-br from-white to-teal-50/40 shadow-xs hover:border-teal-300 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-500/10 text-slate-600">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500 text-white shadow-xs">
                     <Store className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground">Counter POS Sales</span>
+                  <span className="text-xs font-bold text-slate-800">Counter POS Sales</span>
                 </div>
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-[10px] border-teal-200 bg-teal-50 text-teal-700">
                   Walk-ins
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-foreground">
+                <span className="text-xl font-bold text-slate-900">
                   {formatCurrency(kpis.posSalesTotal)}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-slate-500">
                   {kpis.posSalesCount} Sales
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-muted-foreground flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
                 <span>Cash & UPI counter</span>
-                <Link href="/pos" className="text-primary hover:underline font-medium">
+                <Link href="/pos" className="text-teal-600 hover:underline font-medium">
                   Open POS
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border">
+          <Card className="border-emerald-200/80 bg-gradient-to-br from-white to-emerald-50/40 shadow-xs hover:border-emerald-300 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-500/10 text-indigo-600">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-white shadow-xs">
                     <Truck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground">Route Deliveries</span>
+                  <span className="text-xs font-bold text-slate-800">Route Deliveries</span>
                 </div>
-                <Badge variant="success" className="text-[10px]">
+                <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
                   Fleet
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-foreground">
+                <span className="text-xl font-bold text-emerald-950">
                   {kpis.completedDeliveries} Delivered
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-slate-500">
                   {kpis.awaitingDeliveryCount} Awaiting
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-muted-foreground flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
                 <span>Delivery stop execution</span>
-                <Link href="/orders" className="text-primary hover:underline font-medium">
+                <Link href="/orders" className="text-emerald-600 hover:underline font-medium">
                   Dispatch View
                 </Link>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border">
+          <Card className="border-indigo-200/80 bg-gradient-to-br from-white to-indigo-50/40 shadow-xs hover:border-indigo-300 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-500/10 text-sky-600">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-xs">
                     <Users className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-semibold text-foreground">Customers & Queue</span>
+                  <span className="text-xs font-bold text-slate-800">Customers & Queue</span>
                 </div>
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-[10px] border-indigo-200 bg-indigo-50 text-indigo-700">
                   Accounts
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-foreground">
+                <span className="text-xl font-bold text-slate-900">
                   {kpis.activeCustomersCount} Active
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-slate-500">
                   {kpis.pendingOrdersCount} Pending Orders
                 </span>
               </div>
-              <div className="mt-2 text-[11px] text-muted-foreground flex justify-between items-center">
+              <div className="mt-2 text-[11px] text-slate-500 flex justify-between items-center">
                 <span>Customer directory</span>
-                <Link href="/customers" className="text-primary hover:underline font-medium">
+                <Link href="/customers" className="text-indigo-600 hover:underline font-medium">
                   Directory
                 </Link>
               </div>

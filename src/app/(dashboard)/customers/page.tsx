@@ -21,7 +21,6 @@ import {
   ChevronUp,
   ShieldCheck,
   Zap,
-  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -517,9 +516,9 @@ export default function CustomersPage() {
               size="sm"
               variant="outline"
               onClick={() => openDirectPaymentModal(selectedCustomer)}
-              className="gap-1.5 text-xs font-semibold border-border hover:bg-muted text-foreground"
+              className="gap-1.5 text-xs font-semibold border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100/70 text-emerald-800 active:scale-95 transition-all"
             >
-              <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <DollarSign className="h-4 w-4 text-emerald-600" />
               Collect Payment
             </Button>
           )}
@@ -527,7 +526,7 @@ export default function CustomersPage() {
           <Button
             size="sm"
             onClick={() => setIsAddModalOpen(true)}
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
+            className="gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold shadow-sm shadow-sky-500/25 active:scale-95 transition-all"
           >
             <Plus className="h-4 w-4" />
             Add Customer

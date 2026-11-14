@@ -4,7 +4,8 @@
 
 @layer base {
   :root {
-    --background: 210 50% 98.5%;
+    /* Soft cool slate background for high card contrast */
+    --background: 215 28% 95%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -17,20 +18,20 @@
     --primary: 199 89% 44%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 204 90% 96.5%;
+    --secondary: 204 90% 94%;
     --secondary-foreground: 200 95% 24%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 44%;
+    --muted: 214 25% 91%;
+    --muted-foreground: 215.4 16.3% 42%;
 
-    --accent: 199 89% 94%;
+    --accent: 199 89% 92%;
     --accent-foreground: 200 95% 24%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 90%;
-    --input: 214.3 31.8% 90%;
+    --border: 214.3 28% 88%;
+    --input: 214.3 28% 88%;
     --ring: 199 89% 44%;
 
     --radius: 0.75rem;
@@ -73,6 +74,10 @@
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    background-image: radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 40%),
+                      radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.07) 0px, transparent 45%),
+                      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.06) 0px, transparent 40%);
+    background-attachment: fixed;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-tap-highlight-color: transparent;
   }
@@ -99,6 +104,13 @@
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+  }
+  .ambient-mesh {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.09) 0px, transparent 40%),
+      radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 45%),
+      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.07) 0px, transparent 40%);
   }
   .speed-chip {
     @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-150 active:scale-95 cursor-pointer select-none;
