@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ActionResponse, PaginatedResult } from "@/types/api.types";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   CustomerInput,
   CustomerInputSchema,
@@ -177,7 +178,7 @@ export async function createCustomer(
 
     return getCustomerById(customerId);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create customer.";
+    const message = formatErrorMessage(err, "Failed to create customer.");
     return { success: false, error: message };
   }
 }
@@ -221,7 +222,7 @@ export async function updateCustomer(
 
     return { success: true, data: data as CustomerRecord };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to update customer.";
+    const message = formatErrorMessage(err, "Failed to update customer.");
     return { success: false, error: message };
   }
 }
@@ -531,7 +532,7 @@ export async function recordDirectCustomerPayment(
       data: paymentRecord as CustomerPaymentRecord,
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to record customer payment.";
+    const message = formatErrorMessage(err, "Failed to record customer payment.");
     return { success: false, error: message };
   }
 }

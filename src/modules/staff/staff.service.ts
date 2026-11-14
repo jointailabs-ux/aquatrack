@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ActionResponse } from "@/types/api.types";
 import { requireOwner, getCurrentUser } from "@/lib/auth/server-auth";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   StaffRecord,
   CreateStaffAccountInput,
@@ -114,7 +115,7 @@ export async function createStaffAccount(
       },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to provision staff account.";
+    const message = formatErrorMessage(err, "Failed to provision staff account.");
     return { success: false, error: message };
   }
 }
@@ -137,7 +138,7 @@ export async function getStaffMembers(): Promise<ActionResponse<StaffRecord[]>> 
 
     return { success: true, data: (data || []) as StaffRecord[] };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to retrieve staff.";
+    const message = formatErrorMessage(err, "Failed to retrieve staff.");
     return { success: false, error: message };
   }
 }
@@ -210,7 +211,7 @@ export async function updateStaffPermissions(
 
     return { success: true, data: data as StaffRecord };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to update staff permissions.";
+    const message = formatErrorMessage(err, "Failed to update staff permissions.");
     return { success: false, error: message };
   }
 }
@@ -242,7 +243,7 @@ export async function updateStaffSalary(
 
     return { success: true, data: data as StaffRecord };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to update staff salary.";
+    const message = formatErrorMessage(err, "Failed to update staff salary.");
     return { success: false, error: message };
   }
 }
@@ -270,7 +271,7 @@ export async function toggleStaffStatus(
 
     return { success: true, data: data as StaffRecord };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to update staff status.";
+    const message = formatErrorMessage(err, "Failed to update staff status.");
     return { success: false, error: message };
   }
 }
@@ -296,7 +297,7 @@ export async function getActiveStaffListForLogin(): Promise<
 
     return { success: true, data: data || [] };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to load staff list.";
+    const message = formatErrorMessage(err, "Failed to load staff list.");
     return { success: false, error: message };
   }
 }
@@ -342,7 +343,7 @@ export async function authenticateStaffWithPin(
       },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Staff authentication failed.";
+    const message = formatErrorMessage(err, "Staff authentication failed.");
     return { success: false, error: message };
   }
 }
@@ -376,7 +377,7 @@ export async function updateStaffPin(
 
     return { success: true, data: { success: true } };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to update staff PIN.";
+    const message = formatErrorMessage(err, "Failed to update staff PIN.");
     return { success: false, error: message };
   }
 }

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ActionResponse, PaginatedResult } from "@/types/api.types";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   SupplierInput,
   SupplierInputSchema,
@@ -143,7 +144,7 @@ export async function createSupplier(
 
     return getSupplierById(supplierId);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create supplier.";
+    const message = formatErrorMessage(err, "Failed to create supplier.");
     return { success: false, error: message };
   }
 }
@@ -205,7 +206,7 @@ export async function updateSupplier(
 
     return getSupplierById(validated.id);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to update supplier.";
+    const message = formatErrorMessage(err, "Failed to update supplier.");
     return { success: false, error: message };
   }
 }

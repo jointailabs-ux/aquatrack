@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ActionResponse } from "@/types/api.types";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   ExpenseCategory,
   ExpenseCategoryBreakdown,
@@ -175,7 +176,7 @@ export async function recordExpense(
 
     return { success: true, data: record };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to record expense.";
+    const message = formatErrorMessage(err, "Failed to record expense.");
     return { success: false, error: message };
   }
 }

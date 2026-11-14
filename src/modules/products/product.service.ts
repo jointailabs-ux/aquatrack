@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ActionResponse, PaginatedResult } from "@/types/api.types";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   ProductInput,
   ProductInputSchema,
@@ -184,7 +185,7 @@ export async function createProduct(
 
     return { success: true, data: data as ProductRecord };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create product.";
+    const message = formatErrorMessage(err, "Failed to create product.");
     return { success: false, error: message };
   }
 }
@@ -209,7 +210,7 @@ export async function updateProduct(
 
     return { success: true, data: data as ProductRecord };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to update product.";
+    const message = formatErrorMessage(err, "Failed to update product.");
     return { success: false, error: message };
   }
 }

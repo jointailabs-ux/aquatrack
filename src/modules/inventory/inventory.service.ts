@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ActionResponse } from "@/types/api.types";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   InventoryItemRecord,
   InventoryMovementRecord,
@@ -304,7 +305,7 @@ export async function adjustStock(
       },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to adjust stock.";
+    const message = formatErrorMessage(err, "Failed to adjust stock.");
     return { success: false, error: message };
   }
 }

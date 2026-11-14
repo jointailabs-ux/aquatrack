@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatErrorMessage } from "@/lib/utils";
 import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 
 export type ToastType = "success" | "error" | "info";
@@ -36,7 +36,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const showToast = React.useCallback(
     ({ type, title, description, message }: ToastInput) => {
       const id = Math.random().toString(36).substring(2, 9);
-      const desc = description || message;
+      const rawDesc = description || message;
+      const desc = rawDesc ? formatErrorMessage(rawDesc) : undefined;
       setToasts((prev) => [...prev, { id, type, title, description: desc }]);
 
       setTimeout(() => {

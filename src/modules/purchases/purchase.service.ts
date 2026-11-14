@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ActionResponse } from "@/types/api.types";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   CreatePurchaseInput,
   CreatePurchaseSchema,
@@ -277,7 +278,7 @@ export async function createPurchase(
 
     return { success: true, data: record };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create purchase order.";
+    const message = formatErrorMessage(err, "Failed to create purchase order.");
     return { success: false, error: message };
   }
 }
@@ -321,7 +322,7 @@ export async function markPurchaseReceived(
       },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to receive goods.";
+    const message = formatErrorMessage(err, "Failed to receive goods.");
     return { success: false, error: message };
   }
 }
@@ -380,7 +381,7 @@ export async function recordSupplierPayment(
 
     return { success: true, data: paymentRecord };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to record supplier payment.";
+    const message = formatErrorMessage(err, "Failed to record supplier payment.");
     return { success: false, error: message };
   }
 }

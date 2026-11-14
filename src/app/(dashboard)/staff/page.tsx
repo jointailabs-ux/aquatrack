@@ -355,6 +355,25 @@ export default function StaffManagementPage() {
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!newFullName.trim()) {
+      addToast({
+        type: "error",
+        title: "Name Required",
+        message: "Please enter the staff member's full name.",
+      });
+      return;
+    }
+
+    if (newPhone.trim().length < 6) {
+      addToast({
+        type: "error",
+        title: "Invalid Phone Number",
+        message: "Phone number must be at least 6 digits (ফোন নম্বর কমপক্ষে ৬ ডিজিট হতে হবে).",
+      });
+      return;
+    }
+
     if (!/^\d{6}$/.test(newPin.trim())) {
       addToast({
         type: "error",
@@ -1501,14 +1520,22 @@ export default function StaffManagementPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">Phone Number *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">Phone Number *</label>
+                    <span className="text-[10px] text-muted-foreground">Min. 6 digits</span>
+                  </div>
                   <Input
-                    placeholder="+91 98450 12345"
+                    placeholder="e.g. 9845012345 or 676878"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
                     required
                     className="text-xs"
                   />
+                  {newPhone.trim().length > 0 && newPhone.trim().length < 6 && (
+                    <span className="text-[10px] text-amber-500 font-medium block">
+                      ⚠️ Needs at least 6 digits ({newPhone.trim().length}/6)
+                    </span>
+                  )}
                 </div>
               </div>
 

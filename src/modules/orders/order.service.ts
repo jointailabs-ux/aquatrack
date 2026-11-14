@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { ActionResponse } from "@/types/api.types";
+import { formatErrorMessage } from "@/lib/utils";
 import {
   CancelOrderInput,
   CancelOrderResult,
@@ -307,7 +308,7 @@ export async function createOrder(
 
     return { success: true, data: record };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create order.";
+    const message = formatErrorMessage(err, "Failed to create order.");
     return { success: false, error: message };
   }
 }
@@ -567,7 +568,7 @@ export async function executeDeliveryStop(
       },
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to execute delivery stop.";
+    const message = formatErrorMessage(err, "Failed to execute delivery stop.");
     return { success: false, error: message };
   }
 }
