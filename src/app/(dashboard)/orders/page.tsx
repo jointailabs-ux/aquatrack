@@ -49,6 +49,7 @@ interface OrderItemFormRow {
 }
 
 const ORDERS_STORAGE_KEY = "aquatrack_orders_cache_v2";
+const ORDERS_CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for zero-latency instant transitions
 
 // Module-level client cache for instant zero-latency transitions
 let cachedOrdersState: {
@@ -56,6 +57,7 @@ let cachedOrdersState: {
   customers: CustomerRecord[];
   staffList: StaffRecord[];
   products: ProductRecord[];
+  timestamp: number;
 } | null = null;
 
 function getInitialOrdersData() {
@@ -101,6 +103,7 @@ export default function OrdersPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState("");
   const [assignedStaffId, setAssignedStaffId] = React.useState("");
+  const [isSelfPickup, setIsSelfPickup] = React.useState(false);
   const [deliveryDate, setDeliveryDate] = React.useState(new Date().toISOString().split("T")[0]);
   const [deliveryAddress, setDeliveryAddress] = React.useState("");
   const [orderNotes, setOrderNotes] = React.useState("");
@@ -127,8 +130,19 @@ export default function OrdersPage() {
   const [isReassigning, setIsReassigning] = React.useState(false);
 
   // Load initial data
-  const loadData = React.useCallback(async () => {
-    if (!cachedOrdersState) {
+  const loadData = React.useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    const hasFreshCache =
+      !forceRefresh &&
+      cachedOrdersState &&
+      cachedOrdersState.orders.length > 0 &&
+      now - (cachedOrdersState.timestamp || 0) < ORDERS_CACHE_TTL_MS;
+
+    if (hasFreshCache) {
+      return;
+    }
+
+    if (!cachedOrdersState || cachedOrdersState.orders.length === 0) {
       setIsLoading(true);
     }
     setLoadError(null);
@@ -159,6 +173,7 @@ export default function OrdersPage() {
         customers: freshCustomers,
         staffList: freshStaff,
         products: freshProducts,
+        timestamp: Date.now(),
       };
       cachedOrdersState = freshState;
 
@@ -216,6 +231,7 @@ export default function OrdersPage() {
   const openCreateModal = () => {
     setSelectedCustomerId("");
     setAssignedStaffId("");
+    setIsSelfPickup(false);
     setDeliveryDate(new Date().toISOString().split("T")[0]);
     setDeliveryAddress("");
     setOrderNotes("");
@@ -537,11 +553,13 @@ export default function OrdersPage() {
 
       const input: CreateOrderInput = {
         customer_id: selectedCustomerId,
-        assigned_staff_id: assignedStaffId || null,
+        assigned_staff_id: isSelfPickup ? null : (assignedStaffId || null),
         order_date: new Date().toISOString().split("T")[0],
         delivery_date: deliveryDate,
-        delivery_address: deliveryAddress.trim() || cust?.address || "Customer Address",
-        notes: orderNotes.trim() || null,
+        delivery_address: isSelfPickup
+          ? "Store Counter Pickup (গ্রাহক নিজে সংগ্রহ করবেন)"
+          : (deliveryAddress.trim() || cust?.address || "Customer Address"),
+        notes: (isSelfPickup ? "[SELF-PICKUP] " : "") + (orderNotes.trim() || ""),
         items: payloadItems,
       };
 
@@ -616,7 +634,7 @@ export default function OrdersPage() {
 
       setOrderToCancel(null);
       setCancelReason("");
-      await loadData();
+      await loadData(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to cancel order.";
       addToast({
@@ -701,7 +719,7 @@ export default function OrdersPage() {
       });
 
       setOrderToDeliver(null);
-      loadData();
+      loadData(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to record delivery.";
       addToast({
@@ -816,7 +834,7 @@ export default function OrdersPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={loadData}
+            onClick={() => loadData(true)}
             disabled={isLoading}
             className="gap-1.5 text-xs font-medium"
           >
@@ -1309,38 +1327,68 @@ export default function OrdersPage() {
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                  <span>Assign Delivery Staff (ডেলিভারি স্টাফ নির্বাচন)</span>
-                  <span className="text-[10px] text-muted-foreground">Tap staff name to assign</span>
-                </label>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setAssignedStaffId("")}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
-                      !assignedStaffId
-                        ? "bg-slate-800 text-white border-slate-700 shadow-xs"
-                        : "bg-card hover:bg-muted text-muted-foreground border-border"
-                    }`}
-                  >
-                    -- Unassigned --
-                  </button>
-                  {staffList.map((s) => (
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <span>Delivery Mode & Staff (ডেলিভারি মাধ্যম ও স্টাফ)</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer bg-sky-50 dark:bg-sky-950/40 px-2.5 py-1 rounded-lg border border-sky-300 dark:border-sky-500/40">
+                    <input
+                      type="checkbox"
+                      checked={isSelfPickup}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsSelfPickup(checked);
+                        if (checked) {
+                          setAssignedStaffId("");
+                          setDeliveryAddress("Store Counter Pickup (গ্রাহক নিজে সংগ্রহ করবেন)");
+                        } else {
+                          const cust = customers.find((c) => c.id === selectedCustomerId);
+                          setDeliveryAddress(cust?.address || "");
+                        }
+                      }}
+                      className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                    <span className="text-[11px] font-bold text-sky-800 dark:text-sky-300">
+                      🏪 Self-Pickup / Store Counter (গ্রাহক নিজে নিবেন)
+                    </span>
+                  </label>
+                </div>
+
+                {!isSelfPickup ? (
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
                     <button
-                      key={s.id}
                       type="button"
-                      onClick={() => setAssignedStaffId(s.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer active:scale-95 ${
-                        assignedStaffId === s.id
-                          ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm shadow-sky-500/30 scale-102"
-                          : "bg-card hover:bg-sky-50 text-foreground border-border hover:border-sky-300 dark:hover:bg-slate-800"
+                      onClick={() => setAssignedStaffId("")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95 ${
+                        !assignedStaffId
+                          ? "bg-slate-800 text-white border-slate-700 shadow-xs"
+                          : "bg-card hover:bg-muted text-muted-foreground border-border"
                       }`}
                     >
-                      <UserCheck className="h-3.5 w-3.5" />
-                      <span>{s.full_name}</span>
+                      -- Unassigned / Assign Later --
                     </button>
-                  ))}
-                </div>
+                    {staffList.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setAssignedStaffId(s.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                          assignedStaffId === s.id
+                            ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-sm shadow-sky-500/30 scale-102"
+                            : "bg-card hover:bg-sky-50 text-foreground border-border hover:border-sky-300 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <UserCheck className="h-3.5 w-3.5" />
+                        <span>{s.full_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-2 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                    <span>Customer will self-collect directly from the godown/store counter. No delivery staff assigned.</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">

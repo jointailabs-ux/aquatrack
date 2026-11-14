@@ -87,11 +87,11 @@ export function Topbar({ onOpenMobileNav }: TopbarProps) {
           <span>+ New Order (নতুন অর্ডার)</span>
         </Link>
         <Link
-          href="/pos"
+          href="/inventory"
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 transition-all duration-150 shadow-sm shadow-emerald-500/25 active:scale-95"
         >
           <ShoppingCart className="h-3.5 w-3.5" />
-          <span>+ Shop POS (কাউন্টার বিক্রি)</span>
+          <span>+ Stock Inventory (স্টক)</span>
         </Link>
         <Link
           href="/customers?new=true"

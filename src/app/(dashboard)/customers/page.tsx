@@ -51,6 +51,7 @@ import { OrderRecord } from "@/modules/orders/order.schema";
 import { formatCurrency } from "@/lib/utils";
 
 const CUSTOMERS_STORAGE_KEY = "aquatrack_customers_cache_v2";
+const CUSTOMERS_CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for zero-latency instant transitions
 
 // Module-level client cache for instant zero-latency customer navigation
 let cachedCustomersState: {
@@ -58,6 +59,7 @@ let cachedCustomersState: {
   items: CustomerRecord[];
   total: number;
   totalPages: number;
+  timestamp: number;
 } | null = null;
 
 function getInitialCustomersData() {
@@ -194,8 +196,19 @@ export default function CustomersPage() {
   const [paymentNotes, setPaymentNotes] = React.useState("");
 
   // Load Customers
-  const loadCustomers = React.useCallback(async (targetPage = page) => {
+  const loadCustomers = React.useCallback(async (targetPage = page, forceRefresh = false) => {
     const cacheKey = `${searchQuery}-${typeFilter}-${statusFilter}-${hasBalanceFilter}-${targetPage}`;
+    const now = Date.now();
+    const hasFreshCache =
+      !forceRefresh &&
+      cachedCustomersState &&
+      cachedCustomersState.key === cacheKey &&
+      now - (cachedCustomersState.timestamp || 0) < CUSTOMERS_CACHE_TTL_MS;
+
+    if (hasFreshCache) {
+      return;
+    }
+
     const hasMatchingCache = cachedCustomersState && cachedCustomersState.key === cacheKey;
 
     if (!hasMatchingCache) {
@@ -221,6 +234,7 @@ export default function CustomersPage() {
           items: res.data.items,
           total: res.data.total || 0,
           totalPages: res.data.totalPages || 1,
+          timestamp: Date.now(),
         };
         cachedCustomersState = freshState;
 
@@ -360,7 +374,7 @@ export default function CustomersPage() {
       setAddDeliveryInstructions("");
       setAddGstin("");
       setAddNotes("");
-      loadCustomers(1);
+      loadCustomers(1, true);
     } else {
       addToast({
         type: "error",
@@ -514,7 +528,7 @@ export default function CustomersPage() {
       setIsPaymentModalOpen(false);
 
       // Refresh customer list & active tab
-      await loadCustomers(page);
+      await loadCustomers(page, true);
       loadCustomerTabData(selectedCustomer.id, activeTab);
     } else {
       addToast({
@@ -687,7 +701,7 @@ export default function CustomersPage() {
                 </span>
               </div>
               <button
-                onClick={() => loadCustomers(page)}
+                onClick={() => loadCustomers(page, true)}
                 className="text-muted-foreground hover:text-foreground text-xs p-1"
                 title="Refresh list"
               >

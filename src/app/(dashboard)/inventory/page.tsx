@@ -39,11 +39,13 @@ import {
 import { formatCurrency } from "@/lib/utils";
 
 const STOCK_STORAGE_KEY = "aquatrack_inventory_cache_v2";
+const STOCK_CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for zero-latency instant transitions
 
 // Module-level client cache for instant zero-latency inventory transitions
 let cachedInventoryState: {
   items: InventoryItemRecord[];
   summary: InventoryValuationSummary | null;
+  timestamp: number;
 } | null = null;
 
 function getInitialStock(): { items: InventoryItemRecord[]; summary: InventoryValuationSummary | null } {
@@ -184,7 +186,18 @@ export default function SingleWarehouseInventoryPage() {
     setIsAdjustModalOpen(true);
   };
 
-  const loadData = React.useCallback(async () => {
+  const loadData = React.useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    const hasFreshCache =
+      !forceRefresh &&
+      cachedInventoryState &&
+      cachedInventoryState.items.length > 0 &&
+      now - (cachedInventoryState.timestamp || 0) < STOCK_CACHE_TTL_MS;
+
+    if (hasFreshCache) {
+      return;
+    }
+
     try {
       // Single server action: fetch stock items and compute summary locally in-memory
       const itemsRes = await getInventoryStockLevels();
@@ -199,6 +212,7 @@ export default function SingleWarehouseInventoryPage() {
         cachedInventoryState = {
           items: freshItems,
           summary: freshSummary,
+          timestamp: Date.now(),
         };
 
         try {
@@ -341,9 +355,9 @@ export default function SingleWarehouseInventoryPage() {
           title: "Adjustment Failed",
           message: res.error || "Database error adjusting stock. Reverting changes...",
         });
-        await loadData();
+        await loadData(true);
       } else {
-        loadData();
+        loadData(true);
       }
     } catch {
       addToast({
@@ -351,7 +365,7 @@ export default function SingleWarehouseInventoryPage() {
         title: "Network Error",
         message: "An unexpected error occurred. Syncing latest data...",
       });
-      await loadData();
+      await loadData(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -496,7 +510,7 @@ export default function SingleWarehouseInventoryPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={loadData}
+            onClick={() => loadData(true)}
             disabled={isLoading}
             className="gap-1.5 text-xs h-9 sm:h-10 px-3 rounded-xl border-white/20 dark:border-slate-700 bg-white/10 dark:bg-slate-900/90 text-white dark:text-slate-200 hover:bg-white/20 dark:hover:bg-slate-800 hover:text-white font-bold"
           >

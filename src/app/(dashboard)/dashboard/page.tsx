@@ -13,7 +13,6 @@ import {
   RefreshCw,
   Calendar,
   Users,
-  Store,
   ArrowRight,
   TrendingUp,
   CheckCircle2,
@@ -53,6 +52,7 @@ const RevenueChart = dynamic(
 );
 
 const DASHBOARD_STORAGE_KEY = "aquatrack_dashboard_cache_v2";
+const DASHBOARD_CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for zero-latency instant transitions
 
 // Module-level client cache for instant zero-latency page transitions
 let cachedDashboardState: {
@@ -98,6 +98,17 @@ export default function DashboardPage() {
   const fetchSummary = React.useCallback(
     async (range: DashboardDateRangeType, from?: string, to?: string, isRefresh = false) => {
       const cacheKey = `${range}-${from || ""}-${to || ""}`;
+      const now = Date.now();
+      const hasFreshCache =
+        !isRefresh &&
+        cachedDashboardState &&
+        cachedDashboardState.key === cacheKey &&
+        now - (cachedDashboardState.timestamp || 0) < DASHBOARD_CACHE_TTL_MS;
+
+      if (hasFreshCache) {
+        return;
+      }
+
       const hasMatchingCache = cachedDashboardState && cachedDashboardState.key === cacheKey;
 
       if (isRefresh) {
@@ -496,14 +507,14 @@ export default function DashboardPage() {
             </Link>
 
             <Link
-              href="/pos"
+              href="/inventory"
               className="flex flex-col items-center justify-center p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white active:scale-95 transition-all text-center shadow-sm shadow-emerald-500/25 touch-manipulation"
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 text-white mb-1">
-                <Store className="h-4 w-4" />
+                <PackageCheck className="h-4 w-4" />
               </div>
               <span className="text-[10px] font-bold text-white truncate w-full">
-                + POS Sale
+                Stock
               </span>
             </Link>
 
@@ -651,48 +662,84 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* F. Recent Activity Stream: Compact List */}
-        <div className="rounded-2xl border border-border/70 bg-card p-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-2">
+        {/* F. Recent Activity Stream: Colorful Visual Cards */}
+        <div className="rounded-2xl border border-border/80 bg-card p-3.5 shadow-sm space-y-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Recent Transactions
+            <span className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              Live Activity Stream (লাইভ লেনদেন)
             </span>
-            <Link href="/accounting" className="text-[11px] text-primary font-semibold hover:underline">
-              Ledger ›
+            <Link href="/accounting" className="text-[11px] text-sky-600 dark:text-sky-400 font-bold hover:underline">
+              View All ›
             </Link>
           </div>
 
-          <div className="space-y-1.5">
-            {recentActivity.slice(0, 4).map((tx) => (
-              <Link
-                key={tx.id}
-                href={tx.href || "/orders"}
-                className="flex items-center justify-between p-2 rounded-xl bg-muted/20 hover:bg-muted/40 active:scale-[0.99] transition-all text-xs"
-              >
-                <div className="min-w-0 pr-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-bold text-[11px] text-foreground truncate">
-                      {tx.reference}
+          <div className="space-y-2">
+            {recentActivity.slice(0, 4).map((tx) => {
+              const isDelivery = tx.type === "DELIVERY";
+              const isPayment = tx.type === "CUSTOMER_PAYMENT";
+              const isExpense = tx.type === "EXPENSE";
+
+              return (
+                <Link
+                  key={tx.id}
+                  href={tx.href || "/orders"}
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-border/60 bg-gradient-to-r hover:border-primary/40 active:scale-[0.98] transition-all text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                    <div
+                      className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        isDelivery
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                          : isPayment
+                          ? "bg-teal-500/15 text-teal-600 dark:text-teal-400"
+                          : isExpense
+                          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                          : "bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                      }`}
+                    >
+                      {isDelivery ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : isExpense ? (
+                        <FileSpreadsheet className="h-4 w-4" />
+                      ) : (
+                        <Truck className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-bold text-xs text-foreground truncate">
+                          {tx.reference}
+                        </span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isDelivery
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                              : isExpense
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                              : "bg-sky-500/15 text-sky-700 dark:text-sky-300"
+                          }`}
+                        >
+                          {tx.typeLabel}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5 font-medium">
+                        {tx.party}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="font-black text-xs text-foreground block">
+                      {formatCurrency(tx.amount)}
                     </span>
-                    <span className="text-[9px] px-1 py-0.2 rounded-sm bg-muted text-muted-foreground font-semibold">
-                      {tx.typeLabel}
+                    <span className="text-[10px] text-muted-foreground">
+                      {formatDateTime(tx.timestamp).split(",")[0]}
                     </span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                    {tx.party}
-                  </p>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="font-bold text-xs text-foreground block">
-                    {formatCurrency(tx.amount)}
-                  </span>
-                  <span className="text-[9px] text-muted-foreground">
-                    {formatDateTime(tx.timestamp).split(",")[0]}
-                  </span>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         </div>
 
@@ -814,18 +861,18 @@ export default function DashboardPage() {
             </Link>
 
             <Link
-              href="/pos"
+              href="/inventory"
               className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-emerald-50 via-white to-teal-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/30 border border-emerald-200/80 dark:border-emerald-500/30 hover:border-emerald-500 hover:shadow-md hover:shadow-emerald-500/15 transition-all active:scale-95 group"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm shadow-emerald-500/30 group-hover:bg-emerald-600 transition-colors">
-                <Store className="h-5 w-5" />
+                <PackageCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-emerald-950 dark:text-emerald-300 block group-hover:text-emerald-600 transition-colors">
-                  + Shop Counter (দোকান বিক্রি)
+                  Warehouse Stock (স্টক হিসাব)
                 </span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block font-medium">
-                  Instant Cash & UPI Sale
+                  Add Stock & Jar Assets
                 </span>
               </div>
             </Link>
@@ -1074,26 +1121,26 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-500 text-white shadow-xs">
-                    <Store className="h-4 w-4" />
+                    <UserCheck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Counter Sales (দোকান বিক্রি)</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Active Staff (ডেলিভারি স্টাফ)</span>
                 </div>
                 <Badge variant="outline" className="text-[10px] border-teal-200 dark:border-teal-500/30 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 font-semibold">
-                  Counter Sales
+                  Field Staff
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
                 <span className="text-xl font-bold text-slate-900 dark:text-white">
-                  {formatCurrency(kpis.posSalesTotal)}
+                  Delivery Routes
                 </span>
                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {kpis.posSalesCount} Counter Bills
+                  Daily Stops
                 </span>
               </div>
               <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between items-center">
-                <span>Instant Cash & UPI</span>
-                <Link href="/pos" className="text-teal-600 dark:text-teal-400 hover:underline font-semibold">
-                  Open Counter
+                <span>Direct driver assignments</span>
+                <Link href="/staff" className="text-teal-600 dark:text-teal-400 hover:underline font-semibold">
+                  Open Staff
                 </Link>
               </div>
             </CardContent>

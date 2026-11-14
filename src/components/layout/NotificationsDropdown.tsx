@@ -1,57 +1,83 @@
 "use client";
 
 import * as React from "react";
-import { Bell, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Bell, AlertTriangle, CheckCircle2, Truck, RefreshCw, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
+import { getOrders } from "@/modules/orders/order.service";
+import { getInventoryStockLevels } from "@/modules/inventory/inventory.service";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 
-interface NotificationItem {
+interface LiveNotification {
   id: string;
   title: string;
   message: string;
   time: string;
-  type: "warning" | "info" | "success";
+  type: "warning" | "info" | "success" | "order";
+  href: string;
   unread: boolean;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "notif-1",
-    title: "Low Stock Alert: Main Warehouse",
-    message: "20L Full Jars fell below minimum threshold (180 remaining, min is 250).",
-    time: "10 mins ago",
-    type: "warning",
-    unread: true,
-  },
-  {
-    id: "notif-2",
-    title: "Trip #TRP-104 Reconciliation Pending",
-    message: "Driver John Doe submitted evening cash float with 1 empty jar discrepancy.",
-    time: "45 mins ago",
-    type: "warning",
-    unread: true,
-  },
-  {
-    id: "notif-3",
-    title: "Overdue Invoice: Royal Orchid B2B",
-    message: "Invoice #INV-2025-089 (₹14,500) exceeded 30-day payment term.",
-    time: "2 hours ago",
-    type: "info",
-    unread: false,
-  },
-  {
-    id: "notif-4",
-    title: "Purchase Order #PO-88 Delivered",
-    message: "Supplier PureSpring delivered 300 preforms. GRN generated.",
-    time: "Yesterday",
-    type: "success",
-    unread: false,
-  },
-];
-
 export function NotificationsDropdown() {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [notifications, setNotifications] = React.useState(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = React.useState<LiveNotification[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const loadLiveNotifications = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [ordersRes, invRes] = await Promise.all([
+        getOrders(),
+        getInventoryStockLevels(),
+      ]);
+
+      const items: LiveNotification[] = [];
+
+      // Check low stock products
+      if (invRes.success && invRes.data) {
+        const lowStock = invRes.data.filter((i) => i.available_stock <= i.reorder_level);
+        lowStock.forEach((p) => {
+          items.push({
+            id: `low-stock-${p.product_id}`,
+            title: `Low Stock Alert: ${p.name}`,
+            message: `Only ${p.available_stock} units left in central warehouse (reorder limit: ${p.reorder_level}).`,
+            time: "Live Status",
+            type: "warning",
+            href: "/inventory",
+            unread: true,
+          });
+        });
+      }
+
+      // Check recent orders & delivery activity
+      if (ordersRes.success && ordersRes.data) {
+        const recentOrders = ordersRes.data.slice(0, 6);
+        recentOrders.forEach((o) => {
+          const isDelivered = o.status === "DELIVERED";
+          items.push({
+            id: `ord-${o.id}`,
+            title: isDelivered ? `Order #${o.order_number} Delivered` : `Order #${o.order_number} (${o.status})`,
+            message: `${o.customer_name || "Customer"} • ${formatCurrency(o.total_amount)} • Staff: ${o.assigned_staff_name || "Unassigned"}`,
+            time: o.created_at ? formatDateTime(o.created_at).split(",")[0] : "Recent",
+            type: isDelivered ? "success" : "order",
+            href: "/orders",
+            unread: !isDelivered,
+          });
+        });
+      }
+
+      setNotifications(items);
+    } catch {
+      // Fallback
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadLiveNotifications();
+  }, [loadLiveNotifications]);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -72,88 +98,111 @@ export function NotificationsDropdown() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring touch-manipulation"
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (!isOpen) loadLiveNotifications();
+        }}
+        className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-hidden touch-manipulation cursor-pointer border border-border/80"
         aria-label="View system notifications"
         aria-expanded={isOpen}
       >
-        <Bell className="h-4 w-4" />
+        <Bell className="h-4.5 w-4.5" />
         {unreadCount > 0 && (
-          <span className="absolute top-2 right-2 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white shadow-xs">
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm rounded-xl border border-border bg-card shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-1.5rem)] sm:w-96 max-w-sm rounded-2xl border border-border/90 bg-card/95 backdrop-blur-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/40">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-foreground">Notifications</span>
+              <span className="text-xs font-bold text-foreground">Live App Activity & Audit</span>
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                  {unreadCount} new
+                <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-bold">
+                  {unreadCount} active
                 </Badge>
               )}
             </div>
-            {unreadCount > 0 && (
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline font-semibold cursor-pointer"
+                >
+                  Mark read
+                </button>
+              )}
               <button
-                onClick={markAllAsRead}
-                className="text-[11px] text-primary hover:underline font-medium"
+                onClick={loadLiveNotifications}
+                className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                title="Refresh notifications"
               >
-                Mark all read
+                <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
               </button>
-            )}
+            </div>
           </div>
 
-          <div className="max-h-[360px] overflow-y-auto divide-y divide-border/60">
+          <div className="max-h-[380px] overflow-y-auto divide-y divide-border/60">
             {notifications.length === 0 ? (
-              <div className="py-8 text-center text-xs text-muted-foreground">
-                No notifications to display
+              <div className="py-10 text-center text-xs text-muted-foreground">
+                <CheckCircle2 className="h-7 w-7 text-emerald-500/60 mx-auto mb-2" />
+                No active notifications or alerts.
               </div>
             ) : (
               notifications.map((item) => (
-                <div
+                <Link
                   key={item.id}
-                  className={`p-3.5 flex items-start gap-3 hover:bg-accent/40 transition-colors ${
-                    item.unread ? "bg-primary/5" : ""
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={`p-3 flex items-start gap-3 hover:bg-muted/40 transition-colors ${
+                    item.unread ? "bg-sky-500/5 dark:bg-sky-500/10" : ""
                   }`}
                 >
                   <div className="mt-0.5 shrink-0">
                     {item.type === "warning" && (
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    )}
-                    {item.type === "info" && (
-                      <Clock className="h-4 w-4 text-blue-500" />
+                      <div className="h-7 w-7 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center">
+                        <AlertTriangle className="h-4 w-4" />
+                      </div>
                     )}
                     {item.type === "success" && (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      <div className="h-7 w-7 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                    )}
+                    {item.type === "order" && (
+                      <div className="h-7 w-7 rounded-lg bg-sky-500/15 text-sky-600 flex items-center justify-center">
+                        <Truck className="h-4 w-4" />
+                      </div>
                     )}
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-foreground leading-snug">
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs font-bold text-foreground truncate">
                         {item.title}
                       </p>
-                      {item.unread && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      )}
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {item.time}
+                      </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">
                       {item.message}
                     </p>
-                    <p className="text-[10px] text-muted-foreground/70">{item.time}</p>
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
 
           <div className="p-2 border-t border-border bg-muted/20 text-center">
-            <span className="text-[10px] text-muted-foreground">
-              Mock Operational Alerts (Phase 3 Foundation)
-            </span>
+            <Link
+              href="/orders"
+              onClick={() => setIsOpen(false)}
+              className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1"
+            >
+              Go to Orders & Deliveries <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
         </div>
       )}

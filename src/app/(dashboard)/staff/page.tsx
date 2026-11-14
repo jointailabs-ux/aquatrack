@@ -44,12 +44,14 @@ import { OrderRecord } from "@/modules/orders/order.schema";
 import { formatCurrency } from "@/lib/utils";
 
 const STAFF_STORAGE_KEY = "aquatrack_staff_cache_v2";
+const STAFF_CACHE_TTL_MS = 60 * 1000; // 60 seconds TTL for zero-latency instant transitions
 
 // Module-level client cache for instant staff view
 let cachedStaffState: {
   staffList: StaffRecord[];
   dailyOrders: OrderRecord[];
   date: string;
+  timestamp: number;
 } | null = null;
 
 function getInitialStaffData() {
@@ -122,7 +124,18 @@ export default function StaffManagementPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Load Staff List
-  const loadStaff = React.useCallback(async () => {
+  const loadStaff = React.useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    const hasFreshStaff =
+      !forceRefresh &&
+      cachedStaffState &&
+      cachedStaffState.staffList.length > 0 &&
+      now - (cachedStaffState.timestamp || 0) < STAFF_CACHE_TTL_MS;
+
+    if (hasFreshStaff) {
+      return;
+    }
+
     if (!cachedStaffState || cachedStaffState.staffList.length === 0) {
       setIsLoadingStaff(true);
     }
@@ -134,6 +147,7 @@ export default function StaffManagementPage() {
         staffList: res.data,
         dailyOrders: cachedStaffState?.dailyOrders || [],
         date: cachedStaffState?.date || "",
+        timestamp: Date.now(),
       };
       if (typeof window !== "undefined") {
         try {
@@ -146,7 +160,19 @@ export default function StaffManagementPage() {
   }, []);
 
   // Load Daily Orders for Selected Date
-  const loadOrdersForDate = React.useCallback(async (targetDate: string) => {
+  const loadOrdersForDate = React.useCallback(async (targetDate: string, forceRefresh = false) => {
+    const now = Date.now();
+    const hasFreshOrders =
+      !forceRefresh &&
+      cachedStaffState &&
+      cachedStaffState.dailyOrders.length > 0 &&
+      cachedStaffState.date === targetDate &&
+      now - (cachedStaffState.timestamp || 0) < STAFF_CACHE_TTL_MS;
+
+    if (hasFreshOrders) {
+      return;
+    }
+
     if (!cachedStaffState || cachedStaffState.dailyOrders.length === 0 || cachedStaffState.date !== targetDate) {
       setIsLoadingOrders(true);
     }
@@ -162,6 +188,7 @@ export default function StaffManagementPage() {
           staffList: cachedStaffState?.staffList || [],
           dailyOrders: matched,
           date: targetDate,
+          timestamp: Date.now(),
         };
         if (typeof window !== "undefined") {
           try {
@@ -251,7 +278,7 @@ export default function StaffManagementPage() {
       });
 
       setOrderToDeliver(null);
-      await loadOrdersForDate(selectedDate);
+      await loadOrdersForDate(selectedDate, true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to record delivery.";
       addToast({
@@ -357,7 +384,7 @@ export default function StaffManagementPage() {
       setNewCanWarehouse(false);
       setNewCanCustomers(false);
       setNewCanOrders(false);
-      loadStaff();
+      loadStaff(true);
     } else {
       addToast({
         type: "error",
@@ -544,7 +571,7 @@ export default function StaffManagementPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => loadOrdersForDate(selectedDate)}
+              onClick={() => loadOrdersForDate(selectedDate, true)}
               disabled={isLoadingOrders}
               className="gap-1.5 text-xs font-bold"
             >

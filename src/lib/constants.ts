@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  ShoppingCart,
   ShoppingBag,
   Package,
   Boxes,
@@ -52,13 +51,13 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     label: "OPERATIONS",
     items: [
       {
-        title: "Shop Counter Sale",
-        href: "/pos",
-        icon: ShoppingCart,
+        title: "Orders & Delivery",
+        href: "/orders",
+        icon: Truck,
         isImplemented: true,
-        moduleNumber: 4,
+        moduleNumber: 8,
         roles: ["owner", "staff"],
-        requiredPermission: "canPos",
+        requiredPermission: "canManageOrders",
       },
       {
         title: "Bottle Tracking (Jars)",
@@ -67,15 +66,6 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
         isImplemented: true,
         moduleNumber: 10,
         roles: ["owner", "staff"],
-      },
-      {
-        title: "Orders & Delivery",
-        href: "/orders",
-        icon: Truck,
-        isImplemented: true,
-        moduleNumber: 8,
-        roles: ["owner", "staff"],
-        requiredPermission: "canManageOrders",
       },
       {
         title: "Products Catalog",

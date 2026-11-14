@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   X,
   Search,
-  ShoppingCart,
   RotateCcw,
   Package,
   Building2,
@@ -54,15 +53,6 @@ const DESTINATIONS: DestinationItem[] = [
     description: "Stock levels, quick adjustments & movements",
     icon: Package,
     badge: "0ms Stock",
-    category: "operations",
-  },
-  {
-    title: "POS Counter",
-    href: "/pos",
-    description: "Counter sales & instant receipts",
-    icon: ShoppingCart,
-    requiredPermission: "canPos",
-    badge: "Fast Sale",
     category: "operations",
   },
   {
