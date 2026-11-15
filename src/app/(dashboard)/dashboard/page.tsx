@@ -24,6 +24,7 @@ import {
   Phone,
   MapPin,
   Search,
+  Store,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -415,6 +416,9 @@ export default function DashboardPage() {
       totalUnits: 0,
       totalValuation: 0,
       lowStockCount: 0,
+      jar20LCount: 0,
+      bottle500mlCount: 0,
+      bottle1LCount: 0,
     },
     posSalesCount: 0,
     posSalesTotal: 0,
@@ -543,30 +547,41 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Tile 4: Available Stock */}
-          <div className="rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-3.5 shadow-md shadow-indigo-600/25 flex flex-col justify-between">
+          {/* Tile 4: Available Inventory Stock */}
+          <Link
+            href="/inventory"
+            className="rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-3.5 shadow-md shadow-indigo-600/25 flex flex-col justify-between transition-all active:scale-95"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-indigo-100">Stock (গুদামের মাল)</span>
+              <span className="text-[11px] font-bold text-indigo-100 flex items-center gap-1">
+                <Store className="h-3 w-3" /> Inventory Stock (ইনভেন্টরি স্টক)
+              </span>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-xs">
                 <PackageCheck className="h-3.5 w-3.5" />
               </div>
             </div>
-            <div className="mt-2">
-              <span className="text-xl font-black text-white tracking-tight block">
-                {kpis.inventoryStockSummary.totalUnits}{" "}
-                <span className="text-xs font-semibold text-indigo-200">jars</span>
-              </span>
-              <span className="text-[10px] text-indigo-100/90 font-medium">
-                {kpis.inventoryStockSummary.lowStockCount > 0 ? (
-                  <span className="text-amber-200 font-bold">
-                    ⚠️ {kpis.inventoryStockSummary.lowStockCount} low stock!
+
+            <div className="mt-2 space-y-1.5">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="text-xl font-black text-white tracking-tight leading-none">
+                    {kpis.inventoryStockSummary.jar20LCount ?? 0}
                   </span>
-                ) : (
-                  "Stock healthy in depot"
-                )}
-              </span>
+                  <span className="text-[11px] font-bold text-indigo-100 ml-1">20L Jars</span>
+                </div>
+                <span className="text-[9px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded-md">
+                  ইনভেন্টরি
+                </span>
+              </div>
+
+              {/* Bottles Stock Breakdown */}
+              <div className="pt-1 border-t border-white/20 flex items-center justify-between text-[10px] font-semibold text-indigo-100">
+                <span>₹10 (500ml): <strong className="text-white font-black">{kpis.inventoryStockSummary.bottle500mlCount ?? 0}</strong></span>
+                <span>•</span>
+                <span>₹20 (1L): <strong className="text-white font-black">{kpis.inventoryStockSummary.bottle1LCount ?? 0}</strong></span>
+              </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* C. Quick Actions: 4 Touch-Optimized Tiles */}
@@ -1102,10 +1117,10 @@ export default function DashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-emerald-950 dark:text-emerald-300 block group-hover:text-emerald-600 transition-colors">
-                  Warehouse Stock (স্টক হিসাব)
+                  Inventory Stock (ইনভেন্টরি স্টক)
                 </span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block font-medium">
-                  Add Stock & Jar Assets
+                  20L Jars & Water Bottles
                 </span>
               </div>
             </Link>
@@ -1326,24 +1341,31 @@ export default function DashboardPage() {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500 text-white shadow-xs">
                     <PackageCheck className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Total Stock Value (গুদামের মাল)</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Inventory Stock (ইনভেন্টরি স্টক)</span>
                 </div>
                 <Badge variant="outline" className="text-[10px] border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-semibold">
-                  Warehouse Stock
+                  Live Stock
                 </Badge>
               </div>
               <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-xl font-bold text-slate-900 dark:text-white">
+                <div>
+                  <span className="text-xl font-black text-slate-900 dark:text-white">
+                    {kpis.inventoryStockSummary.jar20LCount ?? 0}
+                  </span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 ml-1">
+                    20L Jars Available
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-primary">
                   {formatCurrency(kpis.inventoryStockSummary.totalValuation)}
                 </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {kpis.inventoryStockSummary.totalUnits} Jars Available
-                </span>
               </div>
-              <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between items-center">
-                <span>{kpis.inventoryStockSummary.totalProducts} active product SKUs</span>
-                <Link href="/inventory" className="text-blue-600 dark:text-blue-400 hover:underline font-semibold">
-                  Open Stock
+              <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between items-center pt-1 border-t border-border/50">
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  Bottles: <strong>{kpis.inventoryStockSummary.bottle500mlCount ?? 0}</strong> (₹10) &bull; <strong>{kpis.inventoryStockSummary.bottle1LCount ?? 0}</strong> (₹20)
+                </span>
+                <Link href="/inventory" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
+                  Open Stock &rarr;
                 </Link>
               </div>
             </CardContent>

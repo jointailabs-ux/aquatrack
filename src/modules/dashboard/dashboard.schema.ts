@@ -29,6 +29,9 @@ export interface DashboardKPICards {
     totalUnits: number;
     totalValuation: number;
     lowStockCount: number;
+    jar20LCount?: number;
+    bottle500mlCount?: number;
+    bottle1LCount?: number;
   };
   posSalesCount: number;
   posSalesTotal: number;

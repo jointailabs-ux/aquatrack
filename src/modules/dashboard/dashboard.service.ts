@@ -146,6 +146,9 @@ export async function getDashboardSummary(
       totalUnits: 0,
       totalValuation: 0,
       lowStockCount: 0,
+      jar20LCount: 0,
+      bottle500mlCount: 0,
+      bottle1LCount: 0,
     };
     let lowStockProducts: { id: string; name: string; available: number; reorder: number }[] = [];
 
@@ -155,11 +158,30 @@ export async function getDashboardSummary(
       const totalValuation = items.reduce((sum, item) => sum + item.valuation, 0);
       const lowStockItems = items.filter((item) => item.available_stock <= item.reorder_level);
 
+      let jar20LCount = 0;
+      let bottle500mlCount = 0;
+      let bottle1LCount = 0;
+
+      items.forEach((item) => {
+        const name = (item.name || "").toLowerCase();
+        const sku = (item.sku || "").toUpperCase();
+        if (sku.includes("20L") || (name.includes("20l") && name.includes("jar")) || item.is_reusable_jar) {
+          jar20LCount += item.current_stock;
+        } else if (name.includes("500ml") || sku.includes("500ML") || (name.includes("bottle") && name.includes("10"))) {
+          bottle500mlCount += item.current_stock;
+        } else if (name.includes("1l") || sku.includes("1L") || (name.includes("bottle") && name.includes("20"))) {
+          bottle1LCount += item.current_stock;
+        }
+      });
+
       inventorySummary = {
         totalProducts: items.length,
         totalUnits,
         totalValuation,
         lowStockCount: lowStockItems.length,
+        jar20LCount,
+        bottle500mlCount,
+        bottle1LCount,
       };
 
       lowStockProducts = lowStockItems.map((i) => ({
