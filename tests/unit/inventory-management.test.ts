@@ -212,6 +212,16 @@ describe("Task 11: Inventory Management & Invariants", () => {
               }),
             };
           }
+          if (table === "customers") {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ total_full_jars_holding: 5, total_empty_jars_holding: 2 }],
+                  error: null,
+                }),
+              }),
+            };
+          }
           return { select: vi.fn().mockReturnThis() };
         }),
       };
@@ -287,6 +297,16 @@ describe("Task 11: Inventory Management & Invariants", () => {
                     { product_id: "p1", quantity_on_hand: 200, quantity_reserved: 0 },
                     { product_id: "p2", quantity_on_hand: 15, quantity_reserved: 0 },
                   ],
+                }),
+              }),
+            };
+          }
+          if (table === "customers") {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ total_full_jars_holding: 5, total_empty_jars_holding: 2 }],
+                  error: null,
                 }),
               }),
             };
@@ -386,6 +406,16 @@ describe("Task 11: Inventory Management & Invariants", () => {
                       error: null,
                     }),
                   }),
+                }),
+              }),
+            };
+          }
+          if (table === "customers") {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ total_full_jars_holding: 5, total_empty_jars_holding: 2 }],
+                  error: null,
                 }),
               }),
             };

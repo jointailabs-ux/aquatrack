@@ -27,7 +27,7 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
 
     // Fetch warehouseId in parallel if not cached
     if (!warehouseId) {
-      const [whRes, prodRes] = await Promise.all([
+      const [whRes, prodRes, custRes] = await Promise.all([
         supabase
           .from("warehouses")
           .select("id")
@@ -38,6 +38,10 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
           .select("id, sku, name, category, unit_of_measure, cost_price, is_reusable_jar, is_active, reorder_level")
           .eq("is_active", true)
           .order("name", { ascending: true }),
+        supabase
+          .from("customers")
+          .select("total_full_jars_holding, total_empty_jars_holding")
+          .eq("is_active", true),
       ]);
 
       if (whRes.error) {
@@ -60,6 +64,13 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
 
       if (prodRes.error) {
         return { success: false, error: prodRes.error.message };
+      }
+
+      let totalCustomerHoldingJars = 0;
+      if (custRes && !custRes.error && Array.isArray(custRes.data)) {
+        custRes.data.forEach((c) => {
+          totalCustomerHoldingJars += (Number(c.total_full_jars_holding || 0) + Number(c.total_empty_jars_holding || 0));
+        });
       }
 
       const products = prodRes.data || [];
@@ -94,6 +105,12 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
             ? Number(pWithReorder.reorder_level)
             : 50;
         const shortage = Math.max(0, reorderLevel - available);
+        const isJarProduct = Boolean(
+          p.is_reusable_jar ||
+          p.category === "REFILLABLE_WATER" ||
+          (p.name || "").includes("20L") ||
+          (p.name || "").toLowerCase().includes("jar")
+        );
 
         return {
           product_id: p.id,
@@ -111,6 +128,7 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
           cost_price: cost,
           valuation: stock * cost,
           is_reusable_jar: p.is_reusable_jar,
+          customer_holding_jars: isJarProduct ? totalCustomerHoldingJars : 0,
           updated_at: balance?.updatedAt || new Date().toISOString(),
         };
       });
@@ -119,7 +137,7 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
     }
 
     // Fast path: warehouseId already known, fetch products and balances simultaneously
-    const [prodRes, balancesRes] = await Promise.all([
+    const [prodRes, balancesRes, custRes] = await Promise.all([
       supabase
         .from("products")
         .select("id, sku, name, category, unit_of_measure, cost_price, is_reusable_jar, is_active, reorder_level")
@@ -129,10 +147,21 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
         .from("inventory_balances")
         .select("product_id, quantity_on_hand, quantity_reserved, updated_at")
         .eq("warehouse_id", warehouseId),
+      supabase
+        .from("customers")
+        .select("total_full_jars_holding, total_empty_jars_holding")
+        .eq("is_active", true),
     ]);
 
     if (prodRes.error) {
       return { success: false, error: prodRes.error.message };
+    }
+
+    let totalCustomerHoldingJars = 0;
+    if (custRes && !custRes.error && Array.isArray(custRes.data)) {
+      custRes.data.forEach((c) => {
+        totalCustomerHoldingJars += (Number(c.total_full_jars_holding || 0) + Number(c.total_empty_jars_holding || 0));
+      });
     }
 
     const balancesMap = new Map<string, { onHand: number; reserved: number; updatedAt: string }>();
@@ -158,6 +187,12 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
           ? Number(pWithReorder.reorder_level)
           : 50;
       const shortage = Math.max(0, reorderLevel - available);
+      const isJarProduct = Boolean(
+        p.is_reusable_jar ||
+        p.category === "REFILLABLE_WATER" ||
+        (p.name || "").includes("20L") ||
+        (p.name || "").toLowerCase().includes("jar")
+      );
 
       return {
         product_id: p.id,
@@ -175,6 +210,7 @@ export async function getInventoryStockLevels(): Promise<ActionResponse<Inventor
         cost_price: cost,
         valuation: stock * cost,
         is_reusable_jar: p.is_reusable_jar,
+        customer_holding_jars: isJarProduct ? totalCustomerHoldingJars : 0,
         updated_at: balance?.updatedAt || new Date().toISOString(),
       };
     });

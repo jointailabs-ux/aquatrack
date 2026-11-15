@@ -19,6 +19,7 @@ import {
   Layers,
   Sparkles,
   SlidersHorizontal,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -531,19 +532,19 @@ export default function SingleWarehouseInventoryPage() {
 
       {/* Colorful Dual-Mode KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        {/* Card 1: Total Physical Units */}
+        {/* Card 1: Total Available Units */}
         <div className="rounded-2xl p-3 sm:p-3.5 bg-gradient-to-br from-sky-50 via-blue-50/50 to-white dark:from-blue-950/80 dark:via-slate-900 dark:to-cyan-950/80 border-2 border-sky-200 dark:border-cyan-500/70 text-foreground dark:text-white shadow-xs dark:shadow-lg space-y-1">
           <div className="flex items-center justify-between text-sky-800 dark:text-cyan-300">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Total Units (মোট)</span>
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">Available Stock (মজুত)</span>
             <div className="p-1.5 rounded-lg bg-sky-100 text-sky-700 dark:bg-cyan-500/20 dark:text-cyan-300">
               <Warehouse className="h-4 w-4" />
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-black text-sky-700 dark:text-cyan-300 tracking-tight drop-shadow-xs">
-            {summary ? summary.total_units_in_warehouse.toLocaleString() : items.reduce((s, i) => s + i.current_stock, 0).toLocaleString()}
+            {summary ? summary.total_units_in_warehouse.toLocaleString() : items.reduce((s, i) => s + i.available_stock, 0).toLocaleString()}
           </div>
           <p className="text-[10px] text-muted-foreground dark:text-slate-300 font-medium">
-            Depot physical stock
+            Ready in warehouse depot
           </p>
         </div>
 
@@ -810,47 +811,59 @@ export default function SingleWarehouseInventoryPage() {
                       )}
                     </div>
 
-                    {/* Prominent Square Metric Layout with Funky Available Hero Box */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {/* Box 1: Available (Hero Metric) */}
-                      <div className={`rounded-xl p-2 text-center space-y-0.5 ${theme.qtyBg}`}>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider block opacity-90">
-                          Available (মজুত)
-                        </span>
-                        <div className="text-2xl font-black tracking-tight leading-none">
-                          {item.available_stock}
+                    {/* Metric Display: Available for all; With Customers for 20L jars (Physical and Reserved removed) */}
+                    {Boolean(
+                      item.is_reusable_jar ||
+                      item.category === "REFILLABLE_WATER" ||
+                      item.name.toLowerCase().includes("20l") ||
+                      item.name.toLowerCase().includes("jar")
+                    ) ? (
+                      /* 2-Box Layout for 20L Reusable Jars */
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {/* Box 1: Available in Stock (মজুত) */}
+                        <div className={`rounded-xl p-3 text-center space-y-1 ${theme.qtyBg}`}>
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider block opacity-90">
+                            Available (মজুত)
+                          </span>
+                          <div className="text-3xl font-black tracking-tight leading-none">
+                            {item.available_stock}
+                          </div>
+                          <span className="text-[10px] font-bold opacity-80 block">
+                            {item.unit_of_measure} (In Godown)
+                          </span>
                         </div>
-                        <span className="text-[10px] font-bold opacity-80 block">
-                          {item.unit_of_measure}
-                        </span>
-                      </div>
 
-                      {/* Box 2: Physical Count (Depot Total) */}
-                      <div className="rounded-xl p-2 text-center bg-muted/40 border border-border text-foreground dark:bg-slate-950/80 dark:border-slate-700/80 dark:text-white space-y-0.5">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider block text-muted-foreground dark:text-slate-400">
-                          Physical (মোট)
-                        </span>
-                        <div className="text-xl font-black text-primary dark:text-cyan-300 leading-none">
-                          {item.current_stock}
+                        {/* Box 2: Present with Customers (কাস্টমারের বাড়িতে) */}
+                        <div className="rounded-xl p-3 text-center bg-emerald-500/15 border-2 border-emerald-500/40 text-foreground dark:bg-emerald-950/60 dark:border-emerald-500/50 dark:text-white space-y-1">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider block text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1">
+                            <Users className="h-3 w-3" />
+                            With Customers (কাস্টমারের কাছে)
+                          </span>
+                          <div className="text-3xl font-black text-emerald-700 dark:text-emerald-300 leading-none">
+                            {item.customer_holding_jars ?? 0}
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-200 block">
+                            {item.unit_of_measure} (At Houses/Shops)
+                          </span>
                         </div>
-                        <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-400 block">
-                          {item.unit_of_measure}
-                        </span>
                       </div>
-
-                      {/* Box 3: Reserved / Orders */}
-                      <div className="rounded-xl p-2 text-center bg-muted/40 border border-border text-foreground dark:bg-slate-950/80 dark:border-slate-700/80 dark:text-white space-y-0.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider block text-muted-foreground dark:text-slate-400">
-                          Reserved (বুকিং)
-                        </span>
-                        <div className="text-xl font-bold text-muted-foreground dark:text-slate-300 leading-none">
-                          {item.reserved_stock}
+                    ) : (
+                      /* Single Clean Hero Box for Packaged Water Bottles & Other Items */
+                      <div className={`rounded-xl p-3 text-center space-y-1 ${theme.qtyBg}`}>
+                        <div className="flex items-center justify-between px-2">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-90">
+                            Available in Stock (মজুত)
+                          </span>
+                          <span className="text-[10px] font-bold opacity-80">
+                            Ready for Sale / Delivery
+                          </span>
                         </div>
-                        <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-400 block">
-                          {item.unit_of_measure}
-                        </span>
+                        <div className="text-3xl font-black tracking-tight leading-none py-1">
+                          {item.available_stock}{" "}
+                          <span className="text-sm font-bold opacity-80">{item.unit_of_measure}</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Reorder Threshold & Valuation Info */}
                     <div className="flex items-center justify-between bg-muted/30 p-2.5 rounded-xl border border-border text-[11px] text-muted-foreground dark:bg-slate-950/70 dark:border-slate-800 dark:text-slate-300">
@@ -902,7 +915,7 @@ export default function SingleWarehouseInventoryPage() {
             )}
           </div>
 
-          {/* DESKTOP VIEW: Dual-Mode High-Contrast Table */}
+          {/* DESKTOP VIEW: Dual-Mode High-Contrast Table (Zero Confusing Physical/Reserved Columns) */}
           <div className="hidden md:block rounded-2xl border-2 border-border dark:border-slate-700/80 bg-card dark:bg-slate-900 text-foreground dark:text-white shadow-xs dark:shadow-2xl overflow-hidden">
             <div className="overflow-x-auto relative">
               <table className="w-full text-left text-xs min-w-[850px]">
@@ -910,9 +923,8 @@ export default function SingleWarehouseInventoryPage() {
                   <tr>
                     <th className="py-3 px-4">Product Name / SKU</th>
                     <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4 text-right">Physical Stock</th>
-                    <th className="py-3 px-4 text-right">Committed</th>
-                    <th className="py-3 px-4 text-right">Available</th>
+                    <th className="py-3 px-4 text-right">Available in Stock (মজুত)</th>
+                    <th className="py-3 px-4 text-right">With Customers (কাস্টমারের কাছে)</th>
                     <th className="py-3 px-4 text-right">Reorder Level</th>
                     <th className="py-3 px-4 text-right">Shortage</th>
                     <th className="py-3 px-4 text-right">Valuation</th>
@@ -923,7 +935,7 @@ export default function SingleWarehouseInventoryPage() {
                 <tbody className="divide-y divide-border/60 dark:divide-slate-800">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-12 text-center text-muted-foreground dark:text-slate-400">
+                      <td colSpan={9} className="py-12 text-center text-muted-foreground dark:text-slate-400">
                         {isLoading ? "Loading inventory stock levels..." : "No products found matching filters."}
                       </td>
                     </tr>
@@ -931,6 +943,12 @@ export default function SingleWarehouseInventoryPage() {
                     filteredItems.map((item) => {
                       const isLowStock = item.available_stock <= item.reorder_level;
                       const theme = getProductTheme(item.category, isLowStock);
+                      const isJarProduct = Boolean(
+                        item.is_reusable_jar ||
+                        item.category === "REFILLABLE_WATER" ||
+                        item.name.toLowerCase().includes("20l") ||
+                        item.name.toLowerCase().includes("jar")
+                      );
 
                       return (
                         <tr
@@ -948,20 +966,26 @@ export default function SingleWarehouseInventoryPage() {
                               {theme.tag}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-right font-black text-primary dark:text-cyan-300">
-                            {item.current_stock} {item.unit_of_measure}
-                          </td>
-                          <td className="py-3.5 px-4 text-right text-muted-foreground dark:text-slate-400 font-medium">
-                            {item.reserved_stock} {item.unit_of_measure}
-                          </td>
                           <td className="py-3.5 px-4 text-right">
                             <span
-                              className={`font-black text-sm px-2 py-0.5 rounded-lg ${
-                                isLowStock ? "bg-rose-500 text-white font-black" : "text-emerald-700 dark:text-emerald-300 font-black"
+                              className={`font-black text-sm px-2.5 py-1 rounded-lg ${
+                                isLowStock
+                                  ? "bg-rose-500 text-white font-black"
+                                  : "text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 font-black"
                               }`}
                             >
                               {item.available_stock} {item.unit_of_measure}
                             </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            {isJarProduct ? (
+                              <span className="font-black text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                {item.customer_holding_jars ?? 0} {item.unit_of_measure}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground/40 text-xs">—</span>
+                            )}
                           </td>
                           <td className="py-3.5 px-4 text-right text-muted-foreground dark:text-slate-400 font-mono">
                             {item.reorder_level} {item.unit_of_measure}

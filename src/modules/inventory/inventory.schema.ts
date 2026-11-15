@@ -42,6 +42,7 @@ export interface InventoryItemRecord {
   cost_price: number;
   valuation: number;
   is_reusable_jar: boolean;
+  customer_holding_jars?: number;
   updated_at: string;
 }
 
