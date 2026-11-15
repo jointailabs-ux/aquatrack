@@ -30,13 +30,14 @@ export const CreatePurchaseSchema = z.object({
   invoice_number: z.string().max(100).optional().nullable(),
   po_number: z.string().max(50).optional().nullable(),
   status: z.enum(["DRAFT", "ORDERED"]).default("ORDERED"),
+  auto_receive: z.boolean().optional().default(true),
   purchase_date: z.string().default(() => new Date().toISOString().split("T")[0]),
   expected_delivery_date: z.string().optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
   items: z.array(PurchaseItemSchema).min(1, "At least one item is required in a purchase order"),
 });
 
-export type CreatePurchaseInput = z.infer<typeof CreatePurchaseSchema>;
+export type CreatePurchaseInput = z.input<typeof CreatePurchaseSchema>;
 
 export const ReceivePurchaseItemsSchema = z.object({
   purchase_id: z.string().uuid("Purchase ID is required"),

@@ -258,12 +258,31 @@ export async function createPurchase(
     });
     const totalAmount = Number(rpcResult?.total_amount ?? (subtotal + taxTotal));
 
+    let finalStatus: PurchaseRecord["status"] = (rpcResult?.status || validated.status) as PurchaseRecord["status"];
+    let finalReceivedAt: string | null = null;
+    let finalItems = validated.items;
+
+    // Directly add purchased items to inventory stock unless explicitly disabled
+    if (validated.auto_receive !== false && rpcPurchaseId && rpcPurchaseId !== "PO-PENDING") {
+      const receiveRes = await markPurchaseReceived(rpcPurchaseId);
+      if (receiveRes.success) {
+        finalStatus = "RECEIVED";
+        finalReceivedAt = new Date().toISOString();
+        finalItems = validated.items.map((item) => ({
+          ...item,
+          quantity_received: item.quantity_ordered,
+        }));
+      } else {
+        console.warn("Auto-receive goods into inventory failed:", receiveRes.error);
+      }
+    }
+
     const record: PurchaseRecord = {
       id: rpcPurchaseId || "PO-PENDING",
       po_number: rpcPoNumber || "PO-PENDING",
       supplier_id: validated.supplier_id,
       invoice_number: validated.invoice_number,
-      status: rpcResult?.status || validated.status,
+      status: finalStatus,
       payment_status: "UNPAID",
       subtotal,
       tax_total: taxTotal,
@@ -271,7 +290,8 @@ export async function createPurchase(
       amount_paid: 0,
       balance_due: totalAmount,
       purchase_date: validated.purchase_date,
-      items: validated.items,
+      received_at: finalReceivedAt,
+      items: finalItems,
       notes: validated.notes,
       created_at: new Date().toISOString(),
     };

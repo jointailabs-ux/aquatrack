@@ -302,6 +302,7 @@ describe("Purchase Management & Inward Inventory Module", () => {
         po_number: "PO-20261105-001",
         purchase_date: "2026-11-05",
         status: "ORDERED",
+        auto_receive: false,
         items: [
           {
             product_id: productJarId,
@@ -325,6 +326,71 @@ describe("Purchase Management & Inward Inventory Module", () => {
       expect(mockRpc).toHaveBeenCalledWith("rpc_create_purchase_order", expect.objectContaining({
         p_supplier_id: dummySupplierId,
         p_po_number: "PO-20261105-001",
+      }));
+    });
+
+    it("automatically receives goods into warehouse inventory when auto_receive is enabled", async () => {
+      const mockRpc = vi.fn().mockImplementation((fnName: string) => {
+        if (fnName === "rpc_create_purchase_order") {
+          return Promise.resolve({
+            data: {
+              purchase_id: dummyPurchaseId,
+              po_number: "PO-20261105-002",
+              total_amount: 11800,
+              status: "ORDERED",
+            },
+            error: null,
+          });
+        }
+        if (fnName === "rpc_receive_purchase_order") {
+          return Promise.resolve({
+            data: {
+              status: "RECEIVED",
+              incremental_payable: 11800,
+            },
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      const mockGetUser = vi.fn().mockResolvedValue({
+        data: { user: { id: "user-1", email: "owner@aquatrack.com" } },
+      });
+
+      (createClient as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        auth: { getUser: mockGetUser },
+        rpc: mockRpc,
+      });
+
+      const res = await createPurchase({
+        supplier_id: dummySupplierId,
+        po_number: "PO-20261105-002",
+        purchase_date: "2026-11-05",
+        status: "ORDERED",
+        auto_receive: true,
+        items: [
+          {
+            product_id: productJarId,
+            quantity_ordered: 50,
+            quantity_received: 0,
+            unit_cost: 100,
+            gst_rate: 18,
+            tax_rate: 18,
+            tax_amount: 900,
+            total_cost: 5900,
+            total_amount: 5900,
+          },
+        ],
+      });
+
+      expect(res.success).toBe(true);
+      if (res.success) {
+        expect(res.data.status).toBe("RECEIVED");
+        expect(res.data.items[0].quantity_received).toBe(50);
+      }
+      expect(mockRpc).toHaveBeenCalledWith("rpc_receive_purchase_order", expect.objectContaining({
+        p_purchase_id: dummyPurchaseId,
       }));
     });
 

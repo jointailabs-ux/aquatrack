@@ -82,6 +82,7 @@ export default function PurchasesPage() {
 
   // Create Purchase Order Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [autoReceiveStock, setAutoReceiveStock] = React.useState(true);
   const [selectedSupplierId, setSelectedSupplierId] = React.useState("");
   const [poNumber, setPoNumber] = React.useState("");
   const [invoiceNumber, setInvoiceNumber] = React.useState("");
@@ -175,6 +176,7 @@ export default function PurchasesPage() {
     setPurchaseDate(new Date().toISOString().split("T")[0]);
     setExpectedDeliveryDate("");
     setPoNotes("");
+    setAutoReceiveStock(true);
 
     // Initialize with first product or reusable jar
     const defaultProduct = products.find((p) => p.is_reusable_jar) || products[0];
@@ -372,6 +374,7 @@ export default function PurchasesPage() {
         po_number: poNumber.trim() || undefined,
         invoice_number: invoiceNumber.trim() || undefined,
         status: "ORDERED",
+        auto_receive: autoReceiveStock,
         purchase_date: purchaseDate,
         expected_delivery_date: expectedDeliveryDate || undefined,
         notes: poNotes.trim() || undefined,
@@ -386,8 +389,10 @@ export default function PurchasesPage() {
 
       addToast({
         type: "success",
-        title: "Purchase Order Created",
-        message: `PO #${res.data.po_number} successfully placed. Stock will update upon goods receipt.`,
+        title: autoReceiveStock ? "Stock Added to Inventory (গুদামে স্টক জমা হয়েছে)" : "Purchase Order Created",
+        message: autoReceiveStock
+          ? `PO #${res.data.po_number} placed & ${createSummary.totalUnits} items directly added to warehouse stock!`
+          : `PO #${res.data.po_number} successfully placed in ORDERED status.`,
       });
 
       setIsCreateModalOpen(false);
@@ -1296,6 +1301,22 @@ export default function PurchasesPage() {
                 <span className="text-primary">{formatCurrency(createSummary.totalAmount)}</span>
               </div>
             </div>
+
+            {/* Direct Inventory Stock Linkage Checkbox */}
+            <label className="flex items-start gap-2.5 cursor-pointer p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-800 dark:text-emerald-300 transition-all hover:bg-emerald-500/15">
+              <input
+                type="checkbox"
+                checked={autoReceiveStock}
+                onChange={(e) => setAutoReceiveStock(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <div className="flex flex-col">
+                <span className="font-bold">Add Directly to Warehouse Stock (সরাসরি গুদামে মাল জমা নিন)</span>
+                <span className="text-[11px] font-normal text-emerald-700/90 dark:text-emerald-400/90 mt-0.5">
+                  Purchased items (jars or packaged bottles) will immediately update available inventory without secondary receiving steps.
+                </span>
+              </div>
+            </label>
 
             {/* Modal Actions */}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
