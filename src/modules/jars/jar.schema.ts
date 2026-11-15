@@ -125,8 +125,21 @@ export interface CustomerJarHoldingSummary {
   pending_empty_collections: number;
 }
 
+export interface JarAuditTrailEntry {
+  id: string;
+  eventType: "DELIVERY" | "EMPTY_COLLECTION" | "DIRECT_RETURN" | "PURCHASE_RECEIPT" | "STOCK_ADJUSTMENT" | "STAFF_RETURN";
+  timestamp: string;
+  customerName?: string | null;
+  orderNumber?: string | null;
+  staffName?: string | null;
+  quantity: number;
+  notes?: string | null;
+  address?: string | null;
+}
+
 export interface DirectInventoryJarSummary {
-  godownStock: number;
+  storeInventoryStock: number;
+  godownStock: number; // retained for backward compatibility
   customerHolding: number;
   totalJars: number;
   warehouseName: string;
@@ -143,6 +156,7 @@ export interface DirectInventoryJarSummary {
     address: string;
     total_jars: number;
   }>;
+  auditTrail: Array<JarAuditTrailEntry>;
 }
 
 export interface ComprehensiveJarSystemSummary {

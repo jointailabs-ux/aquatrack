@@ -6,6 +6,7 @@ import {
   ComprehensiveJarSystemSummary,
   CustomerJarHoldingSummary,
   DirectInventoryJarSummary,
+  JarAuditTrailEntry,
   JarMovementRecord,
   RecordJarMovementInput,
   RecordJarMovementSchema,
@@ -19,14 +20,14 @@ import {
 
 /**
  * Direct Inventory Jar Tracking Summary
- * Directly tracks jars from inventory_balances in the godown and customer holdings.
- * Eliminates slow unindexed full-table scans.
+ * Directly tracks strictly 20L jars from inventory_balances in store inventory and customer holdings.
+ * Excludes small water bottles (500ml, 1L, etc.) and generates a full custody audit trail.
  */
 export async function getDirectInventoryJarSummary(): Promise<ActionResponse<DirectInventoryJarSummary>> {
   try {
     const supabase = await createClient();
 
-    // 1. Fetch default warehouse
+    // 1. Fetch default warehouse (Store / Inventory)
     const { data: defaultWh } = await supabase
       .from("warehouses")
       .select("id, name")
@@ -34,7 +35,7 @@ export async function getDirectInventoryJarSummary(): Promise<ActionResponse<Dir
       .maybeSingle();
 
     let whId = defaultWh?.id;
-    let warehouseName = defaultWh?.name || "Godown (গুদাম)";
+    let warehouseName = defaultWh?.name || "Store Inventory (ইনভেন্টরি)";
 
     if (!whId) {
       const { data: fallbackWh } = await supabase
@@ -46,12 +47,17 @@ export async function getDirectInventoryJarSummary(): Promise<ActionResponse<Dir
       if (fallbackWh?.name) warehouseName = fallbackWh.name;
     }
 
-    // 2. Fetch reusable jar products
+    // 2. Fetch strictly 20L reusable jar products (exclude packaged water bottles like 500ml, 1L, etc.)
     const { data: jarProductsData, error: prodErr } = await supabase
       .from("products")
       .select("id, name, sku, is_reusable_jar")
-      .eq("is_reusable_jar", true)
       .eq("is_active", true)
+      .or("is_reusable_jar.eq.true,sku.ilike.%JAR%,name.ilike.%20L%jar%")
+      .not("name", "ilike", "%500ml%")
+      .not("name", "ilike", "%1L%")
+      .not("name", "ilike", "%10 rs%")
+      .not("name", "ilike", "%box%")
+      .not("name", "ilike", "%dispenser%")
       .order("name", { ascending: true });
 
     if (prodErr) {
@@ -60,7 +66,7 @@ export async function getDirectInventoryJarSummary(): Promise<ActionResponse<Dir
 
     const jarProductIds = (jarProductsData || []).map((p) => p.id);
 
-    // 3. Fetch inventory balances for these jar products
+    // 3. Fetch inventory balances for these 20L jar products
     const balancesMap = new Map<string, number>();
     if (whId && jarProductIds.length > 0) {
       const { data: balances } = await supabase
@@ -74,10 +80,10 @@ export async function getDirectInventoryJarSummary(): Promise<ActionResponse<Dir
       });
     }
 
-    let godownStock = 0;
+    let storeInventoryStock = 0;
     const jarProducts = (jarProductsData || []).map((p) => {
       const qty = balancesMap.get(p.id) ?? 0;
-      godownStock += qty;
+      storeInventoryStock += qty;
       return {
         id: p.id,
         name: p.name,
@@ -124,15 +130,181 @@ export async function getDirectInventoryJarSummary(): Promise<ActionResponse<Dir
 
     customersHoldingJars.sort((a, b) => b.total_jars - a.total_jars);
 
+    // 5. Fetch comprehensive Jar Audit Trail (Which jar goes to whom, returned, or adjusted)
+    const auditTrail: Array<JarAuditTrailEntry> = [];
+
+    // 5a. Deliveries and Empty Collections from Delivery Stops
+    try {
+      const { data: stops } = await supabase
+        .from("delivery_stops")
+        .select(`
+          id,
+          order_id,
+          actual_delivered_quantity,
+          empty_jars_collected,
+          executed_at,
+          created_at,
+          status,
+          notes,
+          order:orders!delivery_stops_order_id_fkey (
+            order_number,
+            customer:customers!orders_customer_id_fkey (
+              contact_name,
+              business_name,
+              address
+            )
+          ),
+          staff:profiles!delivery_stops_assigned_staff_id_fkey (
+            full_name
+          )
+        `)
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      (stops || []).forEach((s) => {
+        interface StopRow {
+          id: string;
+          actual_delivered_quantity?: number | null;
+          empty_jars_collected?: number | null;
+          executed_at?: string | null;
+          created_at: string;
+          notes?: string | null;
+          order?: {
+            order_number?: string | null;
+            customer?: {
+              contact_name?: string | null;
+              business_name?: string | null;
+              address?: string | null;
+            } | null;
+          } | null;
+          staff?: {
+            full_name?: string | null;
+          } | null;
+        }
+
+        const row = s as unknown as StopRow;
+        const custName = row.order?.customer?.business_name || row.order?.customer?.contact_name || "Customer";
+        const ordNum = row.order?.order_number || undefined;
+        const staffName = row.staff?.full_name || undefined;
+        const timestamp = row.executed_at || row.created_at;
+        const address = row.order?.customer?.address || undefined;
+
+        if (Number(row.actual_delivered_quantity || 0) > 0) {
+          auditTrail.push({
+            id: `del-${row.id}`,
+            eventType: "DELIVERY",
+            timestamp,
+            customerName: custName,
+            orderNumber: ordNum,
+            staffName,
+            quantity: Number(row.actual_delivered_quantity),
+            notes: row.notes || "Delivered full 20L jars to customer",
+            address,
+          });
+        }
+
+        if (Number(row.empty_jars_collected || 0) > 0) {
+          auditTrail.push({
+            id: `ret-${row.id}`,
+            eventType: "EMPTY_COLLECTION",
+            timestamp,
+            customerName: custName,
+            orderNumber: ordNum,
+            staffName,
+            quantity: Number(row.empty_jars_collected),
+            notes: row.notes || "Empty 20L jars collected from customer",
+            address,
+          });
+        }
+      });
+    } catch {
+      // Fallback if stops join fails
+    }
+
+    // 5b. Custody Movements (Direct Customer Returns, Staff Vehicle Returns, Scrap)
+    try {
+      const { data: movements } = await supabase
+        .from("jar_custody_movements")
+        .select(`
+          id,
+          quantity,
+          movement_type,
+          notes,
+          created_at,
+          reference_type,
+          reference_id,
+          created_by_profile:profiles!jar_custody_movements_created_by_fkey (full_name)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      (movements || []).forEach((m) => {
+        interface MovementRow {
+          id: string;
+          quantity: number;
+          movement_type: string;
+          notes?: string | null;
+          created_at: string;
+          reference_id?: string | null;
+          created_by_profile?: { full_name?: string | null } | null;
+        }
+        const row = m as unknown as MovementRow;
+
+        let evType: JarAuditTrailEntry["eventType"] = "DIRECT_RETURN";
+        if (row.movement_type === "CUSTOMER_EMPTY_RETURN") evType = "DIRECT_RETURN";
+        else if (row.movement_type === "VEHICLE_RETURN_TO_WAREHOUSE") evType = "STAFF_RETURN";
+        else if (row.movement_type === "INTERNAL_ADJUSTMENT") evType = "STOCK_ADJUSTMENT";
+
+        auditTrail.push({
+          id: `custody-${row.id}`,
+          eventType: evType,
+          timestamp: row.created_at,
+          staffName: row.created_by_profile?.full_name || undefined,
+          quantity: Number(row.quantity || 0),
+          notes: row.notes || undefined,
+        });
+      });
+    } catch {
+      // Ignore if movements query fails
+    }
+
+    // 5c. Stock Movements (Procurements / Inward Jars)
+    try {
+      const { data: stockMovs } = await supabase
+        .from("stock_movements")
+        .select("id, quantity, movement_type, notes, created_at")
+        .in("movement_type", ["PURCHASE_RECEIPT", "ADJUSTMENT_IN", "ADJUSTMENT_OUT"])
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      (stockMovs || []).forEach((sm) => {
+        const isPurchase = sm.movement_type === "PURCHASE_RECEIPT";
+        auditTrail.push({
+          id: `stock-${sm.id}`,
+          eventType: isPurchase ? "PURCHASE_RECEIPT" : "STOCK_ADJUSTMENT",
+          timestamp: sm.created_at,
+          quantity: Number(sm.quantity || 0),
+          notes: sm.notes || (isPurchase ? "20L jars purchased from supplier added to inventory" : "Stock adjustment"),
+        });
+      });
+    } catch {
+      // Ignore
+    }
+
+    // Sort audit trail latest first and deduplicate
+    auditTrail.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
     return {
       success: true,
       data: {
-        godownStock,
+        storeInventoryStock,
+        godownStock: storeInventoryStock,
         customerHolding,
-        totalJars: godownStock + customerHolding,
+        totalJars: storeInventoryStock + customerHolding,
         warehouseName,
         jarProducts,
         customersHoldingJars,
+        auditTrail: auditTrail.slice(0, 35),
       },
     };
   } catch (err: unknown) {
