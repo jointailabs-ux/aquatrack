@@ -165,12 +165,13 @@ export async function getDashboardSummary(
       items.forEach((item) => {
         const name = (item.name || "").toLowerCase();
         const sku = (item.sku || "").toUpperCase();
+        const available = item.available_stock ?? item.current_stock;
         if (sku.includes("20L") || (name.includes("20l") && name.includes("jar")) || item.is_reusable_jar) {
-          jar20LCount += item.current_stock;
+          jar20LCount += available;
         } else if (name.includes("500ml") || sku.includes("500ML") || (name.includes("bottle") && name.includes("10"))) {
-          bottle500mlCount += item.current_stock;
+          bottle500mlCount += available;
         } else if (name.includes("1l") || sku.includes("1L") || (name.includes("bottle") && name.includes("20"))) {
-          bottle1LCount += item.current_stock;
+          bottle1LCount += available;
         }
       });
 

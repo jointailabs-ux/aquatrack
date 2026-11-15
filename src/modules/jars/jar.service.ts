@@ -71,12 +71,15 @@ export async function getDirectInventoryJarSummary(): Promise<ActionResponse<Dir
     if (whId && jarProductIds.length > 0) {
       const { data: balances } = await supabase
         .from("inventory_balances")
-        .select("product_id, quantity_on_hand")
+        .select("product_id, quantity_on_hand, quantity_reserved")
         .eq("warehouse_id", whId)
         .in("product_id", jarProductIds);
 
       (balances || []).forEach((b) => {
-        balancesMap.set(b.product_id, Number(b.quantity_on_hand || 0));
+        const onHand = Number(b.quantity_on_hand || 0);
+        const reserved = Number(b.quantity_reserved || 0);
+        const available = Math.max(0, onHand - reserved);
+        balancesMap.set(b.product_id, available);
       });
     }
 
