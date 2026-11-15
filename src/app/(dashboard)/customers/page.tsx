@@ -641,25 +641,30 @@ export default function CustomersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {selectedCustomer && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => openDirectPaymentModal(selectedCustomer)}
-              className="gap-1.5 text-xs font-bold border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 active:scale-95 transition-all"
-            >
-              <DollarSign className="h-4 w-4 text-emerald-600" />
-              Receive Money (টাকা জমা নিন)
-            </Button>
-          )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => {
+              if (selectedCustomer) {
+                openDirectPaymentModal(selectedCustomer);
+              } else if (customers.length > 0) {
+                openDirectPaymentModal(customers[0]);
+              } else {
+                setIsAddModalOpen(true);
+              }
+            }}
+            className="gap-1.5 text-xs font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-950/20 active:scale-95 transition-all cursor-pointer"
+          >
+            <DollarSign className="h-4 w-4 stroke-[2.5]" />
+            Receive Money (টাকা জমা নিন)
+          </Button>
 
           <Button
             size="sm"
             onClick={() => setIsAddModalOpen(true)}
-            className="gap-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold shadow-sm shadow-sky-500/25 active:scale-95 transition-all"
+            className="gap-2 bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-black shadow-md shadow-sky-500/25 active:scale-95 transition-all cursor-pointer"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 stroke-[3]" />
             + New Customer (নতুন কাস্টমার)
           </Button>
         </div>
@@ -774,183 +779,256 @@ export default function CustomersPage() {
 
       {/* Main Two-Column Master-Detail Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Customer Directory List */}
+        {/* Left Column: Customer Cards Directory */}
         <div className={`lg:col-span-5 space-y-3 ${mobileView === "detail" ? "hidden lg:block" : "block"}`}>
-          <Card className="border-border shadow-xs">
-            <CardHeader className="p-3.5 border-b border-border flex flex-row items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Customer Directory ({totalCount})
-                </span>
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+              <span className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-sky-500" />
+                Customer Cards Directory ({totalCount})
+              </span>
+            </div>
+            <button
+              onClick={() => loadCustomers(page, true)}
+              className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1 p-1 cursor-pointer"
+              title="Refresh list"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          <div className="space-y-3 max-h-[720px] overflow-y-auto pr-1">
+            {isLoading ? (
+              <div className="p-12 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2 bg-card rounded-2xl border border-border">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                <span className="font-semibold">Loading customer cards...</span>
               </div>
-              <button
-                onClick={() => loadCustomers(page, true)}
-                className="text-muted-foreground hover:text-foreground text-xs p-1"
-                title="Refresh list"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-              </button>
-            </CardHeader>
+            ) : customers.length === 0 ? (
+              <div className="p-12 text-center text-xs text-muted-foreground space-y-3 bg-card rounded-2xl border border-border">
+                <Users className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                <p className="font-bold text-foreground text-sm">No customers found</p>
+                <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
+                  {searchQuery || typeFilter !== "ALL" || hasBalanceFilter
+                    ? "Try clearing or modifying your search and filter criteria."
+                    : "Click '+ New Customer' above to register your first client account."}
+                </p>
+              </div>
+            ) : (
+              customers.map((cust) => {
+                const isSelected = selectedCustomer?.id === cust.id;
+                const totalCustody =
+                  (cust.total_full_jars_holding || 0) +
+                  (cust.total_empty_jars_holding || 0) +
+                  (cust.total_damaged_jars_holding || 0);
 
-            <CardContent className="p-0">
-              <div className="divide-y divide-border/60 max-h-[640px] overflow-y-auto">
-                {isLoading ? (
-                  <div className="p-8 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2">
-                    <RefreshCw className="h-5 w-5 animate-spin text-primary" />
-                    <span>Loading customer accounts...</span>
-                  </div>
-                ) : customers.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-muted-foreground space-y-3">
-                    <Users className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                    <p className="font-semibold text-foreground">No customers found</p>
-                    <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
-                      {searchQuery || typeFilter !== "ALL" || hasBalanceFilter
-                        ? "Try clearing or modifying your search and filter criteria."
-                        : "Click 'Add Customer' above to register your first client account."}
-                    </p>
-                  </div>
-                ) : (
-                  customers.map((cust) => {
-                    const isSelected = selectedCustomer?.id === cust.id;
-                    const totalCustody =
-                      (cust.total_full_jars_holding || 0) +
-                      (cust.total_empty_jars_holding || 0) +
-                      (cust.total_damaged_jars_holding || 0);
+                return (
+                  <div
+                    key={cust.id}
+                    onClick={() => {
+                      setSelectedCustomer(cust);
+                      setMobileView("detail");
+                    }}
+                    className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer space-y-3 relative overflow-hidden border-2 ${
+                      isSelected
+                        ? "bg-gradient-to-br from-card via-sky-500/10 to-card border-sky-500 shadow-md shadow-sky-500/15"
+                        : "bg-card border-border/80 hover:border-sky-400/60 hover:shadow-xs active:scale-[0.99]"
+                    }`}
+                  >
+                    {/* Top Accent Strip */}
+                    <div
+                      className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                        isSelected
+                          ? "from-sky-400 via-blue-500 to-indigo-500"
+                          : Number(cust.current_balance) > 0
+                          ? "from-rose-500 via-amber-500 to-rose-400"
+                          : "from-emerald-400 via-teal-500 to-emerald-600"
+                      }`}
+                    />
 
-                    return (
+                    {/* Card Header: Name, Type Badge, Active Indicator */}
+                    <div className="flex items-start justify-between gap-2 pt-0.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-black text-foreground tracking-tight truncate">
+                            {cust.contact_name}
+                          </h3>
+                          <Badge
+                            variant={cust.customer_type === "B2B" ? "primary" : "secondary"}
+                            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                              cust.customer_type === "B2B"
+                                ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                                : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                            }`}
+                          >
+                            {cust.customer_type === "B2B" ? "Shop (B2B)" : "Home (B2C)"}
+                          </Badge>
+                          {cust.is_active ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 rounded-full">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.2 rounded-full">
+                              Stopped
+                            </span>
+                          )}
+                        </div>
+
+                        {cust.business_name && (
+                          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mt-1 truncate">
+                            <Building className="h-3.5 w-3.5 text-primary shrink-0" />
+                            {cust.business_name}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Quick View Pill */}
+                      <div className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-sky-500 dark:text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 px-2.5 py-1 rounded-xl transition-colors">
+                        <span>Khata ›</span>
+                      </div>
+                    </div>
+
+                    {/* Visual 2-Box Metric Row: Jars at House & Outstanding Due */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {/* Box 1: Jars in Custody */}
+                      <div className="rounded-xl p-2.5 bg-sky-500/10 border border-sky-500/25 flex flex-col justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                          <Droplets className="h-3 w-3 text-sky-500" /> Jars at House
+                        </span>
+                        <div className="mt-1 flex items-baseline gap-1">
+                          <span className="text-xl font-black text-sky-600 dark:text-sky-400 leading-none">
+                            {totalCustody}
+                          </span>
+                          <span className="text-[11px] font-bold text-sky-700/80 dark:text-sky-300/80">Jars</span>
+                        </div>
+                        <span className="text-[9px] text-muted-foreground mt-0.5 block truncate">
+                          {totalCustody > 0 ? "Present with customer" : "No jars currently"}
+                        </span>
+                      </div>
+
+                      {/* Box 2: Pending Udhaari / Balance */}
                       <div
-                        key={cust.id}
-                        onClick={() => {
-                          setSelectedCustomer(cust);
-                          setMobileView("detail");
-                        }}
-                        className={`p-3.5 cursor-pointer transition-all ${
-                          isSelected
-                            ? "bg-primary/10 border-l-4 border-primary"
-                            : "hover:bg-muted/40"
+                        className={`rounded-xl p-2.5 flex flex-col justify-between border ${
+                          Number(cust.current_balance) > 0
+                            ? "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400"
+                            : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <h3 className="text-xs font-bold text-foreground truncate">
-                                {cust.contact_name}
-                              </h3>
-                              <Badge
-                                variant={cust.customer_type === "B2B" ? "primary" : "secondary"}
-                                className="text-[9px] py-0 px-1 font-semibold"
-                              >
-                                {cust.customer_type}
-                              </Badge>
-                              {!cust.is_active && (
-                                <Badge variant="outline" className="text-[9px] py-0 text-muted-foreground border-muted-foreground/30">
-                                  Inactive
-                                </Badge>
-                              )}
-                            </div>
-
-                            {cust.business_name && (
-                              <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
-                                <Building className="h-3 w-3 shrink-0" />
-                                {cust.business_name}
-                              </p>
-                            )}
-
-                            <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1 truncate">
-                              <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
-                              {cust.phone}
-                            </p>
-
-                            {/* Mobile Quick Actions */}
-                            <div className="flex items-center gap-2 mt-2 pt-1 border-t border-border/40 sm:hidden">
-                              <a
-                                href={`tel:${cust.phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-md"
-                              >
-                                <Phone className="h-3 w-3" />
-                                Call
-                              </a>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openDirectPaymentModal(cust);
-                                }}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md"
-                              >
-                                <DollarSign className="h-3 w-3" />
-                                Collect ₹
-                              </button>
-                              <span className="ml-auto text-[10px] font-bold text-muted-foreground flex items-center gap-0.5">
-                                View <ChevronRight className="h-3 w-3" />
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="text-right shrink-0 space-y-1">
-                            <span className="text-xs font-extrabold text-foreground block">
-                              {totalCustody} Jars
-                            </span>
-                            {Number(cust.current_balance) > 0 ? (
-                              <Badge variant="destructive" className="text-[9px] py-0 font-bold">
-                                Due: {formatCurrency(cust.current_balance)}
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="text-[9px] py-0 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                              >
-                                Paid Up
-                              </Badge>
-                            )}
-                          </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          {Number(cust.current_balance) > 0 ? "Pending Due (বাকি)" : "Balance Status"}
+                        </span>
+                        <div className="mt-1 flex items-baseline gap-1">
+                          <span className="text-xl font-black leading-none">
+                            {Number(cust.current_balance) > 0
+                              ? formatCurrency(cust.current_balance)
+                              : "₹0"}
+                          </span>
                         </div>
+                        <span className="text-[9px] font-medium opacity-80 mt-0.5 block truncate">
+                          {Number(cust.current_balance) > 0 ? "To collect from customer" : "All payments cleared"}
+                        </span>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                    </div>
 
-              {/* Pagination controls */}
-              {totalPages > 1 && (
-                <div className="p-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Page {page} of {totalPages}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page <= 1 || isLoading}
-                      onClick={() => {
-                        const newPage = page - 1;
-                        setPage(newPage);
-                        loadCustomers(newPage);
-                      }}
-                      className="h-7 w-7 p-0"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={page >= totalPages || isLoading}
-                      onClick={() => {
-                        const newPage = page + 1;
-                        setPage(newPage);
-                        loadCustomers(newPage);
-                      }}
-                      className="h-7 w-7 p-0"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    {/* Contact & Address Details */}
+                    <div className="text-xs space-y-1 pt-1 border-t border-border/40">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <a
+                          href={`tel:${cust.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1.5"
+                        >
+                          <Phone className="h-3 w-3 text-sky-500" />
+                          {cust.phone}
+                        </a>
+
+                        {cust.address && (
+                          <span className="text-[11px] text-muted-foreground truncate max-w-[200px] flex items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                            {cust.address}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons Toolbar on Card */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-border/40">
+                      <a
+                        href={`tel:${cust.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        <span>Call</span>
+                      </a>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDirectPaymentModal(cust);
+                        }}
+                        className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <DollarSign className="h-3.5 w-3.5" />
+                        <span>Collect ₹</span>
+                      </button>
+
+                      <a
+                        href={`/orders?new=true`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="py-1.5 px-3 rounded-xl text-xs font-bold bg-sky-600/15 hover:bg-sky-600/25 text-sky-600 dark:text-sky-400 border border-sky-500/30 inline-flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        title="Create new order"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>+ Order</span>
+                      </a>
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className="p-3 bg-card border border-border rounded-2xl flex items-center justify-between text-xs text-muted-foreground shadow-2xs">
+              <span className="font-medium">
+                Page {page} of {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1 || isLoading}
+                  onClick={() => {
+                    const newPage = page - 1;
+                    setPage(newPage);
+                    loadCustomers(newPage);
+                  }}
+                  className="h-7 w-7 p-0 rounded-lg cursor-pointer"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= totalPages || isLoading}
+                  onClick={() => {
+                    const newPage = page + 1;
+                    setPage(newPage);
+                    loadCustomers(newPage);
+                  }}
+                  className="h-7 w-7 p-0 rounded-lg cursor-pointer"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Customer Detailed Screen & History Tabs */}
