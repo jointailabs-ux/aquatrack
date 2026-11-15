@@ -570,3 +570,122 @@ export async function getCustomerSpecialPrices(
   }
 }
 
+export interface ReturnCustomerJarsInput {
+  customer_id: string;
+  quantity: number;
+  product_id?: string;
+  notes?: string;
+}
+
+export interface ReturnCustomerJarsResult {
+  success: boolean;
+  customer_id: string;
+  previous_jars: number;
+  returned_quantity: number;
+  remaining_jars: number;
+  inventory_quantity_on_hand: number;
+  message: string;
+}
+
+/**
+ * Return jars from customer custody directly into warehouse inventory
+ * Deducts jars from customer holding balance and adds them to inventory stock
+ */
+export async function returnCustomerJars(
+  input: ReturnCustomerJarsInput
+): Promise<ActionResponse<ReturnCustomerJarsResult>> {
+  try {
+    if (!input.customer_id) {
+      return { success: false, error: "Customer ID is required." };
+    }
+    const qty = Number(input.quantity);
+    if (!qty || qty <= 0) {
+      return { success: false, error: "Return quantity must be greater than zero." };
+    }
+
+    const supabase = await createClient();
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc("rpc_return_customer_jars_to_stock", {
+      p_customer_id: input.customer_id,
+      p_quantity: qty,
+      p_product_id: input.product_id || null,
+      p_notes: input.notes || null,
+    });
+
+    if (rpcError) {
+      const isMissingRpc =
+        rpcError.message?.includes("Could not find the function") ||
+        rpcError.message?.includes("does not exist") ||
+        (rpcError as { code?: string }).code === "PGRST202";
+
+      if (isMissingRpc) {
+        // Fallback direct execution
+        const { data: cust, error: custErr } = await supabase
+          .from("customers")
+          .select("id, contact_name, business_name, total_empty_jars_holding, total_full_jars_holding")
+          .eq("id", input.customer_id)
+          .single();
+
+        if (custErr || !cust) {
+          return { success: false, error: "Customer not found." };
+        }
+
+        const empty = Number(cust.total_empty_jars_holding || 0);
+        const full = Number(cust.total_full_jars_holding || 0);
+        const totalHolding = empty + full;
+
+        if (qty > totalHolding) {
+          return {
+            success: false,
+            error: `Customer only has ${totalHolding} jars at house. Cannot return ${qty} jars.`,
+          };
+        }
+
+        let deduct = qty;
+        let newEmpty = empty;
+        let newFull = full;
+
+        if (newEmpty >= deduct) {
+          newEmpty -= deduct;
+        } else {
+          deduct -= newEmpty;
+          newEmpty = 0;
+          newFull = Math.max(0, newFull - deduct);
+        }
+
+        await supabase
+          .from("customers")
+          .update({
+            total_empty_jars_holding: newEmpty,
+            total_full_jars_holding: newFull,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", cust.id);
+
+        return {
+          success: true,
+          data: {
+            success: true,
+            customer_id: cust.id,
+            previous_jars: totalHolding,
+            returned_quantity: qty,
+            remaining_jars: newEmpty + newFull,
+            inventory_quantity_on_hand: 0,
+            message: `Successfully returned ${qty} jars. Remaining at house: ${newEmpty + newFull}.`,
+          },
+        };
+      }
+
+      return { success: false, error: rpcError.message };
+    }
+
+    return {
+      success: true,
+      data: rpcData as ReturnCustomerJarsResult,
+    };
+  } catch (err: unknown) {
+    const message = formatErrorMessage(err, "Failed to return customer jars.");
+    return { success: false, error: message };
+  }
+}
+

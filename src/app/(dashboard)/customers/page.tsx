@@ -25,6 +25,7 @@ import {
   Calendar,
   CalendarDays,
   UserCheck,
+  CheckCircle2,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -41,6 +42,7 @@ import {
   getCustomerInvoices,
   getCustomerJarMovements,
   recordDirectCustomerPayment,
+  returnCustomerJars,
 } from "@/modules/customers/customer.service";
 import { getOrders } from "@/modules/orders/order.service";
 import {
@@ -205,6 +207,117 @@ export default function CustomersPage() {
   const [paymentReference, setPaymentReference] = React.useState("");
   const [paymentInvoiceId, setPaymentInvoiceId] = React.useState<string>("");
   const [paymentNotes, setPaymentNotes] = React.useState("");
+
+  // Collect Returned Jars Modal States
+  const [isReturnJarsOpen, setIsReturnJarsOpen] = React.useState(false);
+  const [customerForReturn, setCustomerForReturn] = React.useState<CustomerRecord | null>(null);
+  const [returnQty, setReturnQty] = React.useState<number>(1);
+  const [returnNotes, setReturnNotes] = React.useState<string>("");
+  const [isSubmittingReturn, setIsSubmittingReturn] = React.useState(false);
+
+  const openCollectJarsModal = (customer: CustomerRecord) => {
+    setCustomerForReturn(customer);
+    const totalJars = (Number(customer.total_full_jars_holding || 0) + Number(customer.total_empty_jars_holding || 0));
+    setReturnQty(totalJars > 0 ? (totalJars >= 2 ? 2 : 1) : 0);
+    setReturnNotes("");
+    setIsReturnJarsOpen(true);
+  };
+
+  const handleConfirmJarReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customerForReturn) return;
+
+    const totalJars = (Number(customerForReturn.total_full_jars_holding || 0) + Number(customerForReturn.total_empty_jars_holding || 0));
+    if (returnQty <= 0) {
+      addToast({
+        type: "error",
+        title: "Invalid Quantity",
+        message: "Return quantity must be at least 1 jar.",
+      });
+      return;
+    }
+
+    if (returnQty > totalJars) {
+      addToast({
+        type: "error",
+        title: "Exceeds Jars at House",
+        message: `Customer only has ${totalJars} jars at house. Cannot collect ${returnQty} jars.`,
+      });
+      return;
+    }
+
+    setIsSubmittingReturn(true);
+    try {
+      const res = await returnCustomerJars({
+        customer_id: customerForReturn.id,
+        quantity: returnQty,
+        notes: returnNotes.trim() || undefined,
+      });
+
+      if (!res.success || !res.data) {
+        throw new Error(res.error || "Failed to return jars.");
+      }
+
+      addToast({
+        type: "success",
+        title: "Jars Returned & Stock Updated (জার গুদামে জমা হয়েছে)",
+        message: `${returnQty} jars collected from ${customerForReturn.contact_name}. Customer balance is now ${res.data.remaining_jars} jars. Stock updated in warehouse!`,
+      });
+
+      // Update in-memory customer and directory
+      setSelectedCustomer((prev) => {
+        if (!prev || prev.id !== customerForReturn.id) return prev;
+        let remDeduct = returnQty;
+        let newEmpty = prev.total_empty_jars_holding || 0;
+        let newFull = prev.total_full_jars_holding || 0;
+        if (newEmpty >= remDeduct) {
+          newEmpty -= remDeduct;
+        } else {
+          remDeduct -= newEmpty;
+          newEmpty = 0;
+          newFull = Math.max(0, newFull - remDeduct);
+        }
+        return {
+          ...prev,
+          total_empty_jars_holding: newEmpty,
+          total_full_jars_holding: newFull,
+        };
+      });
+
+      setCustomers((prev) =>
+        prev.map((c) => {
+          if (c.id !== customerForReturn.id) return c;
+          let remDeduct = returnQty;
+          let newEmpty = c.total_empty_jars_holding || 0;
+          let newFull = c.total_full_jars_holding || 0;
+          if (newEmpty >= remDeduct) {
+            newEmpty -= remDeduct;
+          } else {
+            remDeduct -= newEmpty;
+            newEmpty = 0;
+            newFull = Math.max(0, newFull - remDeduct);
+          }
+          return {
+            ...c,
+            total_empty_jars_holding: newEmpty,
+            total_full_jars_holding: newFull,
+          };
+        })
+      );
+
+      setIsReturnJarsOpen(false);
+      await loadCustomers(page, true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to return jars.";
+      addToast({
+        type: "error",
+        title: "Jar Return Failed",
+        message: msg,
+      });
+    } finally {
+      setIsSubmittingReturn(false);
+    }
+  };
 
   // Load Customers
   const loadCustomers = React.useCallback(async (targetPage = page, forceRefresh = false) => {
@@ -893,10 +1006,30 @@ export default function CustomersPage() {
                     {/* Visual 2-Box Metric Row: Jars at House & Outstanding Due */}
                     <div className="grid grid-cols-2 gap-2.5">
                       {/* Box 1: Jars in Custody */}
-                      <div className="rounded-xl p-2.5 bg-sky-500/10 border border-sky-500/25 flex flex-col justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1">
-                          <Droplets className="h-3 w-3 text-sky-500" /> Jars at House
-                        </span>
+                      <div
+                        onClick={(e) => {
+                          if (totalCustody > 0) {
+                            e.stopPropagation();
+                            openCollectJarsModal(cust);
+                          }
+                        }}
+                        className={`rounded-xl p-2.5 bg-sky-500/10 border border-sky-500/25 flex flex-col justify-between transition-colors ${
+                          totalCustody > 0
+                            ? "hover:bg-sky-500/20 hover:border-sky-500/50 cursor-pointer"
+                            : ""
+                        }`}
+                        title={totalCustody > 0 ? "Click to collect returned jars back into stock" : undefined}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                            <Droplets className="h-3 w-3 text-sky-500" /> Jars at House
+                          </span>
+                          {totalCustody > 0 && (
+                            <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 bg-sky-500/15 px-1.5 py-0.2 rounded-md">
+                              Return ↵
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-1 flex items-baseline gap-1">
                           <span className="text-xl font-black text-sky-600 dark:text-sky-400 leading-none">
                             {totalCustody}
@@ -904,7 +1037,7 @@ export default function CustomersPage() {
                           <span className="text-[11px] font-bold text-sky-700/80 dark:text-sky-300/80">Jars</span>
                         </div>
                         <span className="text-[9px] text-muted-foreground mt-0.5 block truncate">
-                          {totalCustody > 0 ? "Present with customer" : "No jars currently"}
+                          {totalCustody > 0 ? "Click to collect to stock" : "No jars currently"}
                         </span>
                       </div>
 
@@ -959,11 +1092,26 @@ export default function CustomersPage() {
                       <a
                         href={`tel:${cust.phone}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 inline-flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       >
                         <Phone className="h-3.5 w-3.5" />
                         <span>Call</span>
                       </a>
+
+                      {totalCustody > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCollectJarsModal(cust);
+                          }}
+                          className="py-1.5 px-2.5 rounded-xl text-xs font-black bg-cyan-600 hover:bg-cyan-500 text-white shadow-xs inline-flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                          title="Collect jars back to stock"
+                        >
+                          <Droplets className="h-3.5 w-3.5" />
+                          <span>Return ({totalCustody})</span>
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -971,7 +1119,7 @@ export default function CustomersPage() {
                           e.stopPropagation();
                           openDirectPaymentModal(cust);
                         }}
-                        className="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="flex-1 py-1.5 px-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs inline-flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       >
                         <DollarSign className="h-3.5 w-3.5" />
                         <span>Collect ₹</span>
@@ -980,7 +1128,7 @@ export default function CustomersPage() {
                       <a
                         href={`/orders?new=true`}
                         onClick={(e) => e.stopPropagation()}
-                        className="py-1.5 px-3 rounded-xl text-xs font-bold bg-sky-600/15 hover:bg-sky-600/25 text-sky-600 dark:text-sky-400 border border-sky-500/30 inline-flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        className="py-1.5 px-2.5 rounded-xl text-xs font-bold bg-sky-600/15 hover:bg-sky-600/25 text-sky-600 dark:text-sky-400 border border-sky-500/30 inline-flex items-center justify-center gap-1 transition-colors cursor-pointer"
                         title="Create new order"
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -1096,6 +1244,18 @@ export default function CustomersPage() {
 
                     {/* Action Buttons Toolbar */}
                     <div className="flex items-center gap-2 flex-wrap">
+                      {((selectedCustomer.total_full_jars_holding || 0) +
+                        (selectedCustomer.total_empty_jars_holding || 0)) > 0 && (
+                        <Button
+                          size="sm"
+                          onClick={() => openCollectJarsModal(selectedCustomer)}
+                          className="h-8 gap-1.5 text-xs bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black active:scale-95 transition-all shadow-md shadow-cyan-600/20 cursor-pointer"
+                        >
+                          <Droplets className="h-3.5 w-3.5" />
+                          Collect Jars (জার ফেরত নিন)
+                        </Button>
+                      )}
+
                       <Button
                         size="sm"
                         onClick={() => openDirectPaymentModal(selectedCustomer)}
@@ -1216,7 +1376,7 @@ export default function CustomersPage() {
                   {/* 2 VIBRANT HIGH-IMPACT CARDS (Physical Jars Held & Outstanding Udhaari) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     {/* 1. Jars Held at Customer House */}
-                    <div className="rounded-2xl border-2 border-cyan-400 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-500/15 via-sky-500/10 to-blue-500/15 dark:from-cyan-950/40 dark:via-sky-950/30 dark:to-blue-950/40 p-4 space-y-1.5 shadow-sm transition-all">
+                    <div className="rounded-2xl border-2 border-cyan-400 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-500/15 via-sky-500/10 to-blue-500/15 dark:from-cyan-950/40 dark:via-sky-950/30 dark:to-blue-950/40 p-4 space-y-2 shadow-sm transition-all">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black uppercase tracking-wider text-cyan-900 dark:text-cyan-300 flex items-center gap-1.5">
                           <Droplets className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
@@ -1226,16 +1386,28 @@ export default function CustomersPage() {
                           বাড়িতে বর্তমান
                         </span>
                       </div>
-                      <div className="flex items-baseline gap-2">
-                        <p className="text-3xl sm:text-4xl font-black text-cyan-700 dark:text-cyan-300">
-                          {(selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)}
-                        </p>
-                        <span className="text-xs font-bold text-cyan-800/80 dark:text-cyan-400/80">
-                          টি জার (Jars)
-                        </span>
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-3xl sm:text-4xl font-black text-cyan-700 dark:text-cyan-300">
+                            {(selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)}
+                          </p>
+                          <span className="text-xs font-bold text-cyan-800/80 dark:text-cyan-400/80">
+                            টি জার (Jars)
+                          </span>
+                        </div>
+                        {((selectedCustomer.total_full_jars_holding || 0) + (selectedCustomer.total_empty_jars_holding || 0)) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => openCollectJarsModal(selectedCustomer)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-black bg-cyan-600 hover:bg-cyan-500 text-white shadow-xs cursor-pointer active:scale-95 transition-all flex items-center gap-1.5"
+                          >
+                            <Droplets className="h-3.5 w-3.5" />
+                            জার ফেরত নিন (Return)
+                          </button>
+                        )}
                       </div>
                       <span className="text-[11px] text-cyan-800/80 dark:text-cyan-400/80 font-bold block">
-                        পরের ডেলিভারিতে এই জারগুলি ফেরত সংগ্রহ করা যাবে (Can collect on future deliveries)
+                        পরের ডেলিভারিতে বা আজই ফেরত নিয়ে গুদামে জমা করা যাবে (Collect jars back to stock)
                       </span>
                     </div>
 
@@ -2492,6 +2664,235 @@ export default function CustomersPage() {
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                 >
                   {isSubmitting ? "Processing..." : "Confirm & Post Ledger"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Collect Returned Jars Modal (Direct to Inventory Stock) */}
+      {isReturnJarsOpen && customerForReturn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl bg-card border-2 border-cyan-500/40 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-cyan-500/25">
+                  <Droplets className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-foreground leading-tight">
+                    Collect Returned Jars
+                  </h3>
+                  <p className="text-[11px] font-semibold text-cyan-600 dark:text-cyan-400">
+                    জার ফেরত গ্রহণ ও সরাসরি গুদামে জমা
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReturnJarsOpen(false)}
+                className="text-muted-foreground hover:text-foreground h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center font-bold text-base transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Customer Summary & Current Holding Card */}
+            <div className="rounded-2xl bg-cyan-500/10 border border-cyan-500/25 p-3.5 text-xs space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
+                    Customer Account
+                  </span>
+                  <p className="font-black text-sm text-foreground mt-0.5">
+                    {customerForReturn.contact_name}
+                  </p>
+                  {customerForReturn.business_name && (
+                    <p className="text-[11px] text-muted-foreground font-semibold">
+                      {customerForReturn.business_name}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
+                    Jars at House
+                  </span>
+                  <div className="flex items-baseline justify-end gap-1 mt-0.5">
+                    <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400">
+                      {(Number(customerForReturn.total_full_jars_holding || 0) + Number(customerForReturn.total_empty_jars_holding || 0))}
+                    </span>
+                    <span className="text-xs font-bold text-cyan-700 dark:text-cyan-300">Jars</span>
+                  </div>
+                </div>
+              </div>
+
+              {customerForReturn.address && (
+                <p className="text-[11px] text-muted-foreground truncate border-t border-cyan-500/15 pt-1.5 flex items-center gap-1">
+                  <MapPin className="h-3 w-3 shrink-0 text-cyan-500" />
+                  {customerForReturn.address}
+                </p>
+              )}
+            </div>
+
+            <form onSubmit={handleConfirmJarReturn} className="space-y-4">
+              {/* Return Quantity Selector with Stepper & Presets */}
+              {(() => {
+                const totalCustJars =
+                  Number(customerForReturn.total_full_jars_holding || 0) +
+                  Number(customerForReturn.total_empty_jars_holding || 0);
+
+                return (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-foreground">
+                        Number of Jars Collected (কয়টি জার ফেরত নিলেন) *
+                      </label>
+                      <span className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400">
+                        Max available: {totalCustJars}
+                      </span>
+                    </div>
+
+                    {/* Stepper Input */}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setReturnQty((prev) => Math.max(1, prev - 1))}
+                        disabled={returnQty <= 1}
+                        className="h-12 w-12 rounded-2xl bg-muted border border-border text-foreground font-black text-lg flex items-center justify-center hover:bg-muted/80 disabled:opacity-40 active:scale-95 transition-all cursor-pointer"
+                      >
+                        -
+                      </button>
+
+                      <div className="flex-1 relative">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={Math.max(1, totalCustJars)}
+                          value={returnQty}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (isNaN(val)) setReturnQty(1);
+                            else setReturnQty(Math.min(totalCustJars, Math.max(1, val)));
+                          }}
+                          className="h-12 text-center text-xl font-black text-foreground rounded-2xl border-2 border-cyan-500/40 focus:border-cyan-500"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground pointer-events-none">
+                          JARS
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setReturnQty((prev) => Math.min(totalCustJars, prev + 1))}
+                        disabled={returnQty >= totalCustJars}
+                        className="h-12 w-12 rounded-2xl bg-muted border border-border text-foreground font-black text-lg flex items-center justify-center hover:bg-muted/80 disabled:opacity-40 active:scale-95 transition-all cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Fast Preset Chips */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold text-muted-foreground mr-1">Quick:</span>
+                      {[1, 2, 3, 5].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          disabled={preset > totalCustJars}
+                          onClick={() => setReturnQty(preset)}
+                          className={`px-3 py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                            returnQty === preset
+                              ? "bg-cyan-500 text-white border-cyan-500 shadow-sm shadow-cyan-500/25"
+                              : "bg-muted/60 hover:bg-muted border-border text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+
+                      {totalCustJars > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setReturnQty(totalCustJars)}
+                          className={`ml-auto px-3 py-1 text-xs font-black rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                            returnQty === totalCustJars
+                              ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-500 shadow-sm"
+                              : "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
+                          }`}
+                        >
+                          All ({totalCustJars} Jars)
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Real-Time Custody Calculation */}
+                    <div className="p-3 rounded-2xl bg-muted/50 border border-border space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Current Jars at Customer House:</span>
+                        <span className="font-bold text-foreground">{totalCustJars} Jars</span>
+                      </div>
+                      <div className="flex items-center justify-between text-rose-600 dark:text-rose-400 font-semibold">
+                        <span>Minus Collected Jars:</span>
+                        <span className="font-bold">-{returnQty} Jars</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border font-black text-sm">
+                        <span className="text-foreground">Remaining Customer Balance:</span>
+                        <span className="text-cyan-600 dark:text-cyan-400">
+                          {Math.max(0, totalCustJars - returnQty)} Jars
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Automatic Warehouse Deposit Banner */}
+                    <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-2.5 text-xs">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-emerald-800 dark:text-emerald-300">
+                          Automatic Warehouse Stock Deposit
+                        </p>
+                        <p className="text-[11px] text-emerald-700/90 dark:text-emerald-400/90 font-medium leading-relaxed">
+                          These <span className="font-black text-emerald-600 dark:text-emerald-300">+{returnQty} jars</span> will be automatically added into your warehouse inventory stock balance immediately upon confirmation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Optional Notes */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground">
+                  Collection Notes (ঐচ্ছিক মন্তব্য)
+                </label>
+                <Input
+                  placeholder="e.g. Returned directly to delivery staff / drop off at store"
+                  value={returnNotes}
+                  onChange={(e) => setReturnNotes(e.target.value)}
+                  className="text-xs"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReturnJarsOpen(false)}
+                  disabled={isSubmittingReturn}
+                  className="rounded-xl text-xs cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSubmittingReturn || returnQty <= 0}
+                  className="bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black rounded-xl shadow-md shadow-cyan-600/20 active:scale-95 transition-all cursor-pointer"
+                >
+                  {isSubmittingReturn ? "Depositing..." : `Confirm Return (+${returnQty} to Stock)`}
                 </Button>
               </div>
             </form>
