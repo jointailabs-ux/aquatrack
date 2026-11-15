@@ -22,6 +22,10 @@ import {
   DollarSign,
   X,
   Droplets,
+  Calendar,
+  CalendarDays,
+  Phone,
+  Filter,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -106,6 +110,11 @@ export default function OrdersPage() {
 
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [dateFilter, setDateFilter] = React.useState<"ALL" | "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "CUSTOM">("ALL");
+  const [customDateFrom, setCustomDateFrom] = React.useState<string>("");
+  const [customDateTo, setCustomDateTo] = React.useState<string>("");
+  const [paymentFilter, setPaymentFilter] = React.useState<"ALL" | "PAID" | "DUE">("ALL");
+  const [staffFilter, setStaffFilter] = React.useState<string>("ALL");
 
   // Create Order Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -776,19 +785,94 @@ export default function OrdersPage() {
 
   // Filtered Orders
   const filteredOrders = React.useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = yesterdayDate.toISOString().split("T")[0];
+    const weekAgoDate = new Date();
+    weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+    const weekAgo = weekAgoDate.toISOString().split("T")[0];
+    const monthStartDate = new Date();
+    const monthStart = new Date(monthStartDate.getFullYear(), monthStartDate.getMonth(), 1).toISOString().split("T")[0];
+
     return orders.filter((o) => {
+      // 1. Search Query
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
         o.order_number.toLowerCase().includes(q) ||
         (o.customer_name && o.customer_name.toLowerCase().includes(q)) ||
         (o.customer_phone && o.customer_phone.includes(q)) ||
-        (o.delivery_address && o.delivery_address.toLowerCase().includes(q));
+        (o.delivery_address && o.delivery_address.toLowerCase().includes(q)) ||
+        (o.items && o.items.some((i) => i.product_name.toLowerCase().includes(q)));
 
-      const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      if (!matchesSearch) return false;
+
+      // 2. Status Filter
+      if (statusFilter !== "ALL" && o.status !== statusFilter) {
+        return false;
+      }
+
+      // 3. Payment Filter
+      if (paymentFilter === "PAID" && o.payment_status !== "PAID") {
+        return false;
+      }
+      if (paymentFilter === "DUE" && o.payment_status === "PAID") {
+        return false;
+      }
+
+      // 4. Staff Filter
+      if (staffFilter !== "ALL" && o.assigned_staff_id !== staffFilter) {
+        return false;
+      }
+
+      // 5. Date Filter
+      const dDate = o.delivery_date || (o.created_at ? o.created_at.split("T")[0] : "");
+      if (dateFilter === "TODAY" && dDate !== today) return false;
+      if (dateFilter === "YESTERDAY" && dDate !== yesterday) return false;
+      if (dateFilter === "THIS_WEEK" && (dDate < weekAgo || dDate > today)) return false;
+      if (dateFilter === "THIS_MONTH" && dDate < monthStart) return false;
+      if (dateFilter === "CUSTOM") {
+        if (customDateFrom && dDate < customDateFrom) return false;
+        if (customDateTo && dDate > customDateTo) return false;
+      }
+
+      return true;
     });
-  }, [orders, searchQuery, statusFilter]);
+  }, [orders, searchQuery, statusFilter, paymentFilter, staffFilter, dateFilter, customDateFrom, customDateTo]);
+
+  // Aggregate Metrics for the Filtered View
+  const filteredMetrics = React.useMemo(() => {
+    let totalRevenue = 0;
+    let totalJars = 0;
+    let pendingCount = 0;
+    let deliveredCount = 0;
+
+    filteredOrders.forEach((o) => {
+      totalRevenue += Number(o.total_amount || 0);
+      if (o.status === "PENDING" || o.status === "ASSIGNED" || o.status === "OUT_FOR_DELIVERY") {
+        pendingCount += 1;
+      }
+      if (o.status === "DELIVERED") {
+        deliveredCount += 1;
+      }
+      if (o.items) {
+        o.items.forEach((it) => {
+          if (it.is_reusable_jar) {
+            totalJars += Number(it.quantity || 0);
+          }
+        });
+      }
+    });
+
+    return {
+      count: filteredOrders.length,
+      totalRevenue,
+      totalJars,
+      pendingCount,
+      deliveredCount,
+    };
+  }, [filteredOrders]);
 
   // Status Tab Counts
   const statusCounts = React.useMemo(() => {
@@ -844,32 +928,185 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* Quick Aggregated Metrics Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="rounded-2xl border border-border/80 bg-card p-3 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+            Filtered Orders (মোট অর্ডার)
+          </span>
+          <div className="text-xl sm:text-2xl font-black text-foreground mt-0.5">
+            {filteredMetrics.count}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border/80 bg-card p-3 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+            Total Invoiced (মোট টাকা)
+          </span>
+          <div className="text-xl sm:text-2xl font-black text-sky-400 mt-0.5">
+            {formatCurrency(filteredMetrics.totalRevenue)}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border/80 bg-card p-3 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+            Pending Delivery (বাকি ডেলিভারি)
+          </span>
+          <div className="text-xl sm:text-2xl font-black text-amber-400 mt-0.5">
+            {filteredMetrics.pendingCount}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border/80 bg-card p-3 shadow-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+            Jars on Route (মোট জার)
+          </span>
+          <div className="text-xl sm:text-2xl font-black text-cyan-400 mt-0.5">
+            {filteredMetrics.totalJars} pcs
+          </div>
+        </div>
+      </div>
+
       {/* Orders Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pb-1 sm:pb-0">
+      <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 shadow-sm space-y-3">
+        {/* Row 1: Search & Driver Filter */}
+        <div className="flex flex-col sm:flex-row items-center gap-2.5">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search customer name, phone, order #, or address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-8 text-xs h-9.5 rounded-xl bg-background"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Driver Select */}
+            <select
+              value={staffFilter}
+              onChange={(e) => setStaffFilter(e.target.value)}
+              className="h-9.5 px-3 rounded-xl border border-border bg-background text-xs font-semibold text-foreground focus:outline-none flex-1 sm:w-48"
+            >
+              <option value="ALL">All Drivers (সব ড্রাইভার)</option>
+              {staffList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name}
+                </option>
+              ))}
+            </select>
+
+            {/* Clear Filters Button */}
+            {(searchQuery || statusFilter !== "ALL" || dateFilter !== "ALL" || paymentFilter !== "ALL" || staffFilter !== "ALL") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("ALL");
+                  setDateFilter("ALL");
+                  setCustomDateFrom("");
+                  setCustomDateTo("");
+                  setPaymentFilter("ALL");
+                  setStaffFilter("ALL");
+                }}
+                className="h-9.5 px-3 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border-rose-500/30 cursor-pointer shrink-0"
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Reset (ফিল্টার মুছুন)
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Date Quick Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 pt-1 border-t border-border/50">
+          <span className="text-[11px] font-bold text-muted-foreground mr-1 flex items-center gap-1 shrink-0">
+            <CalendarDays className="h-3.5 w-3.5" /> Date:
+          </span>
+          {[
+            { id: "ALL", label: "All Time (সব)" },
+            { id: "TODAY", label: "Today (আজ)" },
+            { id: "YESTERDAY", label: "Yesterday (গতকাল)" },
+            { id: "THIS_WEEK", label: "This Week (৭ দিন)" },
+            { id: "THIS_MONTH", label: "This Month (এই মাস)" },
+            { id: "CUSTOM", label: "Custom (তারিখ)" },
+          ].map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => setDateFilter(d.id as "ALL" | "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH" | "CUSTOM")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                dateFilter === d.id
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Date Pickers (if CUSTOM selected) */}
+        {dateFilter === "CUSTOM" && (
+          <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-muted-foreground">From:</span>
+              <input
+                type="date"
+                value={customDateFrom}
+                onChange={(e) => setCustomDateFrom(e.target.value)}
+                className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-muted-foreground">To:</span>
+              <input
+                type="date"
+                value={customDateTo}
+                onChange={(e) => setCustomDateTo(e.target.value)}
+                className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Row 3: Status Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 pt-1 border-t border-border/50">
+          <span className="text-[11px] font-bold text-muted-foreground mr-1 flex items-center gap-1 shrink-0">
+            <Filter className="h-3.5 w-3.5" /> Status:
+          </span>
           {[
             { id: "ALL", label: "All (সবগুলো)" },
             { id: "PENDING", label: "Pending (বাকি আছে)" },
-            { id: "ASSIGNED", label: "With Driver (ড্রাইভারের কাছে)" },
-            { id: "OUT_FOR_DELIVERY", label: "On the Way (পথে আছে)" },
-            { id: "PARTIALLY_DELIVERED", label: "Half Done (অর্ধেক সম্পন্ন)" },
-            { id: "DELIVERED", label: "Delivered (ডেলিভারি সম্পন্ন)" },
+            { id: "ASSIGNED", label: "With Driver (ড্রাইভার)" },
+            { id: "OUT_FOR_DELIVERY", label: "On the Way (পথে)" },
+            { id: "DELIVERED", label: "Delivered (সম্পন্ন)" },
             { id: "CANCELLED", label: "Cancelled (বাতিল)" },
           ].map((st) => (
             <button
               key={st.id}
               onClick={() => setStatusFilter(st.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0 touch-manipulation ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 statusFilter === st.id
-                  ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-xs font-bold"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  ? "bg-linear-to-r from-sky-500 to-blue-600 text-white shadow-xs"
+                  : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               <span>{st.label}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                   statusFilter === st.id
-                    ? "bg-white/20 text-white font-bold"
+                    ? "bg-white/25 text-white font-black"
                     : "bg-background text-muted-foreground"
                 }`}
               >
@@ -879,16 +1116,33 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        <div className="w-full sm:w-72">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search order #, customer, address..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 text-xs h-9"
-            />
-          </div>
+        {/* Row 4: Payment Status Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 pt-1 border-t border-border/50">
+          <span className="text-[11px] font-bold text-muted-foreground mr-1 shrink-0">
+            Payment (পেমেন্ট):
+          </span>
+          {[
+            { id: "ALL", label: "All Payments (সব)" },
+            { id: "PAID", label: "✓ Paid Only (পরিশোধিত)" },
+            { id: "DUE", label: "⚠️ Due / Credit (বাকি)" },
+          ].map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setPaymentFilter(p.id as "ALL" | "PAID" | "DUE")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                paymentFilter === p.id
+                  ? p.id === "PAID"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : p.id === "DUE"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "bg-blue-600 text-white shadow-xs"
+                  : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -900,119 +1154,162 @@ export default function OrdersPage() {
       ) : filteredOrders.length === 0 ? (
         <EmptyState
           icon={ShoppingCart}
-          title="No orders found"
+          title="No matching orders found"
           description={
-            searchQuery || statusFilter !== "ALL"
-              ? "No customer orders matched your search or status filter."
-              : "No orders have been dispatched yet. Click 'Create Order' to start delivering."
+            searchQuery || statusFilter !== "ALL" || dateFilter !== "ALL" || paymentFilter !== "ALL" || staffFilter !== "ALL"
+              ? "No customer orders matched your active search or filters. Try resetting the filters."
+              : "No orders have been dispatched yet. Click '+ New Order' to place an order."
           }
-          actionLabel={searchQuery || statusFilter !== "ALL" ? "Clear Filters" : "Create Order"}
+          actionLabel="Clear Filters (ফিল্টার মুছুন)"
           onAction={() => {
-            if (searchQuery || statusFilter !== "ALL") {
-              setSearchQuery("");
-              setStatusFilter("ALL");
-            } else {
-              openCreateModal();
-            }
+            setSearchQuery("");
+            setStatusFilter("ALL");
+            setDateFilter("ALL");
+            setCustomDateFrom("");
+            setCustomDateTo("");
+            setPaymentFilter("ALL");
+            setStaffFilter("ALL");
           }}
         />
       ) : (
         <>
-          {/* Compact Responsive Card View */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:hidden">
+          {/* Brand New High-Visibility Mobile Cards */}
+          <div className="grid grid-cols-1 gap-3.5 md:hidden">
             {filteredOrders.map((o) => {
               const totalItems = o.items ? o.items.reduce((sum, it) => sum + it.quantity, 0) : 0;
+              const jarUnits = o.items ? o.items.filter((it) => it.is_reusable_jar).reduce((sum, it) => sum + it.quantity, 0) : 0;
               const isDelivered = o.status === "DELIVERED";
               const isCancelled = o.status === "CANCELLED";
 
               return (
                 <div
                   key={o.id}
-                  className="rounded-xl border border-border/80 bg-card p-3 shadow-xs space-y-2.5 touch-manipulation hover:border-primary/40 transition-colors flex flex-col justify-between"
+                  className="rounded-2xl border-2 border-border/80 bg-card p-4 shadow-sm hover:border-blue-500/50 transition-all space-y-3"
                 >
-                  {/* Top Bar: Identifier + Status Badges + Price */}
-                  <div>
-                    <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="font-mono font-bold text-xs text-foreground">
+                  {/* Top Row: Order # + Date + Total Price */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-bold text-xs bg-muted/60 px-2 py-0.5 rounded-md border border-border text-foreground">
                           {o.order_number}
                         </span>
-                        <Badge
-                          variant={
-                            isDelivered
-                              ? "success"
-                              : isCancelled
-                              ? "destructive"
-                              : o.status === "PENDING"
-                              ? "warning"
-                              : "secondary"
-                          }
-                          className="text-[9px] py-0 px-1"
-                        >
-                          {o.status.replace(/_/g, " ")}
-                        </Badge>
+                        <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {o.delivery_date}
+                        </span>
                       </div>
-
-                      <span className="font-black text-xs text-primary shrink-0">
-                        {formatCurrency(o.total_amount)}
-                      </span>
+                      <h3 className="font-black text-sm sm:text-base text-foreground mt-1.5 leading-snug">
+                        {o.customer_name || "Customer"}
+                      </h3>
                     </div>
 
-                    {/* Customer & Route */}
-                    <div className="mt-1">
-                      <h4 className="font-bold text-xs text-foreground leading-tight truncate">
-                        {o.customer_name || "Customer"}
-                      </h4>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                        {o.delivery_date} • {o.delivery_address || "No address"}
-                      </p>
+                    {/* Price & Payment Badge */}
+                    <div className="text-right shrink-0">
+                      <div className="text-base sm:text-lg font-black text-sky-400">
+                        {formatCurrency(o.total_amount)}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-bold mt-0.5 ${
+                          o.payment_status === "PAID"
+                            ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                            : "border-amber-500/40 text-amber-400 bg-amber-500/10"
+                        }`}
+                      >
+                        {o.payment_status === "PAID" ? "✓ Paid (পরিশোধিত)" : "⚠️ Due (বাকি)"}
+                      </Badge>
                     </div>
                   </div>
 
-                  {/* Operational Summary Grid */}
-                  <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-border/40 text-[11px]">
+                  {/* Address & Phone */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-muted-foreground pt-1 border-t border-border/40">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{o.delivery_address || "No delivery address"}</span>
+                    </div>
+                    {o.customer_phone && (
+                      <a
+                        href={`tel:${o.customer_phone}`}
+                        className="inline-flex items-center gap-1 font-semibold text-blue-400 hover:text-blue-300 hover:underline shrink-0"
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        <span>{o.customer_phone}</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Products / Items Ordered (High-Visibility Pills) */}
+                  <div className="rounded-xl bg-muted/30 border border-border/50 p-2.5 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold">
+                      <span>Items Ordered ({totalItems} pcs):</span>
+                      {jarUnits > 0 && (
+                        <span className="text-cyan-400 font-bold flex items-center gap-1">
+                          <Droplets className="h-3 w-3" /> {jarUnits} Jars
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {o.items && o.items.length > 0 ? (
+                        o.items.map((it, idx) => (
+                          <span
+                            key={idx}
+                            className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                              it.is_reusable_jar
+                                ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
+                                : "bg-muted/60 border-border text-foreground"
+                            }`}
+                          >
+                            <span>{it.is_reusable_jar ? "💧" : "📦"}</span>
+                            <span>{it.quantity} × {it.product_name}</span>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">No items detailed</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Driver Assignment & Delivery Status Footer */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                    {/* Driver / Staff */}
                     <div>
-                      <span className="text-[9px] text-muted-foreground font-medium block">
-                        Assigned Staff
-                      </span>
                       <button
                         type="button"
                         onClick={() => openReassignModal(o)}
-                        className="font-semibold text-foreground truncate block hover:underline text-left cursor-pointer text-[11px]"
-                        title="Click to assign or change staff"
+                        className="text-xs flex items-center gap-1.5 font-semibold text-left hover:underline cursor-pointer"
                       >
                         {o.assigned_staff_name ? (
-                          <span className="inline-flex items-center gap-1 text-sky-700 dark:text-sky-300 font-bold truncate">
-                            <UserCheck className="h-2.5 w-2.5 shrink-0" />
-                            {o.assigned_staff_name}
+                          <span className="inline-flex items-center gap-1 text-cyan-400 font-bold">
+                            <UserCheck className="h-3.5 w-3.5 shrink-0" />
+                            <span>Driver: {o.assigned_staff_name}</span>
                           </span>
                         ) : (
-                          <span className="text-amber-600 dark:text-amber-400 font-bold">
-                            + Assign
+                          <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
+                            <UserCheck className="h-3.5 w-3.5 shrink-0" />
+                            <span>+ Assign Driver</span>
                           </span>
                         )}
                       </button>
                     </div>
 
-                    <div>
-                      <span className="text-[9px] text-muted-foreground font-medium block">
-                        Items ({totalItems})
-                      </span>
-                      <span className="font-semibold text-foreground truncate block text-[11px]" title={o.items?.map((i) => `${i.quantity}× ${i.product_name}`).join(", ")}>
-                        {o.items && o.items.length > 0
-                          ? o.items.map((i) => `${i.quantity}× ${i.product_name}`).join(", ")
-                          : "No items"}
-                      </span>
-                    </div>
-                  </div>
+                    {/* Status & Actions */}
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={`text-xs font-bold py-1 px-2.5 ${
+                          isDelivered
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                            : isCancelled
+                            ? "bg-rose-500/20 text-rose-400 border border-rose-500/40"
+                            : o.status === "OUT_FOR_DELIVERY"
+                            ? "bg-sky-500/20 text-sky-400 border border-sky-500/40"
+                            : o.status === "ASSIGNED"
+                            ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/40"
+                            : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                        }`}
+                      >
+                        {isDelivered ? "✓ Delivered" : o.status.replace(/_/g, " ")}
+                      </Badge>
 
-                  {/* Actions Row */}
-                  <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-1">
-                    <span className="text-[10px] text-muted-foreground truncate">
-                      {o.customer_phone || "No Phone"}
-                    </span>
-
-                    <div className="flex items-center gap-1 shrink-0">
                       {canCancelOrder(o.status) && (
                         <Button
                           variant="outline"
@@ -1021,28 +1318,22 @@ export default function OrdersPage() {
                             setOrderToCancel(o);
                             setCancelReason("");
                           }}
-                          className="h-6 text-[10px] px-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                          className="h-8 text-xs px-2 text-rose-400 border-rose-500/30 hover:bg-rose-500/10 cursor-pointer"
                         >
-                          <Ban className="h-2.5 w-2.5 mr-0.5" />
                           Cancel
                         </Button>
                       )}
-                      {o.status !== "DELIVERED" && o.status !== "CANCELLED" ? (
+
+                      {o.status !== "DELIVERED" && o.status !== "CANCELLED" && (
                         <Button
-                          variant="primary"
                           size="sm"
                           onClick={() => openDeliverModal(o)}
-                          className="h-6 text-[10px] px-2 font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs"
+                          className="h-8 text-xs px-3 font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs cursor-pointer"
                         >
-                          <CheckCircle2 className="h-3 w-3 mr-0.5" />
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                           Deliver
                         </Button>
-                      ) : o.status === "DELIVERED" ? (
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Done
-                        </span>
-                      ) : null}
+                      )}
                     </div>
                   </div>
                 </div>

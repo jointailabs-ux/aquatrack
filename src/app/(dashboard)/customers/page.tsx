@@ -22,6 +22,9 @@ import {
   ShieldCheck,
   Zap,
   Droplets,
+  Calendar,
+  CalendarDays,
+  UserCheck,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -126,6 +129,8 @@ export default function CustomersPage() {
   const [orderFromDate, setOrderFromDate] = React.useState("");
   const [orderToDate, setOrderToDate] = React.useState("");
   const [orderStatusFilter, setOrderStatusFilter] = React.useState<"ALL" | "DELIVERED" | "PENDING" | "CANCELLED">("ALL");
+  const [orderDatePreset, setOrderDatePreset] = React.useState<"ALL" | "TODAY" | "7DAYS" | "MONTH" | "CUSTOM">("ALL");
+  const [orderPaymentFilter, setOrderPaymentFilter] = React.useState<"ALL" | "PAID" | "DUE">("ALL");
 
   // Add Customer Form States
   const [addCustomerType, setAddCustomerType] = React.useState<"B2C" | "B2B">("B2C");
@@ -1282,62 +1287,148 @@ export default function CustomersPage() {
 
                     {/* Tab 1: Orders History */}
                     {activeTab === "orders" && (
-                      <div className="space-y-3">
-                        {/* Date & Status Filters */}
-                        <div className="p-2.5 rounded-xl bg-card border border-border flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-muted-foreground font-semibold">From (শুরু):</span>
-                              <input
-                                type="date"
-                                value={orderFromDate}
-                                onChange={(e) => setOrderFromDate(e.target.value)}
-                                className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
-                              />
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-muted-foreground font-semibold">To (শেষ):</span>
-                              <input
-                                type="date"
-                                value={orderToDate}
-                                onChange={(e) => setOrderToDate(e.target.value)}
-                                className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
-                              />
-                            </div>
-                            <select
-                              value={orderStatusFilter}
-                              onChange={(e) => setOrderStatusFilter(e.target.value as "ALL" | "DELIVERED" | "PENDING" | "CANCELLED")}
-                              className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
-                            >
-                              <option value="ALL">All Status / সব</option>
-                              <option value="DELIVERED">Delivered (ডেলিভারি সম্পন্ন)</option>
-                              <option value="PENDING">Pending / Out for Delivery</option>
-                              <option value="CANCELLED">Cancelled</option>
-                            </select>
+                      <div className="space-y-3.5">
+                        {/* Modern High-Clarity Filter Toolbar */}
+                        <div className="rounded-2xl border border-border bg-card p-3 shadow-sm space-y-2.5">
+                          {/* Row 1: Quick Date Pills */}
+                          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+                            <span className="text-[11px] font-bold text-muted-foreground mr-1 flex items-center gap-1 shrink-0">
+                              <CalendarDays className="h-3.5 w-3.5" /> Date:
+                            </span>
+                            {[
+                              { id: "ALL", label: "All Time (সব)" },
+                              { id: "TODAY", label: "Today (আজ)" },
+                              { id: "7DAYS", label: "Last 7 Days (৭ দিন)" },
+                              { id: "MONTH", label: "This Month (এই মাস)" },
+                              { id: "CUSTOM", label: "Custom (তারিখ)" },
+                            ].map((d) => (
+                              <button
+                                key={d.id}
+                                type="button"
+                                onClick={() => setOrderDatePreset(d.id as "ALL" | "TODAY" | "7DAYS" | "MONTH" | "CUSTOM")}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                                  orderDatePreset === d.id
+                                    ? "bg-blue-600 text-white shadow-xs"
+                                    : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                }`}
+                              >
+                                {d.label}
+                              </button>
+                            ))}
                           </div>
-                          {(orderFromDate || orderToDate || orderStatusFilter !== "ALL") && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOrderFromDate("");
-                                setOrderToDate("");
-                                setOrderStatusFilter("ALL");
-                              }}
-                              className="text-[11px] font-bold text-muted-foreground hover:text-foreground px-2 py-1 rounded border border-border bg-muted cursor-pointer active:scale-95"
-                            >
-                              Reset
-                            </button>
+
+                          {/* Custom Date Pickers (if CUSTOM selected) */}
+                          {orderDatePreset === "CUSTOM" && (
+                            <div className="p-2 rounded-xl bg-muted/30 border border-border/60 flex flex-wrap items-center gap-2 text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-muted-foreground">From:</span>
+                                <input
+                                  type="date"
+                                  value={orderFromDate}
+                                  onChange={(e) => setOrderFromDate(e.target.value)}
+                                  className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-muted-foreground">To:</span>
+                                <input
+                                  type="date"
+                                  value={orderToDate}
+                                  onChange={(e) => setOrderToDate(e.target.value)}
+                                  className="px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+                                />
+                              </div>
+                            </div>
                           )}
+
+                          {/* Row 2: Payment and Status Filters */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50">
+                            {/* Payment Filters */}
+                            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                              <span className="text-[11px] font-bold text-muted-foreground mr-1 shrink-0">
+                                Payment:
+                              </span>
+                              {[
+                                { id: "ALL", label: "All (সব)" },
+                                { id: "PAID", label: "✓ Paid (পরিশোধিত)" },
+                                { id: "DUE", label: "⚠️ Due (বাকি)" },
+                              ].map((p) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => setOrderPaymentFilter(p.id as "ALL" | "PAID" | "DUE")}
+                                  className={`px-2 py-0.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                                    orderPaymentFilter === p.id
+                                      ? p.id === "PAID"
+                                        ? "bg-emerald-600 text-white shadow-xs"
+                                        : p.id === "DUE"
+                                        ? "bg-amber-600 text-white shadow-xs"
+                                        : "bg-blue-600 text-white shadow-xs"
+                                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                  }`}
+                                >
+                                  {p.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Status Dropdown */}
+                            <div className="flex items-center gap-1.5">
+                              <select
+                                value={orderStatusFilter}
+                                onChange={(e) => setOrderStatusFilter(e.target.value as "ALL" | "DELIVERED" | "PENDING" | "CANCELLED")}
+                                className="px-2.5 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground"
+                              >
+                                <option value="ALL">All Status / সব</option>
+                                <option value="DELIVERED">Delivered (সম্পন্ন)</option>
+                                <option value="PENDING">Pending (বাকি)</option>
+                                <option value="CANCELLED">Cancelled (বাতিল)</option>
+                              </select>
+
+                              {/* Reset Button */}
+                              {(orderDatePreset !== "ALL" || orderPaymentFilter !== "ALL" || orderStatusFilter !== "ALL" || orderFromDate || orderToDate) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOrderDatePreset("ALL");
+                                    setOrderPaymentFilter("ALL");
+                                    setOrderStatusFilter("ALL");
+                                    setOrderFromDate("");
+                                    setOrderToDate("");
+                                  }}
+                                  className="text-xs font-bold text-rose-400 hover:text-rose-300 px-2 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 cursor-pointer"
+                                >
+                                  Reset
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
                         {(() => {
+                          const today = new Date().toISOString().split("T")[0];
+                          const weekAgoDate = new Date();
+                          weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+                          const weekAgo = weekAgoDate.toISOString().split("T")[0];
+                          const monthStartDate = new Date();
+                          const monthStart = new Date(monthStartDate.getFullYear(), monthStartDate.getMonth(), 1).toISOString().split("T")[0];
+
                           const displayedOrders = customerOrders.filter((o) => {
                             if (orderStatusFilter === "DELIVERED" && o.status !== "DELIVERED") return false;
                             if (orderStatusFilter === "PENDING" && (o.status === "DELIVERED" || o.status === "CANCELLED")) return false;
                             if (orderStatusFilter === "CANCELLED" && o.status !== "CANCELLED") return false;
+
+                            if (orderPaymentFilter === "PAID" && o.payment_status !== "PAID") return false;
+                            if (orderPaymentFilter === "DUE" && o.payment_status === "PAID") return false;
+
                             const dDate = o.delivery_date || (o.created_at ? o.created_at.split("T")[0] : "");
-                            if (orderFromDate && dDate < orderFromDate) return false;
-                            if (orderToDate && dDate > orderToDate) return false;
+                            if (orderDatePreset === "TODAY" && dDate !== today) return false;
+                            if (orderDatePreset === "7DAYS" && (dDate < weekAgo || dDate > today)) return false;
+                            if (orderDatePreset === "MONTH" && dDate < monthStart) return false;
+                            if (orderDatePreset === "CUSTOM") {
+                              if (orderFromDate && dDate < orderFromDate) return false;
+                              if (orderToDate && dDate > orderToDate) return false;
+                            }
                             return true;
                           });
 
@@ -1352,8 +1443,8 @@ export default function CustomersPage() {
 
                           if (displayedOrders.length === 0) {
                             return (
-                              <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-xl border border-border space-y-1">
-                                <Package className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1" />
+                              <div className="p-8 text-center text-xs text-muted-foreground bg-muted/20 rounded-2xl border border-dashed border-border space-y-1">
+                                <Package className="h-7 w-7 mx-auto text-muted-foreground/50 mb-1" />
                                 <p className="font-bold text-foreground">No matching orders found</p>
                                 <p>Try clearing your date or status filters, or place an order from the Orders page.</p>
                               </div>
@@ -1361,116 +1452,119 @@ export default function CustomersPage() {
                           }
 
                           return (
-                            <div className="space-y-2.5">
+                            <div className="space-y-3">
                               {displayedOrders.map((o) => {
-                              const totalUnits = o.items ? o.items.reduce((s, it) => s + it.quantity, 0) : 0;
-                              const jarUnits = o.items ? o.items.filter((it) => it.is_reusable_jar).reduce((s, it) => s + it.quantity, 0) : 0;
-                              const formattedTime = o.created_at
-                                ? new Date(o.created_at).toLocaleString("en-IN", {
-                                    dateStyle: "medium",
-                                    timeStyle: "short",
-                                  })
-                                : o.order_date;
+                                const totalUnits = o.items ? o.items.reduce((s, it) => s + it.quantity, 0) : 0;
+                                const jarUnits = o.items ? o.items.filter((it) => it.is_reusable_jar).reduce((s, it) => s + it.quantity, 0) : 0;
+                                const isDelivered = o.status === "DELIVERED";
+                                const isCancelled = o.status === "CANCELLED";
+                                const formattedTime = o.created_at
+                                  ? new Date(o.created_at).toLocaleString("en-IN", {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                    })
+                                  : o.delivery_date;
 
-                              return (
-                                <div
-                                  key={o.id}
-                                  className="rounded-xl border border-border/80 bg-muted/15 p-3.5 space-y-2.5 hover:border-primary/40 transition-colors shadow-2xs"
-                                >
-                                  {/* Order Header: Number + Timestamp + Badges */}
-                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-mono font-black text-xs text-foreground bg-background px-2 py-0.5 rounded-md border border-border">
-                                        {o.order_number}
-                                      </span>
-                                      <Badge
-                                        variant={
-                                          o.status === "DELIVERED"
-                                            ? "success"
-                                            : o.status === "CANCELLED"
-                                            ? "destructive"
-                                            : "outline"
-                                        }
-                                        className="text-[10px] py-0 font-bold"
-                                      >
-                                        {o.status.replace(/_/g, " ")}
-                                      </Badge>
-                                      <Badge
-                                        variant={
-                                          o.payment_status === "PAID"
-                                            ? "success"
-                                            : o.payment_status === "PARTIALLY_PAID"
-                                            ? "secondary"
-                                            : "destructive"
-                                        }
-                                        className="text-[10px] py-0 font-bold"
-                                      >
-                                        {o.payment_status === "PAID" ? "PAID" : "UNPAID / DUE"}
-                                      </Badge>
+                                return (
+                                  <div
+                                    key={o.id}
+                                    className="rounded-2xl border-2 border-border/80 bg-card p-4 shadow-sm hover:border-blue-500/50 transition-all space-y-3"
+                                  >
+                                    {/* Order Top Bar: Number + Date + Price */}
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div>
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="font-mono font-bold text-xs bg-muted/60 px-2 py-0.5 rounded-md border border-border text-foreground">
+                                            {o.order_number}
+                                          </span>
+                                          <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            {formattedTime}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="text-right shrink-0">
+                                        <div className="text-base sm:text-lg font-black text-sky-400">
+                                          {formatCurrency(o.total_amount)}
+                                        </div>
+                                        <Badge
+                                          variant="outline"
+                                          className={`text-[10px] font-bold mt-0.5 ${
+                                            o.payment_status === "PAID"
+                                              ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                                              : "border-amber-500/40 text-amber-400 bg-amber-500/10"
+                                          }`}
+                                        >
+                                          {o.payment_status === "PAID" ? "✓ Paid (পরিশোধিত)" : "⚠️ Due (বাকি)"}
+                                        </Badge>
+                                      </div>
                                     </div>
 
-                                    <div className="text-right shrink-0">
-                                      <span className="font-black text-sm text-primary">
-                                        {formatCurrency(o.total_amount)}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* "You ordered this thing at that time" Tracking Summary */}
-                                  <div className="text-xs space-y-1">
-                                    <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                                      <span className="font-semibold text-foreground">Ordered:</span>
-                                      <span>{formattedTime}</span>
-                                      <span>•</span>
-                                      <span className="font-semibold text-foreground">Delivery:</span>
-                                      <span>{o.delivery_date}</span>
-                                      {o.assigned_staff_name && (
-                                        <>
-                                          <span>•</span>
-                                          <span className="text-primary font-medium">Driver: {o.assigned_staff_name}</span>
-                                        </>
-                                      )}
-                                    </div>
-
-                                    {/* Items Breakdown */}
-                                    <div className="bg-background/80 rounded-lg p-2 border border-border/60 text-xs">
-                                      <div className="font-bold text-foreground mb-1 flex items-center justify-between">
-                                        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
-                                          Items Ordered ({totalUnits} total units{jarUnits > 0 ? `, ${jarUnits} jars` : ""}):
-                                        </span>
+                                    {/* Products Ordered (High-Visibility Pills) */}
+                                    <div className="rounded-xl bg-muted/30 border border-border/50 p-2.5 space-y-1.5">
+                                      <div className="flex items-center justify-between text-[11px] text-muted-foreground font-semibold">
+                                        <span>Items Ordered ({totalUnits} pcs):</span>
+                                        {jarUnits > 0 && (
+                                          <span className="text-cyan-400 font-bold flex items-center gap-1">
+                                            <Droplets className="h-3 w-3" /> {jarUnits} Jars
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="flex flex-wrap gap-1.5">
                                         {o.items && o.items.length > 0 ? (
                                           o.items.map((it, idx) => (
                                             <span
                                               key={idx}
-                                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-muted text-foreground border border-border/70"
+                                              className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                                                it.is_reusable_jar
+                                                  ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
+                                                  : "bg-muted/60 border-border text-foreground"
+                                              }`}
                                             >
-                                              {it.is_reusable_jar ? "💧" : "📦"} {it.quantity} × {it.product_name} ({formatCurrency(it.total_amount)})
+                                              <span>{it.is_reusable_jar ? "💧" : "📦"}</span>
+                                              <span>{it.quantity} × {it.product_name}</span>
                                             </span>
                                           ))
                                         ) : (
-                                          <span className="text-muted-foreground text-[11px] italic">
-                                            {totalUnits} items configured
-                                          </span>
+                                          <span className="text-xs text-muted-foreground italic">No items detailed</span>
                                         )}
                                       </div>
                                     </div>
 
-                                    {o.delivery_address && (
-                                      <p className="text-[11px] text-muted-foreground truncate">
-                                        📍 Address: {o.delivery_address}
-                                      </p>
-                                    )}
+                                    {/* Footer: Driver & Delivery Status */}
+                                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+                                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                        {o.assigned_staff_name ? (
+                                          <span className="inline-flex items-center gap-1 text-cyan-400 font-bold">
+                                            <UserCheck className="h-3.5 w-3.5" />
+                                            <span>Driver: {o.assigned_staff_name}</span>
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground italic">No driver assigned</span>
+                                        )}
+                                      </div>
+
+                                      <Badge
+                                        className={`text-xs font-bold py-1 px-2.5 ${
+                                          isDelivered
+                                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                                            : isCancelled
+                                            ? "bg-rose-500/20 text-rose-400 border border-rose-500/40"
+                                            : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                                        }`}
+                                      >
+                                        {isDelivered ? "✓ Delivered" : o.status.replace(/_/g, " ")}
+                                      </Badge>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
 
                     {/* Tab 2: Payments Receipts */}
                     {activeTab === "payments" && (
