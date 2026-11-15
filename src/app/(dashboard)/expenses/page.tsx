@@ -36,15 +36,46 @@ import {
 } from "@/modules/expenses/expense.schema";
 import { formatCurrency } from "@/lib/utils";
 
+const EXPENSES_STORAGE_KEY = "aquatrack_expenses_cache_v2";
+
+let cachedExpensesState: {
+  data: UnifiedFinancialSpendingSummary;
+  preset: string;
+  timestamp: number;
+} | null = null;
+
+function getInitialExpensesData(preset: string): UnifiedFinancialSpendingSummary | null {
+  if (cachedExpensesState && cachedExpensesState.preset === preset) {
+    return cachedExpensesState.data;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(EXPENSES_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.data && parsed?.preset === preset) {
+          cachedExpensesState = parsed;
+          return parsed.data;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+  return null;
+}
+
 export default function UnifiedExpensesFinancialPage() {
   const { addToast } = useToast();
 
-  const [spendingData, setSpendingData] = React.useState<UnifiedFinancialSpendingSummary | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [datePreset, setDatePreset] = React.useState<"THIS_MONTH" | "LAST_MONTH" | "TODAY" | "ALL" | "CUSTOM">("THIS_MONTH");
+  const initialCache = React.useMemo(() => getInitialExpensesData("THIS_MONTH"), []);
+
+  const [spendingData, setSpendingData] = React.useState<UnifiedFinancialSpendingSummary | null>(initialCache);
+  const [loading, setLoading] = React.useState(!initialCache);
   const [refreshing, setRefreshing] = React.useState(false);
 
   // Filters
-  const [datePreset, setDatePreset] = React.useState<"THIS_MONTH" | "LAST_MONTH" | "TODAY" | "ALL" | "CUSTOM">("THIS_MONTH");
   const [customFrom, setCustomFrom] = React.useState("");
   const [customTo, setCustomTo] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("ALL");
@@ -88,15 +119,27 @@ export default function UnifiedExpensesFinancialPage() {
 
   // Load Data
   const loadSpendingReport = React.useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else if (!cachedExpensesState || cachedExpensesState.preset !== datePreset) {
+      setLoading(true);
+    }
 
     try {
       const dates = getDateRangeParams();
       const res = await getUnifiedFinancialSpendingReport(dates);
       if (res.success && res.data) {
         setSpendingData(res.data);
-      } else {
+        const freshCache = { data: res.data, preset: datePreset, timestamp: Date.now() };
+        cachedExpensesState = freshCache;
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(EXPENSES_STORAGE_KEY, JSON.stringify(freshCache));
+          } catch {
+            // Ignore
+          }
+        }
+      } else if (!cachedExpensesState) {
         addToast({
           type: "error",
           title: "Failed to load report",
@@ -104,16 +147,18 @@ export default function UnifiedExpensesFinancialPage() {
         });
       }
     } catch (err: unknown) {
-      addToast({
-        type: "error",
-        title: "Connection Error",
-        message: err instanceof Error ? err.message : "Failed to load expenses data.",
-      });
+      if (!cachedExpensesState) {
+        addToast({
+          type: "error",
+          title: "Connection Error",
+          message: err instanceof Error ? err.message : "Failed to load expenses data.",
+        });
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [getDateRangeParams, addToast]);
+  }, [getDateRangeParams, datePreset, addToast]);
 
   React.useEffect(() => {
     loadSpendingReport();
@@ -448,9 +493,9 @@ export default function UnifiedExpensesFinancialPage() {
           </span>
         </div>
 
-        {loading ? (
+        {loading && !spendingData ? (
           <div className="py-12 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-            <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+            <RefreshCw className="h-4 w-4 animate-spin text-cyan-600" />
             <span>Loading spending records...</span>
           </div>
         ) : filteredTransactions.length === 0 ? (

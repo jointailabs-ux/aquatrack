@@ -75,9 +75,6 @@ interface CategoryTabConfig {
   label: string;
   labelBn: string;
   icon: React.ComponentType<{ className?: string }>;
-  badgeBg: string;
-  activeColor: string;
-  inactiveColor: string;
 }
 
 const CATEGORY_TABS: CategoryTabConfig[] = [
@@ -86,45 +83,30 @@ const CATEGORY_TABS: CategoryTabConfig[] = [
     label: "All Items",
     labelBn: "সব পণ্য",
     icon: Layers,
-    badgeBg: "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-500/40",
-    activeColor: "bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/30 border-2 border-indigo-300 dark:border-indigo-400 font-bold",
-    inactiveColor: "bg-card hover:bg-muted text-foreground border-2 border-border hover:border-indigo-400 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800",
   },
   {
     id: "REFILLABLE_WATER",
     label: "Refill Jars",
     labelBn: "রিফিল জার",
     icon: Droplets,
-    badgeBg: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950/80 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/40",
-    activeColor: "bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-600 text-white font-bold shadow-md shadow-cyan-500/30 border-2 border-cyan-300",
-    inactiveColor: "bg-card hover:bg-muted text-foreground border-2 border-border hover:border-cyan-400 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800",
   },
   {
     id: "PACKAGED_WATER",
     label: "Bottled Cases",
     labelBn: "বোতল পানি",
     icon: Package,
-    badgeBg: "bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-300 dark:border-sky-500/40",
-    activeColor: "bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-sky-500/30 border-2 border-sky-300",
-    inactiveColor: "bg-card hover:bg-muted text-foreground border-2 border-border hover:border-sky-400 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800",
   },
   {
     id: "EMPTY_JAR_ASSET",
     label: "Empty Jars",
     labelBn: "খালি জার",
     icon: Boxes,
-    badgeBg: "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40",
-    activeColor: "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white font-bold shadow-md shadow-amber-500/30 border-2 border-amber-300",
-    inactiveColor: "bg-card hover:bg-muted text-foreground border-2 border-border hover:border-amber-400 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800",
   },
   {
     id: "DISPENSER_EQUIPMENT",
     label: "Dispensers",
     labelBn: "যন্ত্রপাতি",
     icon: ArrowUpDown,
-    badgeBg: "bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300 dark:border-purple-500/40",
-    activeColor: "bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white font-bold shadow-md shadow-purple-500/30 border-2 border-purple-300",
-    inactiveColor: "bg-card hover:bg-muted text-foreground border-2 border-border hover:border-purple-400 dark:bg-slate-900/80 dark:hover:bg-slate-800 dark:text-slate-200 dark:border-slate-800",
   },
 ];
 
@@ -678,8 +660,10 @@ export default function SingleWarehouseInventoryPage() {
                     key={tab.id}
                     type="button"
                     onClick={() => setCategoryFilter(tab.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black shrink-0 whitespace-nowrap cursor-pointer active:scale-95 transition-all shadow-xs ${
-                      isSelected ? tab.activeColor : tab.inactiveColor
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold shrink-0 whitespace-nowrap cursor-pointer active:scale-95 transition-all shadow-xs ${
+                      isSelected
+                        ? "bg-cyan-600 text-white shadow-xs"
+                        : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />

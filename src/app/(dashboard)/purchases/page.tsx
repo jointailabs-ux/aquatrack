@@ -60,22 +60,48 @@ interface ReceiveItemFormRow {
 }
 
 // Module-level client cache for instant purchases navigation
+const PURCHASES_STORAGE_KEY = "aquatrack_purchases_cache_v2";
+
 let cachedPurchasesState: {
   purchases: PurchaseRecord[];
   suppliers: SupplierRecord[];
   products: ProductRecord[];
+  timestamp: number;
 } | null = null;
+
+function getInitialPurchasesData() {
+  if (cachedPurchasesState && cachedPurchasesState.purchases.length > 0) {
+    return cachedPurchasesState;
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(PURCHASES_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed?.purchases)) {
+          cachedPurchasesState = parsed;
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore cache error
+    }
+  }
+  return null;
+}
 
 export default function PurchasesPage() {
   const { addToast } = useToast();
+  const initialCache = React.useMemo(() => getInitialPurchasesData(), []);
 
   // Primary Data with instant cache initialization
-  const [purchases, setPurchases] = React.useState<PurchaseRecord[]>(() => cachedPurchasesState?.purchases || []);
-  const [suppliers, setSuppliers] = React.useState<SupplierRecord[]>(() => cachedPurchasesState?.suppliers || []);
-  const [products, setProducts] = React.useState<ProductRecord[]>(() => cachedPurchasesState?.products || []);
+  const [purchases, setPurchases] = React.useState<PurchaseRecord[]>(() => initialCache?.purchases || []);
+  const [suppliers, setSuppliers] = React.useState<SupplierRecord[]>(() => initialCache?.suppliers || []);
+  const [products, setProducts] = React.useState<ProductRecord[]>(() => initialCache?.products || []);
 
   // State
-  const [isLoading, setIsLoading] = React.useState<boolean>(() => !cachedPurchasesState);
+  const [isLoading, setIsLoading] = React.useState<boolean>(() => !initialCache);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL");
@@ -115,8 +141,10 @@ export default function PurchasesPage() {
   const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
 
   // Load Data
-  const loadData = React.useCallback(async () => {
-    if (!cachedPurchasesState) {
+  const loadData = React.useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+    } else if (!cachedPurchasesState || cachedPurchasesState.purchases.length === 0) {
       setIsLoading(true);
     }
     setLoadError(null);
@@ -139,21 +167,33 @@ export default function PurchasesPage() {
       setSuppliers(freshSuppliers);
       setProducts(freshProducts);
 
-      cachedPurchasesState = {
+      const freshState = {
         purchases: freshPurchases,
         suppliers: freshSuppliers,
         products: freshProducts,
+        timestamp: Date.now(),
       };
+      cachedPurchasesState = freshState;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(PURCHASES_STORAGE_KEY, JSON.stringify(freshState));
+        } catch {
+          // Ignore
+        }
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load purchase data.";
-      setLoadError(msg);
+      if (!cachedPurchasesState || cachedPurchasesState.purchases.length === 0) {
+        setLoadError(msg);
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
   React.useEffect(() => {
-    loadData();
+    loadData(false);
   }, [loadData]);
 
   React.useEffect(() => {
@@ -627,43 +667,44 @@ export default function PurchasesPage() {
   }, [purchases]);
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Supplier Procurement & Purchase Orders
+    <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
+      {/* 1. VISUAL PAGE HEADER */}
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-blue-700 via-indigo-700 to-cyan-600 p-5 sm:p-7 text-white shadow-lg">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold text-white mb-2">
+              <ShoppingBag className="h-4 w-4 text-cyan-200" />
+              <span>সাপ্লায়ার পারচেজ ও স্টক জমা (Supplier Purchase Orders)</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Purchase Orders & Stock
             </h1>
-            <Badge variant="primary" className="text-xs">
-              Procurement & Inward Stock
-            </Badge>
+            <p className="text-xs sm:text-sm text-cyan-100 font-medium mt-1 max-w-2xl">
+              Procure wholesale water, jar assets, and bottles. Purchased items directly increase warehouse stock.
+            </p>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Procure wholesale water, jar assets, and accessories. Inventory increments strictly upon confirmed goods receipt.
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadData}
-            disabled={isLoading}
-            className="gap-1.5 text-xs"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => loadData(true)}
+              disabled={isRefreshing}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/30 text-xs font-bold backdrop-blur-xs cursor-pointer shadow-xs"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              Refresh (রিফ্রেশ)
+            </Button>
 
-          <Button
-            size="sm"
-            onClick={handleOpenCreateModal}
-            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
-          >
-            <Plus className="h-4 w-4" />
-            Create Purchase Order
-          </Button>
+            <Button
+              size="sm"
+              onClick={handleOpenCreateModal}
+              className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-md shadow-cyan-950/20 cursor-pointer active:scale-95 transition-all"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              + Create Purchase Order (নতুন অর্ডার)
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -775,10 +816,10 @@ export default function PurchasesPage() {
         </CardHeader>
 
         <CardContent className="p-0">
-          {isLoading ? (
+          {isLoading && purchases.length === 0 ? (
             <LoadingState message="Loading procurement records and inward receipts..." />
-          ) : loadError ? (
-            <ErrorState message={loadError} onRetry={loadData} />
+          ) : loadError && purchases.length === 0 ? (
+            <ErrorState message={loadError} onRetry={() => loadData(true)} />
           ) : filteredPurchases.length === 0 ? (
             <EmptyState
               icon={ShoppingBag}
@@ -836,16 +877,26 @@ export default function PurchasesPage() {
                     {/* Status Badges */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {p.status === "RECEIVED" ? (
-                        <Badge variant="success" className="text-[9px] py-0">Stock Added</Badge>
+                        <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold py-0.5">
+                          Stock Added to Inventory (মজুত যুক্ত)
+                        </Badge>
                       ) : p.status === "PARTIALLY_RECEIVED" ? (
-                        <Badge variant="primary" className="text-[9px] py-0">Partial Receipt</Badge>
+                        <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[10px] font-bold py-0.5">
+                          Partially Received
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[9px] py-0 text-amber-500 border-amber-500/30">Pending Receipt</Badge>
+                        <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold py-0.5">
+                          Pending Receipt (অপেক্ষমাণ)
+                        </Badge>
                       )}
                       {p.balance_due <= 0 ? (
-                        <Badge variant="outline" className="text-[9px] py-0 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">Settled</Badge>
+                        <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-0 text-[10px] font-bold py-0.5">
+                          Settled
+                        </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[9px] py-0 text-rose-500 border-rose-500/30">Unpaid</Badge>
+                        <Badge className="bg-rose-500/10 text-rose-700 dark:text-rose-300 border-0 text-[10px] font-bold py-0.5">
+                          Unpaid
+                        </Badge>
                       )}
                     </div>
 
@@ -954,19 +1005,18 @@ export default function PurchasesPage() {
                       </td>
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         {p.status === "RECEIVED" ? (
-                          <Badge variant="success" className="text-[10px] py-0">
-                            Stock Added
+                          <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold py-0.5">
+                            Stock Added (মজুত যুক্ত)
                           </Badge>
                         ) : p.status === "PARTIALLY_RECEIVED" ? (
-                          <Badge variant="primary" className="text-[10px] py-0">
+                          <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 text-[10px] font-bold py-0.5">
                             Partial Receipt
                           </Badge>
                         ) : p.status === "ORDERED" ? (
                           <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 text-amber-500 border-amber-500/30"
+                            className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold py-0.5"
                           >
-                            Pending Receipt
+                            Pending Receipt (অপেক্ষমাণ)
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] py-0">
