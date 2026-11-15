@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   BarChart3,
   TrendingUp,
@@ -22,6 +23,11 @@ import { EnterpriseFinancialReport } from "@/modules/finance/finance.schema";
 import { formatCurrency } from "@/lib/utils";
 
 export default function FinancialReportsPage() {
+  const router = useRouter();
+  React.useEffect(() => {
+    router.replace("/expenses");
+  }, [router]);
+
   const [report, setReport] = React.useState<EnterpriseFinancialReport | null>(null);
   const [selectedPeriod, setSelectedPeriod] = React.useState<
     "THIS_MONTH" | "LAST_MONTH" | "THIS_QUARTER" | "THIS_YEAR" | "ALL" | "CUSTOM"

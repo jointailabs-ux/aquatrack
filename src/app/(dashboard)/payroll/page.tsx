@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   CreditCard,
   CheckCircle2,
@@ -39,6 +40,11 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 type ActiveTab = "PAYROLL" | "ADVANCES";
 
 export default function StaffSalaryPage() {
+  const router = useRouter();
+  React.useEffect(() => {
+    router.replace("/expenses");
+  }, [router]);
+
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = React.useState<ActiveTab>("PAYROLL");
   const [loading, setLoading] = React.useState(true);

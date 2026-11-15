@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Tag,
   Search,
@@ -58,6 +59,10 @@ let cachedPricingState: {
 } | null = null;
 
 export default function PricingPage() {
+  const router = useRouter();
+  React.useEffect(() => {
+    router.replace("/orders");
+  }, [router]);
   const { addToast } = useToast();
 
   // Data with instant cache initialization

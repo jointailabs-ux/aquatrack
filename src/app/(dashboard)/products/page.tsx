@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Package,
   Plus,
@@ -132,6 +133,11 @@ const DEFAULT_FORM_STATE: FormState = {
 };
 
 export default function ProductsPage() {
+  const router = useRouter();
+  React.useEffect(() => {
+    router.replace("/inventory");
+  }, [router]);
+
   const { addToast } = useToast();
 
   const [products, setProducts] = React.useState<ProductRecord[]>([]);

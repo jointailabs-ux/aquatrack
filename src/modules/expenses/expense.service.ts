@@ -9,6 +9,8 @@ import {
   ExpenseRecord,
   RecordExpenseInput,
   RecordExpenseSchema,
+  UnifiedExpenseItem,
+  UnifiedFinancialSpendingSummary,
 } from "./expense.schema";
 
 /**
@@ -220,6 +222,209 @@ export async function getExpenseSummaryByCategory(): Promise<ActionResponse<Expe
     return { success: true, data: breakdown };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to calculate expense breakdown.";
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Unified Financial Spending Report
+ * Aggregates all money going out:
+ * 1. Supplier Purchases (Inbound water/bottles/jars purchase orders)
+ * 2. Staff Salaries (Monthly payroll & salary disbursements)
+ * 3. Daily Operational Expenses (Fuel, Vehicle repair, Tea/Meals, Rent)
+ */
+export async function getUnifiedFinancialSpendingReport(params?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<ActionResponse<UnifiedFinancialSpendingSummary>> {
+  try {
+    const supabase = await createClient();
+
+    let expQuery = supabase
+      .from("expenses")
+      .select("id, voucher_number, amount, category, expense_date, payment_method, vehicle_number, description, created_at")
+      .order("expense_date", { ascending: false });
+
+    let purchQuery = supabase
+      .from("purchases")
+      .select("id, po_number, total_amount, payment_status, purchase_date, created_at, supplier:suppliers(name)")
+      .order("purchase_date", { ascending: false });
+
+    let salQuery = supabase
+      .from("salary_payments")
+      .select("id, amount, payment_date, payment_method, notes, created_at, staff_id, staff:profiles(full_name)")
+      .order("payment_date", { ascending: false });
+
+    const profilesQuery = supabase
+      .from("profiles")
+      .select("id, full_name, salary_amount, salary_type")
+      .eq("role", "staff")
+      .eq("is_active", true);
+
+    if (params?.startDate) {
+      expQuery = expQuery.gte("expense_date", params.startDate);
+      purchQuery = purchQuery.gte("purchase_date", params.startDate);
+      salQuery = salQuery.gte("payment_date", params.startDate);
+    }
+    if (params?.endDate) {
+      expQuery = expQuery.lte("expense_date", params.endDate);
+      purchQuery = purchQuery.lte("purchase_date", params.endDate);
+      salQuery = salQuery.lte("payment_date", params.endDate);
+    }
+
+    const [expRes, purchRes, salRes, profilesRes] = await Promise.all([
+      expQuery,
+      purchQuery,
+      salQuery,
+      profilesQuery,
+    ]);
+
+    const items: UnifiedExpenseItem[] = [];
+    let purchasesTotal = 0;
+    let salariesTotal = 0;
+    let operationsTotal = 0;
+    let fuelTotal = 0;
+    let repairsTotal = 0;
+    let otherTotal = 0;
+
+    // A. Operational Expenses
+    (expRes.data || []).forEach((row) => {
+      const amt = Number(row.amount || 0);
+      operationsTotal += amt;
+      if (row.category === "FUEL") fuelTotal += amt;
+      else if (row.category === "VEHICLE_MAINTENANCE" || row.category === "REPAIRS") repairsTotal += amt;
+      else otherTotal += amt;
+
+      items.push({
+        id: row.id,
+        sourceType: "EXPENSE",
+        category: row.category,
+        categoryLabel:
+          row.category === "FUEL"
+            ? "Fuel (জ্বালানি)"
+            : row.category === "VEHICLE_MAINTENANCE"
+            ? "Vehicle Repair (গাড়ি মেরামত)"
+            : row.category.replace(/_/g, " "),
+        date: row.expense_date,
+        amount: amt,
+        paymentMethod: row.payment_method || "CASH",
+        description: row.description,
+        reference: row.voucher_number,
+        vehicleNumber: row.vehicle_number,
+        createdAt: row.created_at,
+      });
+    });
+
+    // B. Supplier Purchases
+    interface PurchaseRow {
+      id: string;
+      po_number: string;
+      total_amount: number | string;
+      payment_status: string;
+      purchase_date: string;
+      created_at: string;
+      supplier?: { name: string } | null;
+    }
+    ((purchRes.data as unknown as PurchaseRow[]) || []).forEach((p) => {
+      const amt = Number(p.total_amount || 0);
+      purchasesTotal += amt;
+
+      const supplierName = p.supplier?.name || "Water Plant / Supplier";
+      items.push({
+        id: p.id,
+        sourceType: "PURCHASE",
+        category: "PURCHASE",
+        categoryLabel: "Supplier Purchase (মাল কেনা)",
+        date: p.purchase_date || (p.created_at ? p.created_at.split("T")[0] : new Date().toISOString().split("T")[0]),
+        amount: amt,
+        paymentMethod: p.payment_status || "CREDIT",
+        description: `Stock Purchase: ${supplierName}`,
+        reference: p.po_number,
+        supplierName,
+        createdAt: p.created_at || new Date().toISOString(),
+      });
+    });
+
+    // C. Staff Salary Payments
+    interface SalaryPaymentRow {
+      id: string;
+      amount: number | string;
+      payment_date: string;
+      payment_method: string;
+      notes?: string | null;
+      created_at: string;
+      staff_id?: string | null;
+      staff?: { full_name: string } | null;
+    }
+    const paidStaffIds = new Set<string>();
+    ((salRes.data as unknown as SalaryPaymentRow[]) || []).forEach((s) => {
+      const amt = Number(s.amount || 0);
+      salariesTotal += amt;
+      const staffName = s.staff?.full_name || "Staff Member";
+      if (s.staff_id) paidStaffIds.add(s.staff_id);
+
+      items.push({
+        id: s.id,
+        sourceType: "SALARY",
+        category: "SALARY",
+        categoryLabel: "Staff Salary Payment (বেতন পরিশোধ)",
+        date: s.payment_date || (s.created_at ? s.created_at.split("T")[0] : new Date().toISOString().split("T")[0]),
+        amount: amt,
+        paymentMethod: s.payment_method || "BANK_TRANSFER",
+        description: `Salary Paid: ${staffName}${s.notes ? ` (${s.notes})` : ""}`,
+        staffName,
+        createdAt: s.created_at || new Date().toISOString(),
+      });
+    });
+
+    // D. Active Staff Monthly Salary Accrual
+    interface ProfileStaffRow {
+      id: string;
+      full_name: string;
+      salary_amount: number | string;
+      salary_type?: string | null;
+    }
+    ((profilesRes.data as unknown as ProfileStaffRow[]) || []).forEach((prof) => {
+      const sal = Number(prof.salary_amount || 0);
+      if (sal > 0 && !paidStaffIds.has(prof.id)) {
+        salariesTotal += sal;
+        const now = new Date();
+        const monthDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+        items.push({
+          id: `salary-accrual-${prof.id}`,
+          sourceType: "SALARY",
+          category: "SALARY",
+          categoryLabel: "Staff Monthly Salary (মাসিক বেতন)",
+          date: monthDate,
+          amount: sal,
+          paymentMethod: "MONTHLY_PAYROLL",
+          description: `Staff Monthly Salary: ${prof.full_name}`,
+          staffName: prof.full_name,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    });
+
+    // Sort all transactions by date descending
+    items.sort((a, b) => b.date.localeCompare(a.date));
+
+    const totalSpent = purchasesTotal + salariesTotal + operationsTotal;
+
+    return {
+      success: true,
+      data: {
+        totalSpent,
+        purchasesTotal,
+        salariesTotal,
+        operationsTotal,
+        fuelTotal,
+        repairsTotal,
+        otherTotal,
+        items,
+      },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to compile financial spending report.";
     return { success: false, error: message };
   }
 }

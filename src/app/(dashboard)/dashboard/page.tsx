@@ -20,8 +20,10 @@ import {
   ChevronUp,
   PlusCircle,
   UserPlus,
-  Zap,
   UserCheck,
+  Phone,
+  MapPin,
+  Search,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -33,6 +35,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { getDashboardSummary } from "@/modules/dashboard/dashboard.service";
+import { getOrders } from "@/modules/orders/order.service";
+import { OrderRecord } from "@/modules/orders/order.schema";
 import {
   DashboardDateRangeType,
   DashboardRecentActivityItem,
@@ -99,6 +103,32 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showMobileAnalytics, setShowMobileAnalytics] = React.useState<boolean>(false);
+
+  // Live Orders List & Interactive Filters
+  const [ordersList, setOrdersList] = React.useState<OrderRecord[]>([]);
+  const [ordersLoading, setOrdersLoading] = React.useState<boolean>(false);
+  const [orderSearchQuery, setOrderSearchQuery] = React.useState<string>("");
+  const [orderDatePreset, setOrderDatePreset] = React.useState<"ALL" | "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH">("ALL");
+  const [orderStatusFilter, setOrderStatusFilter] = React.useState<"ALL" | "PENDING" | "ASSIGNED" | "DELIVERED">("ALL");
+  const [orderPaymentFilter, setOrderPaymentFilter] = React.useState<"ALL" | "PAID" | "DUE">("ALL");
+
+  const fetchOrders = React.useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const res = await getOrders();
+      if (res.success && res.data) {
+        setOrdersList(res.data);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const fetchSummary = React.useCallback(
     async (range: DashboardDateRangeType, from?: string, to?: string, isRefresh = false) => {
@@ -177,6 +207,65 @@ export default function DashboardPage() {
     e.preventDefault();
     if (!customFrom || !customTo) return;
     fetchSummary("custom", customFrom, customTo);
+  };
+
+  const handleRefresh = React.useCallback(() => {
+    fetchSummary(dateRange, customFrom, customTo, true);
+    fetchOrders();
+  }, [fetchSummary, dateRange, customFrom, customTo, fetchOrders]);
+
+  const filteredDashboardOrders = React.useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = yesterdayDate.toISOString().split("T")[0];
+    const weekAgoDate = new Date();
+    weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+    const weekAgo = weekAgoDate.toISOString().split("T")[0];
+    const monthStartDate = new Date();
+    const monthStart = new Date(monthStartDate.getFullYear(), monthStartDate.getMonth(), 1).toISOString().split("T")[0];
+
+    return ordersList.filter((o) => {
+      // 1. Search Query
+      const q = orderSearchQuery.toLowerCase().trim();
+      if (q) {
+        const matchesSearch =
+          o.order_number.toLowerCase().includes(q) ||
+          (o.customer_name && o.customer_name.toLowerCase().includes(q)) ||
+          (o.customer_phone && o.customer_phone.includes(q)) ||
+          (o.delivery_address && o.delivery_address.toLowerCase().includes(q)) ||
+          (o.items && o.items.some((i) => (i.product_name || "").toLowerCase().includes(q)));
+        if (!matchesSearch) return false;
+      }
+
+      // 2. Status Filter
+      if (orderStatusFilter !== "ALL") {
+        if (orderStatusFilter === "PENDING" && o.status !== "PENDING") return false;
+        if (orderStatusFilter === "ASSIGNED" && o.status !== "ASSIGNED" && o.status !== "OUT_FOR_DELIVERY") return false;
+        if (orderStatusFilter === "DELIVERED" && o.status !== "DELIVERED") return false;
+      }
+
+      // 3. Payment Filter
+      if (orderPaymentFilter === "PAID" && o.payment_status !== "PAID") return false;
+      if (orderPaymentFilter === "DUE" && o.payment_status === "PAID") return false;
+
+      // 4. Date Filter
+      const dDate = o.delivery_date || (o.created_at ? o.created_at.split("T")[0] : "");
+      if (orderDatePreset === "TODAY" && dDate !== today) return false;
+      if (orderDatePreset === "YESTERDAY" && dDate !== yesterday) return false;
+      if (orderDatePreset === "THIS_WEEK" && (dDate < weekAgo || dDate > today)) return false;
+      if (orderDatePreset === "THIS_MONTH" && dDate < monthStart) return false;
+
+      return true;
+    });
+  }, [ordersList, orderSearchQuery, orderStatusFilter, orderPaymentFilter, orderDatePreset]);
+
+  const getProductIcon = (item: { product_name?: string; is_reusable_jar?: boolean }) => {
+    if (item.is_reusable_jar) return "💧";
+    const name = (item.product_name || "").toLowerCase();
+    if (name.includes("bottle") || name.includes("ml") || name.includes("liter") || name.includes("litre")) return "🍾";
+    if (name.includes("dispenser") || name.includes("tap") || name.includes("stand")) return "🚰";
+    return "📦";
   };
 
   const activityColumns = [
@@ -388,12 +477,12 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchSummary(dateRange, customFrom, customTo, true)}
-              disabled={refreshing}
+              onClick={handleRefresh}
+              disabled={refreshing || ordersLoading}
               className="h-8 px-2 text-xs rounded-xl"
               aria-label="Refresh data"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing || ordersLoading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
@@ -570,82 +659,218 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Live Running Orders Feed */}
-        {dashboardData?.runningOrders && dashboardData.runningOrders.length > 0 && (
-          <div className="rounded-2xl border border-sky-500/30 bg-gradient-to-br from-white via-sky-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-sky-950/20 dark:to-slate-900 p-3.5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                  Currently Running Orders ({dashboardData.runningOrders.length})
-                </span>
-              </div>
-              <Link
-                href="/orders"
-                className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-0.5"
-              >
-                Dispatch Center ›
-              </Link>
+        {/* Live Orders & Deliveries with Interactive Filters */}
+        <div className="rounded-2xl border border-sky-500/30 bg-card p-3.5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+              <span className="text-xs font-black text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Truck className="h-4 w-4 text-sky-500" />
+                Live Orders & Deliveries (অর্ডার ও ডেলিভারি)
+              </span>
             </div>
+            <Link
+              href="/orders"
+              className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-0.5"
+            >
+              All Orders ({ordersList.length}) ›
+            </Link>
+          </div>
 
-            <div className="space-y-2">
-              {dashboardData.runningOrders.slice(0, 4).map((ro) => (
-                <div
-                  key={ro.id}
-                  className="rounded-xl border border-border/80 bg-background/80 backdrop-blur-xs p-2.5 space-y-2 shadow-2xs"
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search order #, customer, phone, address..."
+              value={orderSearchQuery}
+              onChange={(e) => setOrderSearchQuery(e.target.value)}
+              className="pl-8 h-8 text-xs bg-muted/40 border-border rounded-xl"
+            />
+          </div>
+
+          {/* Date Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+            {[
+              { id: "ALL", label: "All (সব)" },
+              { id: "TODAY", label: "Today (আজ)" },
+              { id: "YESTERDAY", label: "Yesterday (গতকাল)" },
+              { id: "THIS_WEEK", label: "This Week (সপ্তাহ)" },
+              { id: "THIS_MONTH", label: "This Month (মাস)" },
+            ].map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setOrderDatePreset(d.id as "ALL" | "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH")}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg shrink-0 transition-all cursor-pointer ${
+                  orderDatePreset === d.id
+                    ? "bg-sky-600 text-white shadow-xs"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Status Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+            {[
+              { id: "ALL", label: "All Status" },
+              { id: "PENDING", label: "Pending (বাকি)" },
+              { id: "ASSIGNED", label: "With Driver (গাড়িতে)" },
+              { id: "DELIVERED", label: "Delivered (সম্পন্ন)" },
+            ].map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setOrderStatusFilter(s.id as "ALL" | "PENDING" | "ASSIGNED" | "DELIVERED")}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg shrink-0 transition-all cursor-pointer ${
+                  orderStatusFilter === s.id
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Payment Filter Pills */}
+          <div className="flex items-center justify-between gap-1.5 pt-0.5 border-t border-border/40">
+            <div className="flex items-center gap-1">
+              {[
+                { id: "ALL", label: "All Payments" },
+                { id: "PAID", label: "Paid (পরিশোধ)" },
+                { id: "DUE", label: "Due (বাকি)" },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setOrderPaymentFilter(p.id as "ALL" | "PAID" | "DUE")}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 transition-all cursor-pointer ${
+                    orderPaymentFilter === p.id
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-mono font-bold text-[11px] text-foreground">
-                        {ro.orderNumber}
-                      </span>
-                      <Badge
-                        variant={ro.status === "ASSIGNED" ? "primary" : "warning"}
-                        className="text-[9px] py-0 px-1"
-                      >
-                        {ro.status.replace(/_/g, " ")}
-                      </Badge>
-                    </div>
-                    <span className="text-xs font-black text-foreground">
-                      {formatCurrency(ro.totalAmount)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px]">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <h5 className="font-bold text-foreground truncate">{ro.customerName}</h5>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {ro.deliveryAddress || "Standard Route Delivery"}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[10px] text-muted-foreground block">Assigned Staff</span>
-                      <span className="font-bold text-sky-700 dark:text-sky-300 inline-flex items-center gap-0.5 text-[11px]">
-                        <UserCheck className="h-3 w-3" />
-                        {ro.assignedStaffName}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Delivery progress */}
-                  <div className="pt-1.5 border-t border-border/40">
-                    <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground mb-1">
-                      <span className="truncate max-w-[200px]">📦 {ro.itemsSummary}</span>
-                      <span>{ro.deliveredQuantity}/{ro.totalQuantity} Delivered ({ro.deliveryProgressPct}%)</span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 rounded-full"
-                        style={{ width: `${Math.max(5, ro.deliveryProgressPct)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                  {p.label}
+                </button>
               ))}
             </div>
+            <span className="text-[10px] font-semibold text-muted-foreground">
+              {filteredDashboardOrders.length} order(s)
+            </span>
           </div>
-        )}
+
+          {/* Order Cards List */}
+          <div className="space-y-2 pt-1">
+            {ordersLoading ? (
+              <div className="py-6 text-center text-xs text-muted-foreground animate-pulse">
+                Loading orders...
+              </div>
+            ) : filteredDashboardOrders.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                <Truck className="h-6 w-6 text-muted-foreground/30 mx-auto mb-1.5" />
+                No orders match your active filter.
+              </div>
+            ) : (
+              filteredDashboardOrders.slice(0, 8).map((ro) => {
+                const isDelivered = ro.status === "DELIVERED";
+                const isAssigned = ro.status === "ASSIGNED" || ro.status === "OUT_FOR_DELIVERY";
+                const isPaid = ro.payment_status === "PAID";
+
+                return (
+                  <div
+                    key={ro.id}
+                    className="rounded-xl border border-border/80 bg-background/90 p-3 space-y-2 shadow-2xs hover:border-sky-400/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                        <span className="font-mono font-bold text-xs text-foreground">
+                          {ro.order_number}
+                        </span>
+                        <Badge
+                          variant={isDelivered ? "success" : isAssigned ? "primary" : "warning"}
+                          className="text-[9px] py-0 px-1.5 font-bold"
+                        >
+                          {ro.status.replace(/_/g, " ")}
+                        </Badge>
+                        <Badge
+                          variant={isPaid ? "success" : "warning"}
+                          className="text-[9px] py-0 px-1.5 font-bold"
+                        >
+                          {isPaid ? "PAID" : "UNPAID / DUE"}
+                        </Badge>
+                      </div>
+                      <span className="text-sm font-black text-foreground shrink-0">
+                        {formatCurrency(ro.total_amount)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-start justify-between gap-2 text-xs">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-foreground truncate">
+                          {ro.customer_name || "Guest Customer"}
+                        </div>
+                        {ro.customer_phone && (
+                          <a
+                            href={`tel:${ro.customer_phone}`}
+                            className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold inline-flex items-center gap-1 hover:underline"
+                          >
+                            <Phone className="h-2.5 w-2.5" />
+                            {ro.customer_phone}
+                          </a>
+                        )}
+                        {ro.delivery_address && (
+                          <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                            <MapPin className="h-2.5 w-2.5 shrink-0 text-muted-foreground/60" />
+                            {ro.delivery_address}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-muted-foreground block">
+                          {ro.delivery_date || (ro.created_at ? ro.created_at.split("T")[0] : "")}
+                        </span>
+                        <span className="text-[10px] font-bold text-sky-700 dark:text-sky-300 inline-flex items-center gap-0.5">
+                          <UserCheck className="h-2.5 w-2.5" />
+                          {ro.assigned_staff_name || "Unassigned"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Items pills */}
+                    {ro.items && ro.items.length > 0 && (
+                      <div className="pt-1.5 border-t border-border/40 flex flex-wrap gap-1">
+                        {ro.items.map((it, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-[10px] font-semibold text-foreground"
+                          >
+                            <span>{getProductIcon(it)}</span>
+                            <span>{it.quantity} × {it.product_name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+
+            {filteredDashboardOrders.length > 8 && (
+              <div className="pt-1 text-center">
+                <Link
+                  href="/orders"
+                  className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline"
+                >
+                  View all {filteredDashboardOrders.length} orders in Order Center ›
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* E. Operational Alerts (if any) */}
         {alerts.length > 0 && (
@@ -826,11 +1051,11 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fetchSummary(dateRange, customFrom, customTo, true)}
-              disabled={refreshing}
-              className="gap-2"
+              onClick={handleRefresh}
+              disabled={refreshing || ordersLoading}
+              className="gap-2 cursor-pointer"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing || ordersLoading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
           </div>
@@ -1214,6 +1439,247 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Live Orders & Deliveries Management with Full Filter Toolbar */}
+        <Card className="border-sky-500/20 shadow-sm">
+          <CardHeader className="pb-3 border-b border-border/60">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <Truck className="h-4 w-4 text-sky-500" />
+                  Live Orders & Deliveries (অর্ডার ও ডেলিভারি লিস্ট)
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Filter water orders by date, dispatch status, payment, and customer details.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link href="/orders?new=true">
+                  <Button size="sm" className="h-8 text-xs bg-sky-600 hover:bg-sky-500 text-white font-bold gap-1 cursor-pointer">
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    + New Order (নতুন অর্ডার)
+                  </Button>
+                </Link>
+                <Link href="/orders">
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                    Open Orders Center ›
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Filter Toolbar */}
+            <div className="pt-3 space-y-2.5">
+              {/* Row 1: Search & Date Presets */}
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search order #, customer, phone, address, product..."
+                    value={orderSearchQuery}
+                    onChange={(e) => setOrderSearchQuery(e.target.value)}
+                    className="pl-8 h-8 text-xs bg-muted/40 border-border rounded-xl"
+                  />
+                </div>
+
+                {/* Date Preset Buttons */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+                  <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1 shrink-0">
+                    <Calendar className="h-3.5 w-3.5" /> Date:
+                  </span>
+                  {[
+                    { id: "ALL", label: "All (সব)" },
+                    { id: "TODAY", label: "Today (আজ)" },
+                    { id: "YESTERDAY", label: "Yesterday (গতকাল)" },
+                    { id: "THIS_WEEK", label: "This Week (সপ্তাহ)" },
+                    { id: "THIS_MONTH", label: "This Month (মাস)" },
+                  ].map((d) => (
+                    <Button
+                      key={d.id}
+                      type="button"
+                      variant={orderDatePreset === d.id ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => setOrderDatePreset(d.id as "ALL" | "TODAY" | "YESTERDAY" | "THIS_WEEK" | "THIS_MONTH")}
+                      className="h-7 text-xs px-2.5 rounded-lg shrink-0 cursor-pointer"
+                    >
+                      {d.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Row 2: Status & Payment Filters */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/40">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs font-semibold text-muted-foreground mr-1">Status:</span>
+                  {[
+                    { id: "ALL", label: "All Status" },
+                    { id: "PENDING", label: "Pending (বাকি)" },
+                    { id: "ASSIGNED", label: "With Driver (গাড়িতে)" },
+                    { id: "DELIVERED", label: "Delivered (সম্পন্ন)" },
+                  ].map((s) => (
+                    <Button
+                      key={s.id}
+                      type="button"
+                      variant={orderStatusFilter === s.id ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => setOrderStatusFilter(s.id as "ALL" | "PENDING" | "ASSIGNED" | "DELIVERED")}
+                      className={`h-7 text-xs px-2.5 rounded-lg cursor-pointer ${
+                        orderStatusFilter === s.id && s.id === "DELIVERED"
+                          ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                          : ""
+                      }`}
+                    >
+                      {s.label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-muted-foreground mr-1">Payment:</span>
+                  {[
+                    { id: "ALL", label: "All Payments" },
+                    { id: "PAID", label: "Paid (পরিশোধ)" },
+                    { id: "DUE", label: "Due (বাকি)" },
+                  ].map((p) => (
+                    <Button
+                      key={p.id}
+                      type="button"
+                      variant={orderPaymentFilter === p.id ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => setOrderPaymentFilter(p.id as "ALL" | "PAID" | "DUE")}
+                      className={`h-7 text-xs px-2.5 rounded-lg cursor-pointer ${
+                        orderPaymentFilter === p.id && p.id === "DUE"
+                          ? "bg-amber-600 hover:bg-amber-500 text-white"
+                          : ""
+                      }`}
+                    >
+                      {p.label}
+                    </Button>
+                  ))}
+
+                  <span className="text-xs font-bold text-muted-foreground ml-2">
+                    Showing {filteredDashboardOrders.length} of {ordersList.length} orders
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="pt-4">
+            {ordersLoading ? (
+              <div className="py-12 text-center text-xs text-muted-foreground animate-pulse">
+                Loading orders data...
+              </div>
+            ) : filteredDashboardOrders.length === 0 ? (
+              <div className="py-12 text-center text-xs text-muted-foreground">
+                <Truck className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="font-semibold text-foreground">No orders matching your criteria</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Try resetting the date, status, or search filters above.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filteredDashboardOrders.slice(0, 9).map((ro) => {
+                  const isDelivered = ro.status === "DELIVERED";
+                  const isAssigned = ro.status === "ASSIGNED" || ro.status === "OUT_FOR_DELIVERY";
+                  const isPaid = ro.payment_status === "PAID";
+
+                  return (
+                    <div
+                      key={ro.id}
+                      className="rounded-xl border border-border/80 bg-background/90 p-3.5 space-y-2.5 shadow-2xs hover:border-sky-400/50 hover:shadow-xs transition-all flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                            <span className="font-mono font-bold text-xs text-foreground">
+                              {ro.order_number}
+                            </span>
+                            <Badge
+                              variant={isDelivered ? "success" : isAssigned ? "primary" : "warning"}
+                              className="text-[9px] py-0 px-1.5 font-bold"
+                            >
+                              {ro.status.replace(/_/g, " ")}
+                            </Badge>
+                            <Badge
+                              variant={isPaid ? "success" : "warning"}
+                              className="text-[9px] py-0 px-1.5 font-bold"
+                            >
+                              {isPaid ? "PAID" : "UNPAID / DUE"}
+                            </Badge>
+                          </div>
+                          <span className="text-sm font-black text-foreground shrink-0">
+                            {formatCurrency(ro.total_amount)}
+                          </span>
+                        </div>
+
+                        <div className="text-xs space-y-1">
+                          <div className="font-bold text-foreground truncate">
+                            {ro.customer_name || "Guest Customer"}
+                          </div>
+                          {ro.customer_phone && (
+                            <a
+                              href={`tel:${ro.customer_phone}`}
+                              className="text-[11px] text-sky-600 dark:text-sky-400 font-semibold inline-flex items-center gap-1 hover:underline"
+                            >
+                              <Phone className="h-3 w-3" />
+                              {ro.customer_phone}
+                            </a>
+                          )}
+                          {ro.delivery_address && (
+                            <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
+                              <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                              {ro.delivery_address}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Items pills */}
+                        {ro.items && ro.items.length > 0 && (
+                          <div className="pt-1.5 border-t border-border/40 flex flex-wrap gap-1">
+                            {ro.items.map((it, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-muted/60 text-[10px] font-semibold text-foreground"
+                              >
+                                <span>{getProductIcon(it)}</span>
+                                <span>{it.quantity} × {it.product_name}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span className="font-medium">
+                          📅 {ro.delivery_date || (ro.created_at ? ro.created_at.split("T")[0] : "")}
+                        </span>
+                        <span className="font-bold text-sky-700 dark:text-sky-300 inline-flex items-center gap-1">
+                          <UserCheck className="h-3 w-3" />
+                          {ro.assigned_staff_name || "Unassigned"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {filteredDashboardOrders.length > 9 && (
+              <div className="pt-3 text-center">
+                <Link
+                  href="/orders"
+                  className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1"
+                >
+                  View all {filteredDashboardOrders.length} orders in Full Orders Center <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Middle Row: Revenue & Collections Chart + Operational Alerts Center */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

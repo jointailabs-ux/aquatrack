@@ -155,6 +155,17 @@ export default function PurchasesPage() {
     loadData();
   }, [loadData]);
 
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "true" && suppliers.length > 0) {
+        handleOpenCreateModal();
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suppliers.length, products.length]);
+
   // Open Create PO Modal
   const handleOpenCreateModal = () => {
     setSelectedSupplierId(suppliers[0]?.id || "");

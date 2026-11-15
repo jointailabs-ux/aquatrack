@@ -50,3 +50,30 @@ export interface ExpenseCategoryBreakdown {
   transaction_count: number;
   percentage_of_total: number;
 }
+
+export interface UnifiedExpenseItem {
+  id: string;
+  sourceType: "EXPENSE" | "PURCHASE" | "SALARY";
+  category: string;
+  categoryLabel: string;
+  date: string;
+  amount: number;
+  paymentMethod: string;
+  description: string;
+  reference?: string | null;
+  supplierName?: string | null;
+  staffName?: string | null;
+  vehicleNumber?: string | null;
+  createdAt: string;
+}
+
+export interface UnifiedFinancialSpendingSummary {
+  totalSpent: number;
+  purchasesTotal: number;
+  salariesTotal: number;
+  operationsTotal: number;
+  fuelTotal: number;
+  repairsTotal: number;
+  otherTotal: number;
+  items: UnifiedExpenseItem[];
+}

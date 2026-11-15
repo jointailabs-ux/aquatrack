@@ -11,15 +11,10 @@ import {
   Building2,
   ShoppingBag,
   UserCheck,
-  CreditCard,
-  Tag,
   FileSpreadsheet,
-  BookOpen,
-  BarChart3,
   Settings,
   ShieldAlert,
   LogOut,
-  CalendarCheck,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -63,14 +58,7 @@ const DESTINATIONS: DestinationItem[] = [
     category: "operations",
   },
 
-  // Procurement & Catalog
-  {
-    title: "Products Catalog",
-    href: "/products",
-    description: "SKUs, pricing, GST & units",
-    icon: Package,
-    category: "procurement",
-  },
+  // Procurement
   {
     title: "Suppliers",
     href: "/suppliers",
@@ -82,16 +70,8 @@ const DESTINATIONS: DestinationItem[] = [
   {
     title: "Purchase Orders",
     href: "/purchases",
-    description: "Inbound stock receipts & POs",
+    description: "Inbound stock receipts & supplier orders",
     icon: ShoppingBag,
-    ownerOnly: true,
-    category: "procurement",
-  },
-  {
-    title: "Special Pricing",
-    href: "/pricing",
-    description: "Customer-specific rates",
-    icon: Tag,
     ownerOnly: true,
     category: "procurement",
   },
@@ -105,45 +85,14 @@ const DESTINATIONS: DestinationItem[] = [
     badge: "Deliveries",
     category: "workforce",
   },
-  {
-    title: "Salaries & Payroll",
-    href: "/payroll",
-    description: "Salary payments & advances",
-    icon: CreditCard,
-    ownerOnly: true,
-    category: "workforce",
-  },
-  {
-    title: "Staff Attendance",
-    href: "/attendance",
-    description: "Daily shifts & clock-ins",
-    icon: CalendarCheck,
-    ownerOnly: true,
-    category: "workforce",
-  },
 
   // Finance
   {
-    title: "Accounting & Ledger",
-    href: "/accounting",
-    description: "Double-entry financial journal",
-    icon: BookOpen,
-    ownerOnly: true,
-    category: "finance",
-  },
-  {
-    title: "Operating Expenses",
+    title: "Expenses & Money Spent (খরচ ও হিসাব)",
     href: "/expenses",
-    description: "Fuel, vehicle repairs & bills",
+    description: "Total money spent: supplier purchases, staff salaries & daily expenses",
     icon: FileSpreadsheet,
-    ownerOnly: true,
-    category: "finance",
-  },
-  {
-    title: "Financial Reports",
-    href: "/reports",
-    description: "P&L, balance sheet & analytics",
-    icon: BarChart3,
+    badge: "All Spending",
     ownerOnly: true,
     category: "finance",
   },

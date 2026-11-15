@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpen,
@@ -40,6 +41,11 @@ type PeriodType = "THIS_MONTH" | "LAST_MONTH" | "THIS_YEAR" | "ALL";
 type ActiveTab = "ACCOUNTS" | "JOURNAL";
 
 export default function AccountingPage() {
+  const router = useRouter();
+  React.useEffect(() => {
+    router.replace("/expenses");
+  }, [router]);
+
   const [activeTab, setActiveTab] = React.useState<ActiveTab>("ACCOUNTS");
   const [selectedPeriod, setSelectedPeriod] = React.useState<PeriodType>("THIS_MONTH");
   const [loading, setLoading] = React.useState(true);
